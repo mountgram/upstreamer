@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "skill-writer": {
+      "source": "getsentry/skills",
+      "sourceType": "github",
+      "skillPath": "skills/skill-writer/SKILL.md",
+      "computedHash": "f4feba459dc66cc907ab3e6beb1f107db411b49c92bf9f48dbecd9d05f5698c8"
+    }
+  }
+}
