@@ -47,7 +47,9 @@ upstreamer/
 
 ## upstreamer.md Format
 
-Each `upstreamer.md` is a markdown file with YAML frontmatter. The frontmatter defines the upstream source and sync schedule. The markdown body contains natural language instructions for the rewrite agent.
+Each `upstreamer.md` is a markdown file with YAML frontmatter. The frontmatter defines the upstream source and sync schedule. The markdown body contains natural language transformation rules specific to that codebase (what to keep, what to drop, how to rewrite).
+
+The generic conversion workflow (clone, evaluate, process, verify) is handled by the `upstreamer-converter` skill in `.agents/skills/upstreamer-converter/`.
 
 See [`codebases/tstack/upstreamer.md`](codebases/tstack/upstreamer.md) for a working example.
 
