@@ -121,7 +121,7 @@ Run the verification checklist from `upstreamer.md` and add these checks when re
 find <downstream-dir> -type f | sort
 find <downstream-dir> -mindepth 2 -maxdepth 2 -type f ! -name SKILL.md
 find <downstream-dir> -mindepth 3 -type f
-grep -RInE 'gstack|garrytan|~/.gstack|~/.tstack|~/.claude/skills/(gstack|tstack)|bin/(gstack|tstack)-|gstack-config|telemetry|analytics|gbrain|benchmark|session tracking|package.json|bun.lock' <downstream-dir> || true
+grep -RInE 'gstack|garrytan|~/.gstack|~/.tstack|~/.claude/skills/(gstack|tstack)|bin/(gstack|tstack)-|gstack-config|telemetry|analytics|gbrain|benchmark|session tracking|bun.lock' <downstream-dir> || true
 find <downstream-dir> -type f -perm +111
 ```
 

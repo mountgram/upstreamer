@@ -89,6 +89,8 @@ If a model does not stop after producing its final report, set `UPSTREAMER_TIMEO
 
 The last successfully processed upstream commit is tracked in `codebases/<name>/.upstreamer/state.yaml`. On later runs, the wrapper includes that commit in the opencode prompt so the conversion agent can inspect upstream changes since the previous run and update only affected downstream files. The agent should update `upstream_commit` only after verification passes.
 
+If the current upstream HEAD matches `upstream_commit` and `codebases/<name>/downstream` already exists, the wrapper runs the codebase verifier, writes a log, and exits without launching opencode.
+
 Additional opencode arguments can be passed after `--`:
 
 ```bash
