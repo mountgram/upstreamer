@@ -12,6 +12,9 @@ coverage
 
 # logs
 logs
+!codebases/*/.upstreamer/logs/
+codebases/*/.upstreamer/logs/*.log
+!codebases/*/.upstreamer/logs/.gitkeep
 _.log
 report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 

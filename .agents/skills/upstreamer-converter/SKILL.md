@@ -16,21 +16,27 @@ Convert an upstream repository into a synthetic downstream codebase following th
 
 ## Step 1: Acquire and inspect upstream
 
-1. Clone or open the upstream repository named by `upstreamer.md` in a temporary or workspace-safe location.
-2. Inspect the top-level tree to understand major directories, but do not preserve upstream structure by default.
-3. Build an inventory of every upstream `SKILL.md` before writing downstream files.
-4. Mark candidates inside removed directories separately; some rewrite contracts intentionally drop implementation directories while still allowing the contained `SKILL.md` to be evaluated.
+1. Clone or open the upstream repository named by `upstreamer.md` in a workspace-safe location. Prefer `tmp/upstreamer/<codebase>/upstream` inside the current workspace. Do not use `/tmp` or another external directory unless the user explicitly authorizes it.
+2. Read `.upstreamer/state.yaml` for `upstream_commit` when it exists. This is the last upstream commit that was successfully converted and verified.
+3. Record the current upstream `HEAD` commit before making downstream changes.
+4. If `UPSTREAM_COMMIT` exists and is an ancestor of current `HEAD`, inspect the upstream diff first with `git diff --name-status <UPSTREAM_COMMIT>..HEAD` and focus the update on changed files and affected skills.
+5. If there is no prior commit, the prior commit is missing upstream, or the downstream output does not exist, perform a full conversion.
+6. Inspect the top-level tree to understand major directories, but do not preserve upstream structure by default.
+7. Build an inventory of every upstream `SKILL.md` before writing downstream files. On incremental runs, include unchanged skills in the inventory but mark unchanged decisions as reused when appropriate.
+8. Mark candidates inside removed directories separately; some rewrite contracts intentionally drop implementation directories while still allowing the contained `SKILL.md` to be evaluated.
 
 Useful commands:
 
 ```bash
 git clone <upstream-url> <upstream-worktree>
 find <upstream-worktree> -name SKILL.md -type f | sort
+git -C <upstream-worktree> rev-parse HEAD
+git -C <upstream-worktree> diff --name-status <last-upstream-commit>..HEAD
 ```
 
 ## Step 2: Create the downstream skeleton
 
-1. Create a clean downstream output directory for the `downstream` repo name.
+1. Create a clean downstream output directory for the `downstream` repo name. Prefer `tmp/upstreamer/<codebase>/downstream` inside the current workspace unless the rewrite contract explicitly names another output location.
 2. Copy only baseline files allowed by `upstreamer.md`, usually `LICENSE` and `VERSION`.
 3. If `VERSION` is missing upstream, create a simple version file only when the rewrite contract allows it.
 4. Do not copy package manifests, lockfiles, CI, docs, generated files, templates, binaries, scripts, or infrastructure unless `upstreamer.md` explicitly says to keep them.
@@ -127,6 +133,16 @@ If verification fails:
 2. Re-run the failed check.
 3. Prefer a smaller coherent downstream set over a broad set with weak or infrastructure-dependent skills.
 
+## Step 9: Update sync state
+
+After downstream verification passes, update `.upstreamer/state.yaml` for the codebase with the exact upstream commit processed:
+
+```yaml
+upstream_commit: <current-upstream-head-sha>
+```
+
+Only update this state after successful verification. Do not update it if conversion was partial, failed, or left unresolved verification issues.
+
 ## Final report
 
 Return:
@@ -135,4 +151,6 @@ Return:
 2. Count of kept, adapted, and dropped skills.
 3. Notable drop/adapt decisions.
 4. Verification commands run and results.
-5. Any remaining uncertainty or rules that required judgment.
+5. Previous upstream commit and current upstream commit.
+6. Whether the run was full or incremental, including notable upstream files changed since the previous commit.
+7. Any remaining uncertainty or rules that required judgment.

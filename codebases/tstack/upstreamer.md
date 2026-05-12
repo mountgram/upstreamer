@@ -2,11 +2,14 @@
 upstream: garrytan/gstack
 downstream: mountgram/tstack
 schedule: "0 */6 * * *"
+model: deepseek/deepseek-v4-pro
 ---
 
 # TStack Rewrite Rules
 
 TStack is a **minimal, pure-markdown skills framework**. No helper scripts, no binaries, no config files, no telemetry — just AI agent skills written in clean markdown.
+
+This conversion should produce a fresh downstream repository, not a lightly edited copy of the upstream tree. Use the upstream skills as source material, then rewrite kept skills into clean downstream markdown.
 
 ## Philosophy
 
@@ -22,6 +25,20 @@ TStack is a **minimal, pure-markdown skills framework**. No helper scripts, no b
 ## What to Keep
 
 Start with every `SKILL.md` file from the upstream repo. Evaluate each one individually.
+
+Before writing output files, create a working inventory of every upstream `SKILL.md` using this shape:
+
+```text
+Path | Decision | Reason | Output skill name
+```
+
+Decision must be one of:
+
+- `KEEP` — the skill is already portable as markdown instructions
+- `ADAPT` — the skill idea is useful, but the upstream workflow must be rewritten around generic agent capabilities or standard commands
+- `DROP` — the skill depends on custom infrastructure, binaries, hosted services, generated artifacts, telemetry, or an upstream-specific context store
+
+Do not begin writing downstream skill files until the inventory is complete.
 
 ## What to Remove Entirely
 
@@ -51,6 +68,8 @@ Remove these directories and files completely (no attempt to salvage):
 ## How to Process Each SKILL.md
 
 For each skill, the agent should:
+
+Do not perform a mechanical search-and-replace conversion. Rewrite each kept skill as fresh markdown in TStack's voice, preserving only the portable workflow, prompts, checklists, judgment criteria, and standard-tool commands.
 
 ### 1. Evaluate: Can this skill work without external helper scripts?
 
@@ -207,7 +226,7 @@ For skills like `browse/`, `design-review/`, `qa/` that reference browser capabi
 The repo should look like:
 
 ```
-tstack/
+codebases/tstack/downstream/
 ├── README.md
 ├── LICENSE
 ├── VERSION
@@ -235,3 +254,32 @@ Before finishing, verify:
 - [ ] No telemetry, analytics, or routing references
 - [ ] No files other than SKILL.md in skill directories
 - [ ] no upstream CI/CD, no infrastructure files, no package.json
+
+Run the bundled verifier against the downstream output directory:
+
+```bash
+codebases/tstack/.upstreamer/scripts/verify-tstack.sh codebases/tstack/downstream
+```
+
+If running checks manually, use these macOS-compatible commands:
+
+```bash
+find <downstream-dir> -type f | sort
+find <downstream-dir> -mindepth 2 -maxdepth 2 -type f ! -name SKILL.md
+find <downstream-dir> -mindepth 3 -type f
+find <downstream-dir> -type f -perm -111
+grep -RInE 'gstack|garrytan|~/.gstack|~/.tstack|~/.claude/skills/(gstack|tstack)|bin/(gstack|tstack)-|gstack-config|gstack-update-check|gstack-telemetry-log|gstack-timeline-log|gstack-slug|gstack-learnings-search|telemetry|analytics|gbrain|benchmark|session tracking|checkpoint|routing|bun.lock' <downstream-dir> || true
+```
+
+Review every grep hit before finishing. Fix any real violation and rerun verification until it passes.
+
+## Final Report
+
+Return:
+
+- Output location
+- Count of kept, adapted, and dropped skills
+- The decision inventory, or a concise summary of it
+- Notable drop/adapt decisions
+- Verification commands run and results
+- Any remaining uncertainty or rules that required judgment

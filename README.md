@@ -49,6 +49,19 @@ upstreamer/
 
 Each `upstreamer.md` is a markdown file with YAML frontmatter. The frontmatter defines the upstream source and sync schedule. The markdown body contains natural language transformation rules specific to that codebase (what to keep, what to drop, how to rewrite).
 
+The frontmatter may also specify the opencode model for that codebase:
+
+```yaml
+---
+upstream: garrytan/gstack
+downstream: mountgram/tstack
+schedule: "0 */6 * * *"
+model: deepseek/deepseek-v4-pro
+---
+```
+
+`OPENCODE_MODEL` overrides the frontmatter model for one-off runs.
+
 The generic conversion workflow (clone, evaluate, process, verify) is handled by the `upstreamer-converter` skill in `.agents/skills/upstreamer-converter/`.
 
 See [`codebases/tstack/upstreamer.md`](codebases/tstack/upstreamer.md) for a working example.
@@ -56,14 +69,32 @@ See [`codebases/tstack/upstreamer.md`](codebases/tstack/upstreamer.md) for a wor
 ## Usage
 
 ```bash
-# Run once for all configured sythnetic codebases
-upstreamer
+# Run one configured sythnetic codebase through opencode
+./scripts/upstream tstack
 
-# Run as a daemon, polling for changes
-upstreamer --daemon
+# Choose a specific opencode model
+OPENCODE_MODEL=anthropic/claude-sonnet-4-5 ./scripts/upstream tstack
+
+# Stop a stuck run after one hour
+UPSTREAMER_TIMEOUT_SECONDS=3600 ./scripts/upstream tstack
 ```
 
-`upstreamer` discovers all `upstreamer.md` files in subdirectories and processes each one.
+`./scripts/upstream <name>` reads `codebases/<name>/upstreamer.md`, uses its `model:` frontmatter unless `OPENCODE_MODEL` is set, and invokes `opencode run` with the generic converter skill at `.agents/skills/upstreamer-converter/SKILL.md`. The generated prompt tells the agent to read both files first, execute the conversion end-to-end, write the downstream result to `codebases/<name>/downstream`, run any bundled verification scripts, and return the final report requested by the codebase contract.
+
+The wrapper sets `TMPDIR` to `tmp/upstreamer/<name>/` and instructs opencode to keep temporary files there, so it does not need external-directory permissions for system `/tmp`.
+
+Each run is logged under `codebases/<name>/.upstreamer/logs/` so another agent or reviewer can inspect what the conversion agent did.
+
+If a model does not stop after producing its final report, set `UPSTREAMER_TIMEOUT_SECONDS` to cap the run.
+
+The last successfully processed upstream commit is tracked in `codebases/<name>/.upstreamer/state.yaml`. On later runs, the wrapper includes that commit in the opencode prompt so the conversion agent can inspect upstream changes since the previous run and update only affected downstream files. The agent should update `upstream_commit` only after verification passes.
+
+Additional opencode arguments can be passed after `--`:
+
+```bash
+./scripts/upstream tstack -- --print-logs
+./scripts/upstream tstack -- --agent build
+```
 
 ## Requirements
 
