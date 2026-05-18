@@ -1,7 +1,6 @@
 ---
 upstream: garrytan/gstack
 downstream: mountgram/tstack
-schedule: "0 */6 * * *"
 model: deepseek/deepseek-v4-pro
 ---
 
