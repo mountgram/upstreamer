@@ -2,8 +2,9 @@
 set -euo pipefail
 
 usage() {
-  echo "Usage: $0 <codebase> [-- <extra opencode args>]" >&2
+  echo "Usage: $0 <codebase> [--force] [-- <extra opencode args>]" >&2
   echo "Example: $0 tstack" >&2
+  echo "Example: $0 last30days-ts --force" >&2
   echo "Example: OPENCODE_MODEL=anthropic/claude-sonnet-4-5 $0 tstack" >&2
   echo "Example: UPSTREAMER_TIMEOUT_SECONDS=3600 $0 tstack" >&2
 }
@@ -53,6 +54,23 @@ esac
 
 codebase="$1"
 shift
+force=0
+
+while [ "$#" -gt 0 ]; do
+  case "${1:-}" in
+    --force)
+      force=1
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
 
 if [ "${1:-}" = "--" ]; then
   shift
@@ -103,7 +121,7 @@ elif [ -n "$frontmatter_model" ]; then
   model_args=(--model "$frontmatter_model")
 fi
 
-if [ -n "$last_upstream_commit" ] && [ -d "$downstream_dir" ] && [ -n "$upstream_repo" ]; then
+if [ "$force" -eq 0 ] && [ -n "$last_upstream_commit" ] && [ -d "$downstream_dir" ] && [ -n "$upstream_repo" ]; then
   upstream_url="$upstream_repo"
   case "$upstream_url" in
     http://* | https://* | git@*) ;;
@@ -147,7 +165,7 @@ Use the upstreamer-converter skill at @$skill to convert the codebase defined by
 
 Stay inside this workspace. Clone or copy upstream sources under @$upstream_dir and write downstream output under @$downstream_dir unless the contract explicitly says otherwise. Use @tmp/upstreamer/$codebase for temporary work. Do not use /tmp or any other external directory.
 
-Track upstream sync state in @$state_file. The last processed upstream commit is: ${last_upstream_commit:-none}. If a last commit exists, inspect upstream changes since that commit first and update the existing downstream output instead of redoing unrelated work. If no last commit exists, perform a full conversion. After successful verification, update @$state_file with the exact upstream commit processed as upstream_commit: <sha>.
+Track upstream sync state in @$state_file. The last processed upstream commit is: ${last_upstream_commit:-none}. Force conversion is: $force. If force conversion is 1, run the conversion even when the upstream commit is unchanged because the local contract may have changed. If a last commit exists and force conversion is 0, inspect upstream changes since that commit first and update the existing downstream output instead of redoing unrelated work. If no last commit exists, perform a full conversion. After successful verification, update @$state_file with the exact upstream commit processed as upstream_commit: <sha>.
 
 Read both files first and treat @$contract as the binding rewrite contract. Execute the conversion end-to-end: acquire the upstream repo, inventory every upstream SKILL.md, decide KEEP/ADAPT/DROP, write the downstream output, run the contract verification including any bundled .upstreamer scripts, fix violations, and return the final report requested by the contract.
 

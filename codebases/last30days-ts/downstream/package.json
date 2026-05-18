@@ -1,0 +1,39 @@
+{
+  "name": "last30days-ts",
+  "version": "0.1.0",
+  "description": "A TypeScript CLI and library for recent multi-source research briefs.",
+  "type": "module",
+  "bin": {
+    "last30days": "dist/cli.js",
+    "last30days-setup": "dist/setup.js"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "skills",
+    ".env.example",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "eval": "npm run build && node dist/eval/live-eval.js",
+    "eval:offline": "npm run build && node dist/eval/offline-eval.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "exa-js": "^1.9.3",
+    "openai": "^4.104.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "typescript": "^5.5.4",
+    "vitest": "^1.6.0"
+  }
+}

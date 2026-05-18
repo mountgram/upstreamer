@@ -9,6 +9,8 @@ Last30Days TS is a **small TypeScript research CLI and library** derived from `m
 
 This conversion should produce a fresh downstream repository, not a lightly edited copy of the upstream tree. Use the upstream project as source material for behavior and tests, then write an idiomatic TypeScript project with a simpler provider model.
 
+The conversion is not complete when the code merely compiles. The agent doing the conversion must inspect the upstream behavior claims, port the implementation, write deterministic tests and live evals, execute the available evals, inspect the full generated output, and judge whether the downstream is actually useful in the way the upstream README makes it seem.
+
 ## Assumptions
 
 - Local codebase name: `last30days-ts`.
@@ -27,6 +29,7 @@ This conversion should produce a fresh downstream repository, not a lightly edit
 - API keys are optional source capabilities, not prerequisites for the whole tool or the higher-level orchestration.
 - Web search must support both no-key DuckDuckGo and optional Exa search.
 - Keep the data model and output understandable enough for downstream users to extend.
+- Prefer real, maintained SDKs for external services when they reduce protocol guessing or make the adapter more faithful. Hand-rolled `fetch` is acceptable for simple public JSON endpoints, but not as a shortcut around well-supported provider clients.
 
 ## Source Material to Inspect
 
@@ -36,6 +39,8 @@ Read these upstream areas before writing downstream files:
 - `skills/last30days/SKILL.md` - command behavior and output contract. Extract the useful product behavior, but do not port the huge prompt contract verbatim.
 - `skills/last30days/scripts/*` - command line helpers to get information from sources.
 - `tests/` - behavior examples that should be adapted into TypeScript tests where relevant.
+
+After inspecting these files, write a short internal judgment in the final report explaining the upstream promise in plain language: what a successful run should feel like to a user, which sources make it valuable, and what minimum output quality must be demonstrated by evals.
 
 ## What to Keep
 
@@ -52,6 +57,7 @@ Keep these concepts, rewritten in TypeScript:
 - Markdown output as the default human-readable format.
 - JSON output for programmatic use.
 - A concise README with install, configuration, source availability, and examples.
+- A committed `.env.example` listing every supported optional key with empty values and comments that map each key to the adapter it unlocks.
 - The upstream MIT license.
 
 ## Sources to Implement
@@ -107,6 +113,8 @@ LAST30DAYS_DIR    optional, output/cache directory
 
 Keep a global setup script, but make it a thin optional helper. It should read/write a local env file, show which adapters are currently available, and never imply that any key is required for baseline use. Users should also be able to configure everything by exporting environment variables directly.
 
+Create `.env.example` in the downstream root. It must be safe to commit, contain no real credentials, and include every supported optional environment variable from the configuration surface. Group keys by source area so users can copy it to `.env` and selectively fill values before running better live evals. Include brief comments for aliases such as `XAI_API_KEY` and `GROK_API_KEY`.
+
 Do not require a primary API key. Do not make one provider unlock unrelated sources. Do not require model-provider keys for ordinary retrieval orchestration.
 
 Keep these upstream key and auth paths when they unlock a source adapter, but simplify them into documented environment variables:
@@ -133,6 +141,7 @@ Use a small TypeScript structure similar to this:
 ```text
 codebases/last30days-ts/downstream/
 ├── README.md
+├── .env.example
 ├── LICENSE
 ├── package.json
 ├── tsconfig.json
@@ -177,6 +186,7 @@ Adapt these upstream behaviors, not necessarily their exact implementations:
 
 - CLI flags from `last30days.py` into a Node CLI. Keep only flags that matter for the simplified downstream: topic, lookback days, depth/limit, output format, output directory, debug/status output, and web backend if needed.
 - The upstream setup wizard into a TypeScript setup command or script that writes optional environment variables and reports adapter availability without pressuring the user through one preferred signup path.
+- The upstream setup wizard into a TypeScript setup command or script that writes optional environment variables and reports adapter availability without pressuring the user through one preferred signup path. The setup helper may read from `.env` if a lightweight dependency is already justified, but direct environment variables and `.env.example` must remain clear enough to use without the helper.
 - `schema.py` dataclasses into TypeScript interfaces or zod-style schemas. Prefer plain TypeScript interfaces unless validation is needed.
 - Pipeline orchestration into a small async source runner that discovers available adapters and executes useful sources concurrently.
 - Ranking into deterministic TypeScript functions that combine freshness, engagement, source quality, and text relevance.
@@ -202,13 +212,55 @@ Remove these upstream areas from the downstream output:
 ## Dependency Rules
 
 - Keep runtime dependencies small. Prefer built-in `fetch` on supported Node versions.
-- Use official SDKs or well-maintained npm packages when they make an adapter safer, clearer, or more complete than hand-rolled HTTP calls.
-- Install and use source-specific packages where appropriate for APIs such as DuckDuckGo search, Exa, YouTube/`yt-dlp` wrapping, Reddit, GitHub, HN, or social/search providers.
+- Use official SDKs or well-maintained npm packages when they make an adapter safer, clearer, or more complete than hand-rolled HTTP calls. This is a positive requirement, not an optional nice-to-have.
+- Install and use source-specific packages where appropriate for APIs such as DuckDuckGo search, Exa, YouTube/`yt-dlp` wrapping, Reddit, GitHub, HN, OpenRouter/Perplexity, Brave, Serper, Parallel, ScrapeCreators, Bluesky/AT Protocol, or social/search providers.
+- Prefer `exa-js` or the current official Exa SDK for Exa. Prefer the official OpenAI SDK for OpenRouter-compatible chat/completions providers such as Perplexity/Sonar unless a more direct maintained provider SDK exists. Use the Vercel AI SDK only when the downstream genuinely needs model-provider abstraction or streaming/generation ergonomics; do not add it just to satisfy a dependency checklist.
+- If an official SDK exists but the adapter uses `fetch`, explicitly justify that choice in the final report, for example because the endpoint is a simple unauthenticated public JSON API or the SDK is unmaintained/incompatible.
 - Do not add a framework.
 - Avoid heavy scraping dependencies unless a required source cannot be implemented safely without one.
 - Do not vendor upstream dependencies. Prefer normal npm package dependencies over copied code.
 - Include a generated lockfile only when the chosen package manager expects one and it helps reproducible tests/builds.
 - Prefer a simple test runner such as `vitest` or Node's built-in test runner.
+
+## Test And Eval Requirements
+
+Create both ordinary tests and full eval tests.
+
+### Deterministic Tests
+
+- Port relevant upstream behavior tests into TypeScript unit/integration tests.
+- Cover date-window handling, ranking, deduplication, rendering, source availability, optional-key behavior, and at least one mocked source run.
+- These tests must run without paid credentials or network access whenever practical.
+
+### Live Evals
+
+Add an eval suite under `eval/` or `test/eval/` that can run against live connections when credentials and local tools are available.
+
+The eval suite must:
+
+- Execute the built CLI or public library API on real research topics, not only mocked adapters.
+- Include at least one zero-key eval that exercises the no-key baseline sources.
+- Document that copying `.env.example` to `.env` and filling source-specific keys enables stronger keyed eval coverage.
+- Include keyed evals for available providers such as Exa, OpenRouter/Perplexity, Brave, Serper, Parallel, ScrapeCreators, GitHub token, Bluesky, or other configured source adapters. Skip a keyed eval with a clear reason when its env vars are absent; do not fail the whole suite for missing optional credentials.
+- Use live model/provider connections only where they unlock a source adapter or a dedicated eval judge. Do not reintroduce model-provider keys as requirements for ordinary retrieval orchestration.
+- Write full eval artifacts to an ignored output directory such as `eval-output/`: raw JSON brief, rendered Markdown brief, adapter status, warnings, and the exact command/options used.
+- Include an agent-readable judgment file for each eval run that records whether the output is useful, recent, cited, source-diverse, non-fabricated, and consistent with the upstream README's promise.
+- Make eval commands explicit in `package.json`, for example `npm run eval` for available live evals and `npm run eval:offline` for non-network smoke evals if useful.
+
+The converting agent must run every eval that can run in the current environment. If credentials are unavailable, it must still run the zero-key eval and document skipped keyed evals. After running evals, inspect the full Markdown/JSON outputs, not just pass/fail status, and make a concrete quality judgment in the final report.
+
+### Eval Judgment Criteria
+
+For each full eval output, judge:
+
+- Does the brief answer the requested topic with recent evidence from the requested lookback window?
+- Are citations inspectable and attached to concrete source items?
+- Are optional source failures isolated rather than breaking the whole run?
+- Does ranking surface high-signal items instead of generic SEO or placeholder entries?
+- Are duplicates grouped or suppressed enough that the brief is readable?
+- Is the output useful enough that a user would recognize the value described by upstream `README.md`?
+
+If the answer is no, improve the implementation and rerun the eval before claiming success. If a limitation remains, document it clearly as a remaining uncertainty rather than hiding behind passing unit tests.
 
 ## README Requirements
 
@@ -219,6 +271,7 @@ The downstream README must include:
 - CLI examples, including zero-key DuckDuckGo-backed usage and a run where Exa is additionally available.
 - A source matrix showing which sources need keys.
 - The exact supported environment variables.
+- A `.env.example` section explaining how to copy it to `.env` for local evals without making any key globally required.
 - A setup section explaining both direct environment-variable configuration and the optional setup helper.
 - A note that planning and reranking guidance lives in textual skills, not provider-backed scripts.
 - A note that YouTube uses the same `yt-dlp` binary approach as upstream Last30Days.
@@ -229,6 +282,7 @@ The downstream README must include:
 Before finishing a conversion run, verify:
 
 - The downstream output has `package.json`, `tsconfig.json`, `src/`, and `README.md`.
+- The downstream output has `.env.example`, and it documents all supported optional keys without real secrets.
 - There are no Python source or packaging files.
 - There is at least one TypeScript file under `src/`.
 - DuckDuckGo and Exa are both documented and implemented as web search sources.
@@ -240,6 +294,10 @@ Before finishing a conversion run, verify:
 - Planning and reranking are represented as textual skill/instruction files, not scripts or model-provider API calls.
 - Optional upstream sources are represented as adapters or explicitly documented as intentionally deferred with a reason.
 - TypeScript checks and tests pass if dependencies can be installed in the environment.
+- `package.json` includes maintained SDK dependencies for provider-backed adapters where appropriate, or the final report justifies why a direct `fetch` implementation is safer for a given source.
+- Live eval tests exist, can skip missing optional credentials cleanly, and write full output artifacts for agent review.
+- Live eval docs point users to `.env.example` for enabling stronger keyed evals.
+- The converting agent has run all available deterministic tests and live evals, inspected the generated eval artifacts, and judged whether the downstream output is as useful as the upstream README claims.
 
 Run the bundled verifier against the downstream output directory:
 
@@ -269,4 +327,6 @@ Return:
 - Sources implemented, adapted, and intentionally deferred.
 - API keys supported and what each unlocks.
 - Verification commands run and results.
+- Eval commands run, skipped evals with reasons, artifact locations, and the agent's judgment of output quality.
+- SDKs/packages chosen for source adapters, plus any notable direct-HTTP choices and why they are acceptable.
 - Any remaining uncertainty or behavior intentionally simplified from upstream.
