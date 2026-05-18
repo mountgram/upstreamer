@@ -1,3 +1,4 @@
+import OpenAI from "openai";
 import type { SourceAdapter, SourceName } from "../schema.js";
 import { hasAny, makeItem } from "./base.js";
 
@@ -36,21 +37,26 @@ export const x: SourceAdapter = {
   needs: ["XAI_API_KEY", "GROK_API_KEY"],
   isAvailable: (env) => hasAny(env, ["XAI_API_KEY", "GROK_API_KEY"]),
   async search(context) {
-    const apiKey = context.env.XAI_API_KEY || context.env.GROK_API_KEY || "";
-    const response = await fetch("https://api.x.ai/v1/chat/completions", {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: "grok-4.3",
-        messages: [{ role: "user", content: `Find recent public X posts about ${context.topic}. Return a concise JSON array with title, url, text, author, publishedAt, likes, and replies.` }],
-        search_parameters: { mode: "auto", return_citations: true },
-        response_format: { type: "json_object" }
-      })
+    const client = new OpenAI({
+      apiKey: context.env.XAI_API_KEY || context.env.GROK_API_KEY || "",
+      baseURL: "https://api.x.ai/v1"
     });
-    if (!response.ok) throw new Error(`xAI/Grok returned ${response.status}`);
-    const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
-    const content = data.choices?.[0]?.message?.content || "{}";
-    const parsed = JSON.parse(content) as { results?: Array<{ title?: string; url?: string; text?: string; author?: string; publishedAt?: string; likes?: number; replies?: number }> };
+    const response = await client.responses.create({
+      model: "grok-4.3",
+      tools: [{ type: "x_search" }],
+      input: [
+        {
+          role: "system",
+          content: "You find recent public X/Twitter posts and return only compact JSON for downstream evidence ranking."
+        },
+        {
+          role: "user",
+          content: `Find recent public X posts about ${context.topic}. Return JSON shaped as {"results":[{"title":"...","url":"https://x.com/...","text":"...","author":"...","publishedAt":"ISO date if known","likes":0,"replies":0}]}. Include only inspectable X URLs.`
+        }
+      ]
+    } as unknown as Parameters<typeof client.responses.create>[0]);
+    const outputText = (response as { output_text?: string }).output_text || "{}";
+    const parsed = JSON.parse(outputText) as { results?: Array<{ title?: string; url?: string; text?: string; author?: string; publishedAt?: string; likes?: number; replies?: number }> };
     return (parsed.results || []).filter((item) => item.url).map((item) => makeItem("x", item.title || item.text?.slice(0, 80) || item.url!, item.url!, {
       body: item.text,
       author: item.author,
