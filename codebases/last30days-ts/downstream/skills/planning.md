@@ -1,29 +1,122 @@
-# Planning Guidance
+# Planning
 
-Use this guidance when turning a user request into a Last30Days TS query plan.
+How to design effective research queries for Last30Days TS.
 
-## When To Plan
+## Query Design Principles
 
-Plan before running `last30days` when the topic is ambiguous, comparative, person/company-specific, or likely to have different names across communities.
+### Be Specific
+"OpenAI GPT-5 release reaction" is better than "AI news". Specific queries produce focused results across all sources.
 
-## Query Shape
+### Include Context Words
+Add words that signal what kind of content you want:
+- "reaction", "review", "announcement" for general sentiment
+- "vs", "compared to", "alternative" for comparisons
+- "launch", "release", "shipped" for product news
+- "problem", "issue", "broken" for pain points
+- "tip", "trick", "workflow" for how-to content
 
-- Keep the original topic as the first subquery so results remain anchored to the user's wording.
-- Add source-shaped subqueries for communities, repos, videos, markets, and recent news instead of relying on one broad search.
-- For products, include vendor names, common abbreviations, repo names, and launch names.
-- For people, include likely handles, GitHub usernames, employers, products, and communities when known.
-- For comparisons, plan each entity separately before merging the brief so one famous entity does not drown out the others.
-- For incidents or controversies, include neutral wording plus likely terms people would use in Reddit, Hacker News, GitHub, YouTube, and news search.
+### Person Research
+For a person, consider:
+- Their full name and any known handles
+- Companies or products they're associated with
+- Recent projects or talks
+- Communities where they're discussed
 
-## Source Emphasis
+Example: For "Peter Steinberger", queries might include:
+- "Peter Steinberger" (primary)
+- "steipete" (GitHub/X handle)
+- "OpenClaw" (his main project)
 
-- Prefer direct public signals: Reddit threads, Hacker News discussions, GitHub issues and releases, YouTube transcripts, market odds, and grounded web citations.
-- Use Exa/Brave/Serper/Parallel/Perplexity as additive web/search coverage when keys are available.
-- Use X only through the xAI/Grok adapter with `XAI_API_KEY` or `GROK_API_KEY`.
-- Do not ask for browser session credentials for X/Twitter.
+### Product/Company Research
+For a product, consider:
+- The product name and variations
+- Competitor names for comparison context
+- Related technology terms
+- Common user complaints or praise
 
-## Agent Constraints
+### Person-to-Product Resolution
+When researching a person who created a product:
+1. Start with the person's name and handles
+2. Resolve their key projects
+3. Search for both the person and the product
+4. Look for community discussions in relevant subreddits
 
-- Do not require model-provider keys for planning. The host agent can write a small query plan itself, and the library can use deterministic fallback subqueries.
-- Do not hide uncertainty. If the query is underspecified, choose a reasonable first pass and say what you searched.
-- After the run, compare the result against the query plan and note source gaps before answering.
+### Entity Disambiguation
+When a term could mean multiple things:
+1. Add context words ("Apple Vision Pro" vs "Apple fruit")
+2. Use proper capitalization
+3. Add domain-specific terms
+4. Consider excluding common noise words
+
+## Subquery Formation
+
+For broad topics, break into subqueries:
+1. **Core query**: The main topic
+2. **Reaction query**: "TOPIC reaction" or "TOPIC review"
+3. **Community query**: "TOPIC reddit" or "TOPIC discussion"
+4. **Comparison query**: "TOPIC vs ALTERNATIVE"
+5. **Prediction query**: "TOPIC future" or "TOPIC 2026"
+
+## Source-Specific Planning
+
+### Web Search (DuckDuckGo, Exa, Brave)
+- Use natural language queries
+- Include date references for recency
+- Consider news-specific searches for breaking stories
+
+### Reddit
+- General topics work well with broad subreddit search
+- Product/project topics benefit from relevant subreddits
+- Person topics may need subreddit hints
+
+### Hacker News
+- Tech and startup topics perform best
+- Use product names and technical terms
+- "Show HN" and "Tell HN" prefixes can surface specific content
+
+### GitHub
+- For people: search by username for PRs, issues, repos
+- For projects: search repositories and issues
+- Use language filters for technology-specific searches
+
+### X/Twitter
+- Search handles with @ if known
+- Use hashtag forms for trending topics
+- Consider related accounts for broader coverage
+
+### YouTube
+- Search for reviews, reactions, tutorials
+- Channel-specific searches when a creator is known
+- Consider transcript content for deep dives
+
+### Polymarket
+- Use event-specific terminology
+- Consider related markets for context
+- Look for both binary and multi-outcome markets
+
+## Avoiding Noise
+
+- Strip question words (what, how, why, when, where)
+- Remove stop words that don't add meaning
+- Keep compound terms together ("machine learning" not separate)
+- Use quotes for exact phrases when precision matters
+
+## Depth Trade-offs
+
+- **Quick** (5 items per source): Fast overview, good for initial scan
+- **Medium** (10 items): Balanced coverage, good default
+- **Deep** (20 items): Comprehensive, takes longer
+
+Choose depth based on:
+- How much you already know about the topic
+- Whether you need exhaustive or representative coverage
+- Time constraints of the user's request
+
+## Fallback Strategy
+
+If initial queries return few results:
+1. Broaden the query (remove specific terms)
+2. Try alternative spellings or names
+3. Switch from person to product focus (or vice versa)
+4. Try news-oriented queries instead of general search
+5. Reduce the lookback window to capture more recent content

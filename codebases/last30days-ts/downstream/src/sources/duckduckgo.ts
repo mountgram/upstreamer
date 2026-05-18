@@ -1,61 +1,72 @@
-import type { SourceAdapter } from "../schema.js";
-import { firstSubquery, makeItem } from "./base.js";
+import { search, SafeSearchType } from "duck-duck-scrape";
+import type { SourceItem } from "../schema.js";
 
-interface DuckResponse { RelatedTopics?: Array<{ Text?: string; FirstURL?: string }> }
-
-function decodeDuckUrl(raw: string): string {
-  const url = raw.startsWith("//") ? `https:${raw}` : raw;
-  try {
-    const parsed = new URL(url);
-    return parsed.searchParams.get("uddg") || url;
-  } catch {
-    return url;
-  }
-}
-
-function cleanHtml(value: string): string {
-  return value
-    .replace(/<[^>]+>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function parseHtmlResults(html: string, limit: number) {
-  const results: Array<{ title: string; url: string; body?: string }> = [];
-  const linkPattern = /<a[^>]+class="[^"]*(?:result-link|result__a)[^"]*"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-  for (const match of html.matchAll(linkPattern)) {
-    const url = decodeDuckUrl(match[1] || "");
-    const title = cleanHtml(match[2] || "");
-    if (!url || !title || results.some((item) => item.url === url)) continue;
-    results.push({ title, url });
-    if (results.length >= limit) break;
-  }
-  return results;
-}
-
-export const duckduckgo: SourceAdapter = {
-  name: "duckduckgo",
-  isAvailable: () => true,
-  async search(context) {
-    const queryText = `${firstSubquery(context)} last 30 days`;
-    const query = encodeURIComponent(queryText);
-    const response = await fetch(`https://api.duckduckgo.com/?q=${query}&format=json&no_redirect=1&no_html=1`);
-    if (!response.ok) throw new Error(`DuckDuckGo returned ${response.status}`);
-    const data = (await response.json()) as DuckResponse;
-    const instantAnswerItems = (data.RelatedTopics || [])
-      .filter((topic) => topic.Text && topic.FirstURL)
-      .slice(0, context.limit)
-      .map((topic) => makeItem("duckduckgo", topic.Text!, topic.FirstURL!, { body: topic.Text }));
-    if (instantAnswerItems.length) return instantAnswerItems;
-
-    const htmlResponse = await fetch(`https://html.duckduckgo.com/html/?${new URLSearchParams({ q: queryText }).toString()}`, {
-      headers: { "user-agent": "Mozilla/5.0" }
-    });
-    if (!htmlResponse.ok) throw new Error(`DuckDuckGo HTML returned ${htmlResponse.status}`);
-    const html = await htmlResponse.text();
-    return parseHtmlResults(html, context.limit).map((item) => makeItem("duckduckgo", item.title, item.url, { body: item.body }));
-  }
+const DEPTH_LIMITS: Record<string, number> = {
+  quick: 5,
+  medium: 10,
+  deep: 20,
 };
+
+function hostname(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "";
+  }
+}
+
+function isWithinDateRange(
+  itemDate: Date | null,
+  fromDate: string,
+  toDate: string
+): boolean {
+  if (!itemDate) return true;
+  const from = new Date(fromDate);
+  const to = new Date(toDate);
+  return itemDate >= from && itemDate <= to;
+}
+
+export async function searchDuckDuckGo(
+  query: string,
+  fromDate: string,
+  toDate: string,
+  depth: string
+): Promise<SourceItem[]> {
+  const limit = DEPTH_LIMITS[depth] ?? DEPTH_LIMITS.medium;
+
+  const result = await search(query, {
+    safeSearch: SafeSearchType.OFF,
+  });
+
+  const items: SourceItem[] = [];
+
+  for (const r of result.results) {
+    const url = r.url;
+    if (!url) continue;
+
+    const publishedDate: Date | null = null;
+    // DuckDuckGo results don't carry dates reliably; use current date
+    const publishedAt = new Date().toISOString();
+    const dateConfidence: "high" | "med" | "low" = publishedDate ? "high" : "low";
+
+    items.push({
+      item_id: url,
+      source: "duckduckgo",
+      title: r.title || "",
+      body: r.description || "",
+      url,
+      author: "",
+      container: hostname(url),
+      published_at: publishedAt,
+      date_confidence: "low",
+      engagement: {},
+      score: 0,
+      snippet: r.description || "",
+      metadata: {},
+    });
+
+    if (items.length >= limit) break;
+  }
+
+  return items;
+}

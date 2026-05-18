@@ -1,44 +1,147 @@
 #!/usr/bin/env node
-import { research, renderBrief, saveBrief } from "./index.js";
-import { defaultOutputDir } from "./config.js";
+import { runResearch } from "./index.js";
+import { renderMarkdown, renderJson, renderCompact } from "./render.js";
+import { getConfig } from "./config.js";
 
-interface CliArgs { topic: string; lookbackDays: number; limit: number; format: "markdown" | "json"; outputDir?: string; debug: boolean; save: boolean; webBackend: "auto" | "duckduckgo" | "exa" | "brave" | "serper" | "parallel" | "none" }
+interface CliArgs {
+  topic: string;
+  lookback?: number;
+  depth?: "quick" | "medium" | "deep";
+  format?: "markdown" | "json" | "compact";
+  output?: string;
+  debug?: boolean;
+  xHandle?: string;
+  subreddits?: string[];
+  githubUser?: string;
+  githubRepos?: string[];
+}
 
-function parseArgs(argv: string[]): CliArgs {
-  const args = [...argv];
-  const topicParts: string[] = [];
-  const parsed: CliArgs = { topic: "", lookbackDays: 30, limit: 10, format: "markdown", debug: false, save: false, webBackend: "auto" };
-  while (args.length) {
-    const arg = args.shift()!;
-    if (arg === "--lookback" || arg === "--lookback-days") parsed.lookbackDays = Number(args.shift());
-    else if (arg === "--limit" || arg === "--depth") parsed.limit = Number(args.shift());
-    else if (arg === "--format") parsed.format = args.shift() === "json" ? "json" : "markdown";
-    else if (arg === "--output-dir") parsed.outputDir = args.shift();
-    else if (arg === "--debug" || arg === "--status") parsed.debug = true;
-    else if (arg === "--save") parsed.save = true;
-    else if (arg === "--web-backend") parsed.webBackend = (args.shift() || "auto") as CliArgs["webBackend"];
-    else if (arg === "--help" || arg === "-h") {
-      console.log("Usage: last30days <topic> [--lookback-days 30] [--limit 10] [--format markdown|json] [--output-dir DIR] [--save] [--debug]");
-      process.exit(0);
-    } else topicParts.push(arg);
+function parseArgs(raw: string[]): CliArgs | null {
+  const args = raw.slice(2);
+  if (args.length === 0) {
+    console.error("Usage: last30days <topic> [options]");
+    console.error("");
+    console.error("Options:");
+    console.error("  --lookback <days>     Days to look back (default: 30)");
+    console.error("  --depth <level>       quick, medium, or deep (default: medium)");
+    console.error("  --format <type>       markdown, json, or compact (default: markdown)");
+    console.error("  --output <dir>        Output directory (default: ./output)");
+    console.error("  --debug               Enable debug output");
+    console.error("  --x-handle <handle>   X/Twitter handle for person search");
+    console.error("  --subreddits <list>   Comma-separated subreddits");
+    console.error("  --github-user <user>  GitHub username for person search");
+    console.error("  --github-repos <list> Comma-separated owner/repo");
+    console.error("");
+    console.error("Run `npx last30days-ts setup` to see source availability.");
+    return null;
   }
-  parsed.topic = topicParts.join(" ").trim();
-  if (!parsed.topic) throw new Error("A topic is required.");
-  return parsed;
+
+  const result: CliArgs = { topic: args[0] };
+  for (let i = 1; i < args.length; i++) {
+    switch (args[i]) {
+      case "--lookback":
+        result.lookback = Number(args[++i]);
+        break;
+      case "--depth":
+        result.depth = args[++i] as "quick" | "medium" | "deep";
+        break;
+      case "--format":
+        result.format = args[++i] as "markdown" | "json" | "compact";
+        break;
+      case "--output":
+        result.output = args[++i];
+        break;
+      case "--debug":
+        result.debug = true;
+        break;
+      case "--x-handle":
+        result.xHandle = args[++i];
+        break;
+      case "--subreddits":
+        result.subreddits = args[++i].split(",").map(s => s.trim());
+        break;
+      case "--github-user":
+        result.githubUser = args[++i];
+        break;
+      case "--github-repos":
+        result.githubRepos = args[++i].split(",").map(s => s.trim());
+        break;
+    }
+  }
+  return result;
 }
 
 async function main(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2));
-  const brief = await research(args);
-  const rendered = await renderBrief(brief, args.format);
-  process.stdout.write(rendered);
-  if (args.save && args.format === "markdown") {
-    const path = await saveBrief(brief, rendered, args.outputDir || defaultOutputDir());
-    if (args.debug) process.stderr.write(`saved ${path}\n`);
+  // Handle setup command
+  if (process.argv[2] === "setup") {
+    const { printSetup } = await import("./setup.js");
+    printSetup();
+    return;
+  }
+
+  const args = parseArgs(process.argv);
+  if (!args) {
+    process.exit(1);
+  }
+
+  const config = getConfig();
+
+  if (args.debug) {
+    console.error("Configuration loaded");
+    console.error(`  Topic: ${args.topic}`);
+    console.error(`  Lookback: ${args.lookback || 30} days`);
+    console.error(`  Depth: ${args.depth || "medium"}`);
+  }
+
+  const report = await runResearch({
+    topic: args.topic,
+    lookbackDays: args.lookback || 30,
+    depth: args.depth || "medium",
+    debug: args.debug,
+    xHandle: args.xHandle,
+    subreddits: args.subreddits,
+    githubUser: args.githubUser,
+    githubRepos: args.githubRepos,
+    outputDir: args.output || config.last30daysDir,
+    outputFormat: args.format || "markdown",
+  });
+
+  const format = args.format || "markdown";
+  let output: string;
+  switch (format) {
+    case "json":
+      output = renderJson(report);
+      break;
+    case "compact":
+      output = renderCompact(report);
+      break;
+    default:
+      output = renderMarkdown(report);
+  }
+
+  console.log(output);
+
+  // Save to file if output dir specified
+  const outDir = args.output || config.last30daysDir;
+  if (outDir) {
+    const fs = await import("node:fs/promises");
+    const path = await import("node:path");
+    const slug = args.topic.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const ext = format === "json" ? "json" : "md";
+    const filename = `${slug}-${timestamp}.${ext}`;
+
+    try {
+      await fs.mkdir(outDir, { recursive: true });
+      await fs.writeFile(path.join(outDir, filename), output);
+      if (args.debug) console.error(`Saved to ${path.join(outDir, filename)}`);
+    } catch (err) {
+      if (args.debug) console.error(`Failed to save output: ${err}`);
+    }
   }
 }
 
-main().catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+main().catch(err => {
+  console.error("Error:", err.message);
   process.exit(1);
 });

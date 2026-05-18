@@ -1,147 +1,174 @@
 # Last30Days TS
 
-Last30Days TS is a Node.js TypeScript CLI and library for researching recent public signals about a topic. It searches available sources, ranks evidence by freshness and engagement, groups near-duplicate stories, and renders a concise Markdown or JSON brief.
-
-This project is derived from `mvanhorn/last30days-skill` and rewritten in TypeScript. It keeps the recent-research behavior while replacing the upstream plugin and Python runtime with source-scoped adapters.
+Research what people actually say about any topic in the last 30 days. Searches Reddit, Hacker News, X/Twitter, YouTube, TikTok, GitHub, Polymarket, and the web — scores by engagement, and produces a concise brief. TypeScript rewrite of [mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill).
 
 ## Install
 
 ```bash
-npm install
-npm run build
+npm install -g mountgram/last30days-ts
+# or run directly:
+npx last30days "your topic"
 ```
 
-During development:
+## Quick Start
+
+No configuration needed for basic use:
 
 ```bash
-npm test
-npm run check
-npm run eval:offline
-npm run eval
+# Research any topic (uses DuckDuckGo + no-key public sources)
+npx last30days "React Server Components"
+npx last30days "AI agent frameworks"
+npx last30days "NVIDIA earnings"
 ```
 
-## CLI
+## CLI Usage
 
-Zero-key baseline using DuckDuckGo plus public sources when reachable:
+```
+last30days <topic> [options]
+
+Options:
+  --lookback <days>     Days to look back (default: 30)
+  --depth <level>       quick, medium, or deep (default: medium)
+  --format <type>       markdown, json, or compact (default: markdown)
+  --output <dir>        Output directory (default: ./output)
+  --debug               Enable debug output
+  --x-handle <handle>   X/Twitter handle for person search
+  --subreddits <list>   Comma-separated subreddits
+  --github-user <user>  GitHub username for person search
+  --github-repos <list> Comma-separated owner/repo
+```
+
+Check source availability:
 
 ```bash
-npx last30days "AI coding agents" --limit 8
+npx last30days setup
 ```
 
-Run with Exa enabled as an additive web source:
+## Sources
 
-```bash
-EXA_API_KEY=exa_... npx last30days "AI coding agents" --format markdown --debug
-```
+### Free (no key required)
 
-Save a Markdown brief:
+| Source | Method |
+|--------|--------|
+| DuckDuckGo | Public web search |
+| Reddit | Public JSON API |
+| Hacker News | Algolia public API |
+| GitHub | Unauthenticated API (60 req/hr) |
+| Polymarket | Public API |
 
-```bash
-npx last30days "Open source agents" --save --output-dir ./briefs
-```
+### Optional (key unlocks more)
 
-Useful flags are `--lookback-days`, `--limit`, `--format markdown|json`, `--output-dir`, `--save`, `--debug`, and `--web-backend`. Adapters decide their own availability from environment variables and local tools instead of requiring users to select every source up front.
+| Source | Key | Method |
+|--------|-----|--------|
+| Exa | `EXA_API_KEY` | Semantic web search |
+| Brave | `BRAVE_API_KEY` | Web search (2000 free/month) |
+| Serper | `SERPER_API_KEY` | Google search |
+| Parallel | `PARALLEL_API_KEY` | AI-powered search |
+| X/Twitter | `XAI_API_KEY` or `GROK_API_KEY` | xAI Grok API |
+| Perplexity | `OPENROUTER_API_KEY` | Grounded search via OpenRouter |
+| TikTok | `SCRAPECREATORS_API_KEY` | ScrapeCreators API |
+| Instagram | `SCRAPECREATORS_API_KEY` | ScrapeCreators API |
+| Threads | `SCRAPECREATORS_API_KEY` | ScrapeCreators API |
+| Pinterest | `SCRAPECREATORS_API_KEY` | ScrapeCreators API |
+| Bluesky | `BSKY_HANDLE` + `BSKY_APP_PASSWORD` | AT Protocol |
+| Truth Social | `TRUTHSOCIAL_TOKEN` | API |
 
-## Library
+## Configuration
 
-```ts
-import { research, renderBrief } from "last30days-ts";
+All sources are independently optional. The tool works out of the box with DuckDuckGo and public APIs.
 
-const brief = await research({ topic: "AI coding agents", lookbackDays: 30 });
-console.log(await renderBrief(brief, "markdown"));
-```
+### Environment Variables
 
-## Source Matrix
-
-| Source | Configuration | Notes |
-| --- | --- | --- |
-| DuckDuckGo | none | Default no-key web search baseline. |
-| Reddit | none | Uses public Reddit JSON search when available. |
-| Hacker News | none | Uses public Algolia HN search. |
-| GitHub | `GITHUB_TOKEN` optional | Unauthenticated by default; token raises rate limits. |
-| Polymarket | none | Uses public market search. |
-| YouTube | `yt-dlp` on `PATH` | Optional local binary dependency; skipped with a warning when missing. |
-| Exa | `EXA_API_KEY` | Optional additive web search source. |
-| Brave | `BRAVE_API_KEY` | Optional web search source. |
-| Serper | `SERPER_API_KEY` | Optional web search source. |
-| Parallel | `PARALLEL_API_KEY` | Optional grounded search source. |
-| Perplexity | `OPENROUTER_API_KEY` | Optional Sonar-backed grounded web source only. |
-| X / Twitter | `XAI_API_KEY` or `GROK_API_KEY` | Optional xAI/Grok-backed source adapter. |
-| TikTok, Instagram, Threads, Pinterest, Xiaohongshu | `SCRAPECREATORS_API_KEY` | Optional ScrapeCreators-backed adapters. |
-| Bluesky | none | Uses the public AT Protocol search endpoint. |
-| Truth Social | `TRUTHSOCIAL_TOKEN` or `SCRAPECREATORS_API_KEY` | Optional source-scoped adapter. |
-| Digg | `digg-pp-cli` on `PATH` | Optional command-backed source. |
-
-## Environment Variables
-
-`EXA_API_KEY` enables Exa web search only.
-
-`BRAVE_API_KEY` enables Brave Search only.
-
-`SERPER_API_KEY` enables Serper web search only.
-
-`PARALLEL_API_KEY` enables Parallel search only.
-
-`GITHUB_TOKEN` raises GitHub API limits only.
-
-`SCRAPECREATORS_API_KEY` enables retained ScrapeCreators-backed social adapters.
-
-`OPENROUTER_API_KEY` enables the Perplexity/Sonar adapter only.
-
-`XAI_API_KEY` and `GROK_API_KEY` enable retained X/xAI search paths only.
-
-`BSKY_HANDLE` and `BSKY_APP_PASSWORD` are reserved for future authenticated Bluesky paths; the current Bluesky search adapter uses the public endpoint.
-
-`TRUTHSOCIAL_TOKEN` enables Truth Social only when using a direct Truth Social path.
-
-`APIFY_API_TOKEN` is reserved for retained Apify-backed adapters.
-
-`LAST30DAYS_DIR` changes the default output directory.
-
-No key is globally required. Missing optional keys skip only the adapter that needs them, and a failure in one optional adapter does not fail the whole run unless every useful source fails.
-
-## Setup
-
-Direct environment variables are the simplest setup:
-
-```bash
-export EXA_API_KEY=exa_...
-export GITHUB_TOKEN=github_pat_...
-```
-
-For local keyed evals, copy the committed example file and fill only the source-specific keys you want to test:
+Copy `.env.example` to `.env` and fill in keys for the sources you want:
 
 ```bash
 cp .env.example .env
+# Edit .env with your keys
 ```
 
-`.env.example` lists every supported optional key with empty values. Filling it improves live eval coverage, but no key is globally required.
-
-The optional helper reports current adapter availability and can write a local env file from already-exported variables:
+Or export them directly:
 
 ```bash
-npx last30days-setup
-npx last30days-setup --write-env
+export EXA_API_KEY=your-key
+export XAI_API_KEY=your-key
+npx last30days "topic"
 ```
 
-Baseline research does not require this helper.
+See `.env.example` for the complete list of supported variables.
 
-## Planning And Reranking
+### Setup Helper
 
-The installable agent-facing skill lives at `skills/last30days/SKILL.md`. It explains when to run Last30Days TS, how to invoke the CLI, how to configure optional source keys, and how to interpret source status before answering users.
+Run the setup command to see which sources are available:
 
-Planning and reranking guidance lives in textual support files under `skills/planning.md` and `skills/reranking.md`. They are instructions for an agent or maintainer, not scripts and not model-provider API calls.
+```bash
+npx last30days setup
+```
 
-## Evals
+This prints a table showing which sources are configured and how to enable others.
 
-`npm run eval:offline` runs a deterministic no-network smoke eval and writes `eval-output/offline/brief.md`, `brief.json`, `status.json`, `command.json`, and `judgment.md`.
+### YouTube
 
-`npm run eval` runs a live zero-key baseline topic through the available adapters and writes the same files under `eval-output/live/`. Keyed adapters run only when their source-scoped environment variables are present; missing keys are recorded as skipped instead of failing the whole eval.
+YouTube search uses the same `yt-dlp` binary approach as upstream Last30Days. Install with:
 
-## YouTube
+```bash
+brew install yt-dlp
+```
 
-The YouTube adapter uses the same `yt-dlp` binary approach as upstream Last30Days. If `yt-dlp` is not installed, Last30Days TS skips YouTube and reports the missing optional dependency instead of failing the whole research run.
+If `yt-dlp` is not installed, YouTube is skipped with a warning — the rest of the run continues.
 
-## Deferred Behavior
+### Planning and Reranking
 
-Some upstream paths are intentionally simplified. Hosted plugin packaging, mandatory setup flows, executable model planning, provider upsell copy, removed X auth helpers, and vendored X/Twitter JavaScript clients are not part of this TypeScript rewrite. Optional social adapters are either implemented through source-scoped APIs or report a source-specific failure instead of returning fabricated evidence.
+Planning guidance for effective research queries lives in `skills/planning.md`. Reranking and scoring logic is documented in `skills/reranking.md`. Both are textual reference files for agents and developers — no API keys or model calls are involved.
+
+## Agent Skill
+
+This repository includes an installable agent skill at `skills/last30days/SKILL.md`. Install it in any Agent Skills host:
+
+```bash
+npx skills add mountgram/last30days-ts -g
+```
+
+The skill teaches agents when and how to invoke the `last30days` CLI from within a project that has this package installed.
+
+## Output Formats
+
+- **markdown** (default) — Human-readable brief with badge, prose synthesis, key patterns, and emoji footer
+- **json** — Machine-readable full report with all candidates, clusters, and metadata
+- **compact** — Agent-consumable format with evidence clusters, stats, and pass-through footer
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Run type checking
+npm run typecheck
+
+# Build
+npm run build
+
+# Run tests
+npm test
+
+# Run live evals
+npm run eval
+```
+
+### Evals
+
+Live evals test source adapters against real endpoints:
+
+```bash
+npm run eval          # All available evals (skips missing keys)
+npm run eval:offline  # Smoke tests without network
+```
+
+Eval artifacts are written to `eval-output/` (git-ignored). Each eval produces:
+- Raw JSON/Markdown output
+- Adapter status and warnings
+- A judgment file assessing output quality
+
+## License
+
+MIT — derived from [mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill), rewritten in TypeScript.

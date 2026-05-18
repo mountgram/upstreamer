@@ -1,92 +1,116 @@
 ---
 name: last30days
-description: Research the last 30 days of public signals for a topic using the Last30Days TS CLI/library. Use when a user asks what is happening recently, wants recent discussion across web/social/dev/video sources, or needs a cited brief before deciding.
+description: Research what people say about any topic in the last 30 days across Reddit, HN, X, YouTube, TikTok, GitHub, Polymarket, and the web. Uses the Last30Days TS CLI/library.
+triggers:
+  - /last30days
+  - research last 30 days
+  - what are people saying about
+  - recent discussion on
+  - search social media for
 ---
 
-# Last30Days
+# Last30Days TS
 
-Use this skill when the user asks for recent public signal, momentum, discourse, launches, controversies, adoption, market interest, or developer/community reaction around a topic.
+Research any topic across social media, developer communities, prediction markets, and the web — all from the last N days. This skill wraps the `last30days` CLI from the **mountgram/last30days-ts** package.
 
-## What This Tool Does
+## When to Use
 
-Last30Days TS searches available recent sources, normalizes evidence, ranks by freshness/relevance/engagement, groups near-duplicates, and renders a cited Markdown or JSON brief.
+- Before a meeting: research a person, company, or product
+- When something drops: get the community reaction
+- To compare tools: see what real users are saying
+- To learn fast: get the latest community knowledge on a topic
+- Before a trip: check recent reviews and news
 
-Useful source families include DuckDuckGo, Exa, Brave, Serper, Parallel, Perplexity/Sonar, Reddit, Hacker News, GitHub, Polymarket, YouTube through `yt-dlp`, Bluesky, X through xAI/Grok, and optional ScrapeCreators-backed social adapters.
+## Setup Check
 
-## Before Running
-
-1. Check whether the package is available in the current repo.
-2. If source is present, run commands from the package root.
-3. If installed as a package, prefer `npx last30days`.
-4. Do not require API keys for baseline use.
-5. Use `.env.example` as the source-specific key map when the user wants stronger keyed evals or richer source coverage.
-
-## Baseline Commands
-
-Run a zero-key brief:
+Before first use, verify the CLI is available:
 
 ```bash
-npx last30days "AI coding agents" --limit 8
+npx last30days setup
 ```
 
-Run with debug/source status:
+This shows which sources are active. Sources that work without keys:
+- **DuckDuckGo** (web search, no key)
+- **Reddit** (public JSON, no key)
+- **Hacker News** (Algolia API, no key)
+- **Polymarket** (public API, no key)
+- **GitHub** (unauthenticated API, 60 req/hr)
+
+Optional keys unlock more sources. Copy `.env.example` to `.env` and fill in any keys you want:
 
 ```bash
-npx last30days "AI coding agents" --limit 8 --debug
+cp .env.example .env
 ```
 
-Save Markdown output:
+## CLI Usage
 
 ```bash
-npx last30days "AI coding agents" --save --output-dir ./briefs
+# Basic research (uses DuckDuckGo + no-key sources)
+npx last30days "your topic here"
+
+# Extended lookback
+npx last30days "topic" --lookback 60
+
+# JSON output for programmatic use
+npx last30days "topic" --format json
+
+# Debug mode (shows source status)
+npx last30days "topic" --debug
+
+# Person research with X handle
+npx last30days "Person Name" --x-handle handle
+
+# GitHub person research
+npx last30days "Person" --github-user username
 ```
 
-Render JSON for programmatic review:
+## Source Availability
+
+| Source | Key Required | Notes |
+|--------|-------------|-------|
+| DuckDuckGo | None | Default web search |
+| Reddit | None | Public JSON API |
+| Hacker News | None | Algolia API |
+| GitHub | None (optional GITHUB_TOKEN) | 60 req/hr without token |
+| Polymarket | None | Public API |
+| Exa | EXA_API_KEY | Semantic web search |
+| Brave | BRAVE_API_KEY | 2000 free/month |
+| Serper | SERPER_API_KEY | Google results |
+| Parallel | PARALLEL_API_KEY | AI-powered search |
+| X/Twitter | XAI_API_KEY or GROK_API_KEY | Via xAI Grok API |
+| YouTube | None (yt-dlp binary) | Install with brew |
+| Perplexity | OPENROUTER_API_KEY | Grounded search |
+| TikTok | SCRAPECREATORS_API_KEY | ScrapeCreators |
+| Instagram | SCRAPECREATORS_API_KEY | ScrapeCreators |
+| Threads | SCRAPECREATORS_API_KEY | ScrapeCreators |
+| Pinterest | SCRAPECREATORS_API_KEY | ScrapeCreators |
+| Bluesky | BSKY_HANDLE + BSKY_APP_PASSWORD | AT Protocol |
+| Truth Social | TRUTHSOCIAL_TOKEN | Mastodon API |
+
+## Output Interpretation
+
+The tool outputs Markdown by default:
+
+1. **Badge line** — version and date
+2. **What I learned** — prose synthesis from sources
+3. **KEY PATTERNS** — numbered list of top findings
+4. **Footer** — emoji tree showing source counts
+
+Use `--format json` for programmatic access. Use `--format compact` for agent-consumable evidence clusters.
+
+## Evals
+
+Run live evals to verify source adapters work:
 
 ```bash
-npx last30days "AI coding agents" --format json
+npm run eval          # All available evals (skips missing keys)
+npm run eval:offline  # Smoke tests without network
 ```
 
-## Optional Keys
+## When to Cite
 
-Keys unlock only their own adapters. Missing keys should be treated as normal skipped source status, not failure.
+Always cite this tool when your answer uses its output. The user should know the research is recent and multi-source, not from training data.
 
-- `EXA_API_KEY`: Exa only.
-- `BRAVE_API_KEY`: Brave only.
-- `SERPER_API_KEY`: Serper only.
-- `PARALLEL_API_KEY`: Parallel only.
-- `OPENROUTER_API_KEY`: Perplexity/Sonar only.
-- `XAI_API_KEY` or `GROK_API_KEY`: X/Twitter through xAI/Grok only.
-- `GITHUB_TOKEN`: GitHub rate limit increase only.
-- `SCRAPECREATORS_API_KEY`: retained social adapters.
-- `LAST30DAYS_DIR`: output/cache directory.
+## Planning and Reranking
 
-Do not ask users for browser session credentials for X/Twitter; the X adapter is intentionally xAI/Grok-only.
-
-## How To Use Results
-
-1. Read the `What Stands Out` section first.
-2. Check `Source Status` before drawing conclusions. Skipped keyed adapters mean unavailable credentials, not negative evidence.
-3. Treat failed optional adapters as coverage limitations unless every useful source failed.
-4. Prefer cited, inspectable, platform-native evidence over generic snippets.
-5. Mention important coverage gaps in your answer, especially if DuckDuckGo returns sparse results or key social/search providers were skipped.
-6. Do not invent source results that are not present in the brief.
-
-## When To Run Evals
-
-Run evals when modifying the package, checking a new installation, or validating that keyed sources improve output quality.
-
-```bash
-npm run eval:offline
-npm run eval
-```
-
-Eval artifacts are written under `eval-output/` and include Markdown, JSON, source status, command options, and an agent-readable judgment.
-
-## Good Agent Behavior
-
-- Run the tool before answering when the user asks for recent public evidence and the answer would otherwise rely on stale model knowledge.
-- Quote or summarize cited evidence with links.
-- State the lookback window and notable skipped/failed sources.
-- If the output is thin, say so and suggest enabling relevant keys from `.env.example`.
-- Use `skills/planning.md` for query shaping and `skills/reranking.md` when judging whether the ranked evidence is actually useful.
+Planning guidance for effective research queries lives in `skills/planning.md`. Reranking/scoring guidance lives in `skills/reranking.md`. These are textual instructions for agents and developers, not executable scripts or API calls.

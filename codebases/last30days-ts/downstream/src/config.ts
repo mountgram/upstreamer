@@ -1,56 +1,70 @@
-import { access, mkdir, writeFile } from "node:fs/promises";
-import { constants } from "node:fs";
-import { dirname, join } from "node:path";
-import { homedir } from "node:os";
-import type { SourceAdapter } from "./schema.js";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
-export const supportedKeys = [
-  "EXA_API_KEY",
-  "BRAVE_API_KEY",
-  "SERPER_API_KEY",
-  "PARALLEL_API_KEY",
-  "GITHUB_TOKEN",
-  "SCRAPECREATORS_API_KEY",
-  "OPENROUTER_API_KEY",
-  "XAI_API_KEY",
-  "GROK_API_KEY",
-  "BSKY_HANDLE",
-  "BSKY_APP_PASSWORD",
-  "TRUTHSOCIAL_TOKEN",
-  "APIFY_API_TOKEN",
-  "LAST30DAYS_DIR"
-] as const;
-
-export function defaultOutputDir(env: NodeJS.ProcessEnv = process.env): string {
-  return env.LAST30DAYS_DIR || join(homedir(), "Documents", "Last30Days");
+export interface Config {
+  exaApiKey?: string;
+  braveApiKey?: string;
+  serperApiKey?: string;
+  parallelApiKey?: string;
+  openrouterApiKey?: string;
+  xaiApiKey?: string;
+  grokApiKey?: string;
+  bskyHandle?: string;
+  bskyAppPassword?: string;
+  truthsocialToken?: string;
+  scrapecreatorsApiKey?: string;
+  apifyApiToken?: string;
+  githubToken?: string;
+  last30daysDir?: string;
 }
 
-export async function commandExists(command: string): Promise<boolean> {
-  const paths = (process.env.PATH || "").split(":").filter(Boolean);
-  for (const base of paths) {
-    try {
-      await access(join(base, command), constants.X_OK);
-      return true;
-    } catch {
-      // try the next PATH entry
+let _config: Config | null = null;
+
+export function getConfig(): Config {
+  if (_config) return _config;
+  _config = loadConfig();
+  return _config;
+}
+
+export function resetConfig(): void {
+  _config = null;
+}
+
+function loadConfig(): Config {
+  const env = process.env;
+  const config: Config = {};
+
+  // Load from .env file if present
+  try {
+    const cwd = process.cwd();
+    const envFile = readFileSync(resolve(cwd, ".env"), "utf-8");
+    for (const line of envFile.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx === -1) continue;
+      const key = trimmed.slice(0, eqIdx).trim();
+      const value = trimmed.slice(eqIdx + 1).trim();
+      if (!env[key]) env[key] = value;
     }
+  } catch {
+    // .env file is optional
   }
-  return false;
-}
 
-export function describeAvailability(adapters: SourceAdapter[], env: NodeJS.ProcessEnv = process.env): string[] {
-  return adapters.map((adapter) => {
-    const keys = adapter.needs?.length ? ` needs ${adapter.needs.join(" or ")}` : " no key";
-    const available = adapter.isAvailable(env);
-    return `${adapter.name}: ${available instanceof Promise ? "check at runtime" : available ? "available" : "not configured"} (${keys})`;
-  });
-}
+  config.exaApiKey = env.EXA_API_KEY;
+  config.braveApiKey = env.BRAVE_API_KEY;
+  config.serperApiKey = env.SERPER_API_KEY;
+  config.parallelApiKey = env.PARALLEL_API_KEY;
+  config.openrouterApiKey = env.OPENROUTER_API_KEY;
+  config.xaiApiKey = env.XAI_API_KEY || env.GROK_API_KEY;
+  config.grokApiKey = env.GROK_API_KEY;
+  config.bskyHandle = env.BSKY_HANDLE;
+  config.bskyAppPassword = env.BSKY_APP_PASSWORD;
+  config.truthsocialToken = env.TRUTHSOCIAL_TOKEN;
+  config.scrapecreatorsApiKey = env.SCRAPECREATORS_API_KEY;
+  config.apifyApiToken = env.APIFY_API_TOKEN;
+  config.githubToken = env.GITHUB_TOKEN;
+  config.last30daysDir = env.LAST30DAYS_DIR || "./output";
 
-export async function writeEnvFile(values: Record<string, string>, path = join(defaultOutputDir(), ".env")): Promise<void> {
-  await mkdir(dirname(path), { recursive: true });
-  const body = Object.entries(values)
-    .filter(([, value]) => value.length > 0)
-    .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
-    .join("\n");
-  await writeFile(path, `${body}\n`, "utf8");
+  return config;
 }

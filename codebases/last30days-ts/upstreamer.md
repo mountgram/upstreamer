@@ -1,6 +1,7 @@
 ---
 upstream: mvanhorn/last30days-skill
 downstream: mountgram/last30days-ts
+model: deepseek/deepseek-v4-pro
 ---
 
 # Last30Days TS Rewrite Rules
