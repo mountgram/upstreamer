@@ -12,8 +12,6 @@ export const supportedKeys = [
   "GITHUB_TOKEN",
   "SCRAPECREATORS_API_KEY",
   "OPENROUTER_API_KEY",
-  "AUTH_TOKEN",
-  "CT0",
   "XAI_API_KEY",
   "GROK_API_KEY",
   "BSKY_HANDLE",

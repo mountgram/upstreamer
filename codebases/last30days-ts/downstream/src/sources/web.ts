@@ -57,7 +57,7 @@ export const perplexity: SourceAdapter = {
       baseURL: "https://openrouter.ai/api/v1"
     });
     const data = await client.chat.completions.create({
-      model: "perplexity/sonar",
+      model: "perplexity/sonar-pro",
       messages: [{ role: "user", content: `Find recent, cited evidence about ${context.topic}. Include citations and focus on the last ${context.limit} high-signal results.` }]
     });
     const body = data.choices[0]?.message?.content || "Grounded web result";

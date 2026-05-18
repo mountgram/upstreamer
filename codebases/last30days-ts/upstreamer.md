@@ -16,7 +16,7 @@ The conversion is not complete when the code merely compiles. The agent doing th
 - Local codebase name: `last30days-ts`.
 - Downstream repo identity: `mountgram/last30days-ts`.
 - The downstream is a Node.js TypeScript package, not a Python package and not a Claude/OpenClaw plugin bundle.
-- The downstream may include skills or command wrappers only if they invoke the TypeScript CLI and do not reintroduce the upstream's python.
+- The downstream must include installable agent skill documentation under `skills/` so a user can install this repository with a skill installer such as `npx skills add <github-repo>` and have another agent understand when and how to use Last30Days TS. Skills may invoke the TypeScript CLI/library, but must not reintroduce upstream Python.
 - The downstream should preserve the upstream source surface where practical, but each source must be independently optional at runtime.
 
 ## Philosophy
@@ -50,7 +50,8 @@ Keep these concepts, rewritten in TypeScript:
 - A library API that can be called from tests and other TypeScript code without shelling out.
 - A normalized evidence item shape with source, title, URL, body/snippet, author/container, published date, engagement, and relevance metadata.
 - A query plan shape with one or more subqueries and per-source selection.
-- Planning and reranking guidance from upstream, rewritten as textual skill instructions rather than executable planner/reranker scripts.
+- Planning, usage, and reranking guidance from upstream, rewritten as textual skill instructions rather than executable planner/reranker scripts.
+- An installable primary skill at `skills/last30days/SKILL.md` that teaches agents how to use the `last30days` CLI/library from an arbitrary downstream repository.
 - Date-window handling for the last 30 days, plus an explicit lookback option.
 - Engagement-aware ranking and source-aware deduplication.
 - Simple clustering or grouping for near-duplicate stories when the same story appears in multiple sources.
@@ -58,6 +59,7 @@ Keep these concepts, rewritten in TypeScript:
 - JSON output for programmatic use.
 - A concise README with install, configuration, source availability, and examples.
 - A committed `.env.example` listing every supported optional key with empty values and comments that map each key to the adapter it unlocks.
+- A committed `.gitignore` that ignores generated/local artifacts including `node_modules/`, `dist/`, `eval-output/`, and `.env`.
 - The upstream MIT license.
 
 ## Sources to Implement
@@ -78,7 +80,7 @@ Create TypeScript source adapters for these upstream concepts where the upstream
 - `github` - unauthenticated GitHub API by default, optional `GITHUB_TOKEN` for higher rate limits.
 - `polymarket` - public API where the upstream implementation can be carried over cleanly.
 - `youtube` - required adapter using the same `yt-dlp` binary approach as upstream Last30Days for YouTube search/transcripts. If `yt-dlp` is missing, skip YouTube with a clear optional-dependency warning rather than failing the whole run.
-- `x` - optional X/Twitter source. Keep it source-scoped; do not make X auth part of global setup.
+- `x` - optional X/Twitter source backed only by the xAI/Grok API using `XAI_API_KEY` or `GROK_API_KEY`. Use the modern xAI model `grok-4.3` for this adapter unless the user explicitly selects a newer model. The transformed downstream output must not include logged-in Twitter, browser cookies, session auth, cookie extraction, `AUTH_TOKEN`, or `CT0` in code, docs, `.env.example`, tests, evals, or user-facing reports.
 - `tiktok`, `instagram`, `threads`, `pinterest`, `bluesky`, `truthsocial`, `xiaohongshu`, and `digg` - preserve as optional adapters when the upstream source has a clear API or command dependency.
 - `brave`, `serper`, `parallel`, `perplexity`, and other grounded web/provider search paths - keep as optional web/search adapters, not as planner/model-provider requirements.
 
@@ -103,8 +105,7 @@ PARALLEL_API_KEY  optional, enables Parallel web search
 GITHUB_TOKEN      optional, raises GitHub API limits
 SCRAPECREATORS_API_KEY optional, enables any retained ScrapeCreators-backed social adapters
 OPENROUTER_API_KEY optional, enables retained Perplexity/Sonar adapter only
-AUTH_TOKEN/CT0    optional, enables retained X cookie adapter only
-XAI_API_KEY/GROK_API_KEY optional, enables retained X/xAI adapter only, not global planning
+XAI_API_KEY/GROK_API_KEY optional, enables retained X/Twitter search through xAI/Grok only, not global planning
 BSKY_HANDLE/BSKY_APP_PASSWORD optional, enables retained Bluesky adapter only
 TRUTHSOCIAL_TOKEN optional, enables retained Truth Social adapter only
 APIFY_API_TOKEN   optional, enables retained Apify-backed adapters only
@@ -124,12 +125,13 @@ Keep these upstream key and auth paths when they unlock a source adapter, but si
 - Serper
 - Parallel AI
 - OpenRouter/Perplexity
-- X/Twitter cookies and source-specific auth tokens
+- X/Twitter search through xAI/Grok API keys only. Do not preserve or document upstream's logged-in Twitter/cookie/session auth paths in the transformed codebase.
 - Bluesky, Truth Social, TikTok, Instagram, Threads, Pinterest, Xiaohongshu, and XQuik auth flows where the upstream adapter can be ported cleanly
 
 Drop or simplify these upstream paths when they only support model planning, packaging, provider upsell, or mandatory onboarding rather than source retrieval:
 
 - OpenAI, Gemini, and xAI model provider routing for planning/reranking when it makes retrieval orchestration depend on model-provider keys
+- Logged-in Twitter, browser-cookie, `AUTH_TOKEN`, `CT0`, or session-token X/Twitter retrieval. X/Twitter support must go through the xAI/Grok API path only, and the transformed downstream output must not mention these removed X auth mechanisms except in this rewrite contract.
 - Device-auth flows that force a hosted account when a direct environment variable can work
 - Setup copy that says users must configure paid sources before baseline research works
 - Any auth path that makes one source's credential look globally required
@@ -142,6 +144,7 @@ Use a small TypeScript structure similar to this:
 codebases/last30days-ts/downstream/
 ├── README.md
 ├── .env.example
+├── .gitignore
 ├── LICENSE
 ├── package.json
 ├── tsconfig.json
@@ -170,6 +173,8 @@ codebases/last30days-ts/downstream/
 │       └── youtube.ts
 │   └── setup.ts
 ├── skills/
+│   ├── last30days/
+│   │   └── SKILL.md
 │   ├── planning.md
 │   └── reranking.md
 └── test/
@@ -191,6 +196,7 @@ Adapt these upstream behaviors, not necessarily their exact implementations:
 - Pipeline orchestration into a small async source runner that discovers available adapters and executes useful sources concurrently.
 - Ranking into deterministic TypeScript functions that combine freshness, engagement, source quality, and text relevance.
 - Upstream planning and reranking prompt logic into textual skills, such as `skills/planning.md` and `skills/reranking.md`. These files should instruct an agent how to form subqueries, choose useful source emphasis, judge relevance, and resolve ties. They should not call model APIs, require provider keys, or be implemented as scripts.
+- The upstream user-facing Last30Days behavior into `skills/last30days/SKILL.md`. This skill must be useful after installing the repo into another project: it should explain triggers, setup checks, CLI invocation, source availability, `.env.example`, eval commands, output interpretation, and when to cite/run the tool before answering.
 - Markdown rendering into a compact, citation-preserving output. Avoid the upstream's very large prompt-law contract.
 - Tests into a TypeScript test suite using the repository's chosen test runner.
 
@@ -205,7 +211,7 @@ Remove these upstream areas from the downstream output:
 - `.claude-plugin/`, `.codex-plugin/`, `.agents/plugins/`, `gemini-extension.json`, `hooks/`, and platform packaging.
 - `.github/` workflows and upstream release automation.
 - `fixtures/`, `docs/test-results/`, launch-copy docs, release notes, and planning docs unless a small fixture is needed for tests.
-- ScrapeCreators device auth, PAT auth, browser-cookie extraction, telemetry-like nudges, and provider upsell copy. Keep simple source-specific configuration and a global env setup helper when an adapter needs it.
+- ScrapeCreators device auth, PAT auth, browser-cookie extraction, logged-in Twitter/session auth, telemetry-like nudges, and provider upsell copy. Keep simple source-specific configuration and a global env setup helper when an adapter needs it. The downstream output must not include removed X auth names or cookie/session Twitter setup text.
 - Vendored JavaScript X/Twitter client code.
 - Media assets unrelated to the TypeScript CLI.
 
@@ -220,6 +226,7 @@ Remove these upstream areas from the downstream output:
 - Avoid heavy scraping dependencies unless a required source cannot be implemented safely without one.
 - Do not vendor upstream dependencies. Prefer normal npm package dependencies over copied code.
 - Include a generated lockfile only when the chosen package manager expects one and it helps reproducible tests/builds.
+- Do not delete ignored local install/build/eval artifacts such as `node_modules/`, `dist/`, or `eval-output/` after running checks. They should be ignored by `.gitignore`, not manually removed as part of conversion cleanup.
 - Prefer a simple test runner such as `vitest` or Node's built-in test runner.
 
 ## Test And Eval Requirements
@@ -274,6 +281,7 @@ The downstream README must include:
 - A `.env.example` section explaining how to copy it to `.env` for local evals without making any key globally required.
 - A setup section explaining both direct environment-variable configuration and the optional setup helper.
 - A note that planning and reranking guidance lives in textual skills, not provider-backed scripts.
+- A section explaining that `skills/last30days/SKILL.md` is the installable agent-facing skill for `npx skills add` style workflows.
 - A note that YouTube uses the same `yt-dlp` binary approach as upstream Last30Days.
 - A short note that the project is derived from `mvanhorn/last30days-skill` and rewritten in TypeScript.
 
@@ -283,6 +291,8 @@ Before finishing a conversion run, verify:
 
 - The downstream output has `package.json`, `tsconfig.json`, `src/`, and `README.md`.
 - The downstream output has `.env.example`, and it documents all supported optional keys without real secrets.
+- The downstream output has `.gitignore` entries for `node_modules/`, `dist/`, `eval-output/`, and `.env`, so generated local artifacts can remain untracked after checks/evals.
+- The downstream output contains no `AUTH_TOKEN`, `CT0`, logged-in Twitter, cookie-based Twitter, or session-token X/Twitter setup in code, docs, env examples, tests, evals, generated artifacts, or reports.
 - There are no Python source or packaging files.
 - There is at least one TypeScript file under `src/`.
 - DuckDuckGo and Exa are both documented and implemented as web search sources.
@@ -292,10 +302,12 @@ Before finishing a conversion run, verify:
 - YouTube is implemented through `yt-dlp` as an optional local binary dependency for that source.
 - The setup helper is optional and environment-variable based.
 - Planning and reranking are represented as textual skill/instruction files, not scripts or model-provider API calls.
+- `skills/last30days/SKILL.md` exists, is agent-facing, and gives practical instructions for using the CLI/library from a newly installed repository.
 - Optional upstream sources are represented as adapters or explicitly documented as intentionally deferred with a reason.
 - TypeScript checks and tests pass if dependencies can be installed in the environment.
 - `package.json` includes maintained SDK dependencies for provider-backed adapters where appropriate, or the final report justifies why a direct `fetch` implementation is safer for a given source.
-- Live eval tests exist, can skip missing optional credentials cleanly, and write full output artifacts for agent review.
+- Hard-coded model identifiers are current for May 18 2026. The xAI/Grok X adapter uses `grok-4.3` unless explicitly overridden by the user. The OpenRouter/Perplexity adapter should use `perplexity/sonar-pro` unless the user explicitly selects a newer model.
+- Live eval tests exist, can skip missing optional credentials cleanly, and write full output artifacts for agent review. X/Twitter keyed evals must look only for `XAI_API_KEY` or `GROK_API_KEY`.
 - Live eval docs point users to `.env.example` for enabling stronger keyed evals.
 - The converting agent has run all available deterministic tests and live evals, inspected the generated eval artifacts, and judged whether the downstream output is as useful as the upstream README claims.
 
@@ -311,6 +323,7 @@ If running checks manually, use these macOS-compatible commands:
 find <downstream-dir> -type f | sort
 find <downstream-dir> -type f \( -name '*.py' -o -name 'pyproject.toml' -o -name 'uv.lock' -o -name 'requirements.txt' \)
 grep -RInE 'OPENAI_API_KEY|GEMINI_API_KEY|XAI_API_KEY' <downstream-dir> || true
+grep -RInE 'AUTH_TOKEN|CT0|logged[- ]in Twitter|cookie[- ]based Twitter|session-token X|Twitter cookies' <downstream-dir> && exit 1 || true
 grep -RInE 'duckduckgo|DuckDuckGo|EXA_API_KEY|Exa' <downstream-dir>
 grep -RInE 'yt-dlp|ytdlp' <downstream-dir>
 ```

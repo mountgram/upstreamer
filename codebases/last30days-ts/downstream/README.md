@@ -66,7 +66,7 @@ console.log(await renderBrief(brief, "markdown"));
 | Serper | `SERPER_API_KEY` | Optional web search source. |
 | Parallel | `PARALLEL_API_KEY` | Optional grounded search source. |
 | Perplexity | `OPENROUTER_API_KEY` | Optional Sonar-backed grounded web source only. |
-| X / Twitter | `AUTH_TOKEN`/`CT0` or `XAI_API_KEY`/`GROK_API_KEY` | Source-scoped optional adapter. |
+| X / Twitter | `XAI_API_KEY` or `GROK_API_KEY` | Optional xAI/Grok-backed source adapter. |
 | TikTok, Instagram, Threads, Pinterest, Xiaohongshu | `SCRAPECREATORS_API_KEY` | Optional ScrapeCreators-backed adapters. |
 | Bluesky | none | Uses the public AT Protocol search endpoint. |
 | Truth Social | `TRUTHSOCIAL_TOKEN` or `SCRAPECREATORS_API_KEY` | Optional source-scoped adapter. |
@@ -87,8 +87,6 @@ console.log(await renderBrief(brief, "markdown"));
 `SCRAPECREATORS_API_KEY` enables retained ScrapeCreators-backed social adapters.
 
 `OPENROUTER_API_KEY` enables the Perplexity/Sonar adapter only.
-
-`AUTH_TOKEN` and `CT0` enable cookie-backed X/Twitter search paths only.
 
 `XAI_API_KEY` and `GROK_API_KEY` enable retained X/xAI search paths only.
 
@@ -130,7 +128,9 @@ Baseline research does not require this helper.
 
 ## Planning And Reranking
 
-Planning and reranking guidance lives in textual skills under `skills/planning.md` and `skills/reranking.md`. They are instructions for an agent or maintainer, not scripts and not model-provider API calls.
+The installable agent-facing skill lives at `skills/last30days/SKILL.md`. It explains when to run Last30Days TS, how to invoke the CLI, how to configure optional source keys, and how to interpret source status before answering users.
+
+Planning and reranking guidance lives in textual support files under `skills/planning.md` and `skills/reranking.md`. They are instructions for an agent or maintainer, not scripts and not model-provider API calls.
 
 ## Evals
 
@@ -144,4 +144,4 @@ The YouTube adapter uses the same `yt-dlp` binary approach as upstream Last30Day
 
 ## Deferred Behavior
 
-Some upstream paths are intentionally simplified. Hosted plugin packaging, mandatory setup flows, executable model planning, provider upsell copy, browser-cookie extraction helpers, and vendored X/Twitter JavaScript clients are not part of this TypeScript rewrite. Optional social adapters are either implemented through source-scoped APIs or report a source-specific failure instead of returning fabricated evidence.
+Some upstream paths are intentionally simplified. Hosted plugin packaging, mandatory setup flows, executable model planning, provider upsell copy, removed X auth helpers, and vendored X/Twitter JavaScript clients are not part of this TypeScript rewrite. Optional social adapters are either implemented through source-scoped APIs or report a source-specific failure instead of returning fabricated evidence.

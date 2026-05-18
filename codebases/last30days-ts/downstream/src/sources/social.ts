@@ -33,10 +33,31 @@ export const xiaohongshu = scrapeCreatorsSource("xiaohongshu", "xiaohongshu");
 
 export const x: SourceAdapter = {
   name: "x",
-  needs: ["AUTH_TOKEN/CT0", "XAI_API_KEY", "GROK_API_KEY"],
-  isAvailable: (env) => hasAny(env, ["AUTH_TOKEN", "CT0", "XAI_API_KEY", "GROK_API_KEY"]),
+  needs: ["XAI_API_KEY", "GROK_API_KEY"],
+  isAvailable: (env) => hasAny(env, ["XAI_API_KEY", "GROK_API_KEY"]),
   async search(context) {
-    throw new Error("X/Twitter retrieval is intentionally source-scoped but not implemented without a concrete retained auth/API path; configure another adapter for evidence.");
+    const apiKey = context.env.XAI_API_KEY || context.env.GROK_API_KEY || "";
+    const response = await fetch("https://api.x.ai/v1/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: "grok-4.3",
+        messages: [{ role: "user", content: `Find recent public X posts about ${context.topic}. Return a concise JSON array with title, url, text, author, publishedAt, likes, and replies.` }],
+        search_parameters: { mode: "auto", return_citations: true },
+        response_format: { type: "json_object" }
+      })
+    });
+    if (!response.ok) throw new Error(`xAI/Grok returned ${response.status}`);
+    const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+    const content = data.choices?.[0]?.message?.content || "{}";
+    const parsed = JSON.parse(content) as { results?: Array<{ title?: string; url?: string; text?: string; author?: string; publishedAt?: string; likes?: number; replies?: number }> };
+    return (parsed.results || []).filter((item) => item.url).map((item) => makeItem("x", item.title || item.text?.slice(0, 80) || item.url!, item.url!, {
+      body: item.text,
+      author: item.author,
+      container: "X",
+      publishedAt: item.publishedAt,
+      engagement: { likes: item.likes, comments: item.replies }
+    }));
   }
 };
 
