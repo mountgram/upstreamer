@@ -13,7 +13,10 @@ For a deeper explanation, see [`docs/SYNTHETIC_CODEBASES.md`](docs/SYNTHETIC_COD
 ## Explainer
 
 - Read the public write-up: https://toppingdesign.com/upstreamer/
-- Watch the short explainer video: https://toppingdesign.com/upstreamer/explainer/upstreamer-explainer.mp4
+
+<video src="https://toppingdesign.com/upstreamer/explainer/upstreamer-explainer.mp4" controls poster="https://toppingdesign.com/upstreamer/assets/upstreamer-graph-poster_0.png"></video>
+
+If the video does not render inline, watch it here: https://toppingdesign.com/upstreamer/explainer/upstreamer-explainer.mp4
 
 ## Why This Exists
 
