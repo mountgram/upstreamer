@@ -17,6 +17,7 @@ Prefer small, explicit conventions:
 ## Codebase Map
 
 - `README.md`: project overview, `upstreamer.md` format, and usage examples.
+- `assets/`: README media assets, including the explainer video poster thumbnail.
 - `blog/`: release posts and technical write-ups about upstreamer.
 - `docs/`: explanatory documentation for upstreamer concepts and workflows.
 - `docs/SYNTHETIC_CODEBASES.md`: explanation of synthetic codebases, when to use them, and how contracts/evals fit together.
