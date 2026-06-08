@@ -4,17 +4,19 @@
  * Runs evals against real (or mocked) sources and writes artifacts to eval-output/.
  *
  * Usage:
- *   npm run eval          Run all available evals (skips missing keys)
- *   npm run eval:offline  Run only non-network smoke evals
+ *   cd skills/last30days/scripts/last30days
+ *   bunx tsx ../../../../eval/run.ts          Run all available evals
+ *   bunx tsx ../../../../eval/run.ts --offline Run only non-network smoke evals
  */
 
 import { spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve, join } from "node:path";
-import { getConfig } from "../src/config.js";
-import { getDateRange, formatDate } from "../src/dates.js";
+import { getConfig } from "../skills/last30days/scripts/last30days/src/config.js";
+import { getDateRange, formatDate } from "../skills/last30days/scripts/last30days/src/dates.js";
 
-const EVAL_OUTPUT_DIR = resolve(process.cwd(), "eval-output");
+const DOWNSTREAM_DIR = resolve(process.cwd(), "../../../..");
+const EVAL_OUTPUT_DIR = resolve(DOWNSTREAM_DIR, "eval-output");
 const isOffline = process.argv.includes("--offline");
 
 function ensureDir(dir: string) {
@@ -47,8 +49,8 @@ function withOnlySearchEnv(): NodeJS.ProcessEnv {
 }
 
 function runCli(args: string[], env?: NodeJS.ProcessEnv): { stdout: string; stderr: string; exitCode: number } {
-  // Use tsx to run the CLI directly
-  const result = spawnSync("npx", ["tsx", "src/cli.ts", ...args], {
+  // Run the bundled TypeScript CLI directly with Bun from scripts/last30days.
+  const result = spawnSync("bun", ["run", "src/cli.ts", ...args], {
     cwd: process.cwd(),
     env: env || process.env,
     timeout: 120_000,
@@ -156,7 +158,7 @@ async function runEvals(): Promise<void> {
   if (zeroKeyJudgment.passed && !hasSource(cli0.stdout, "Web")) {
     zeroKeyJudgment = { passed: false, warnings: [`${baselineSource} produced no web results`], judgment: "FAIL: Web search did not produce inspectable results" };
   }
-  writeFileSync(join(zeroKeyDir, "judgment.md"), `# Eval Judgment: Web Search\n\n**Topic:** ${topic0}\n**Source:** ${baselineSource || "none"}\n**Date:** ${formatDate(new Date())}\n**Passed:** ${zeroKeyJudgment.passed}\n\n## Judgment\n${zeroKeyJudgment.judgment}\n\n## Warnings\n${zeroKeyJudgment.warnings.join("\n") || "None"}\n\n## Command\n\`npx last30days "${topic0}" --format compact --depth quick --lookback 37 --include-sources ${baselineSource || "exa"}\`\n`);
+  writeFileSync(join(zeroKeyDir, "judgment.md"), `# Eval Judgment: Web Search\n\n**Topic:** ${topic0}\n**Source:** ${baselineSource || "none"}\n**Date:** ${formatDate(new Date())}\n**Passed:** ${zeroKeyJudgment.passed}\n\n## Judgment\n${zeroKeyJudgment.judgment}\n\n## Warnings\n${zeroKeyJudgment.warnings.join("\n") || "None"}\n\n## Command\n\`bun run last30days -- "${topic0}" --format compact --depth quick --lookback 37 --include-sources ${baselineSource || "exa"}\`\n`);
 
   results.push({
     name: "web-search",
@@ -191,7 +193,7 @@ async function runEvals(): Promise<void> {
     // invalid JSON
   }
 
-  writeFileSync(join(jsonDir, "judgment.md"), `# Eval Judgment: JSON Output\n\n**Topic:** ${topic0}\n**Valid JSON:** ${jsonValid}\n\n## Command\n\`npx last30days "${topic0}" --format json --depth quick --lookback 37 --include-sources ${baselineSource || "exa"}\`\n`);
+  writeFileSync(join(jsonDir, "judgment.md"), `# Eval Judgment: JSON Output\n\n**Topic:** ${topic0}\n**Valid JSON:** ${jsonValid}\n\n## Command\n\`bun run last30days -- "${topic0}" --format json --depth quick --lookback 37 --include-sources ${baselineSource || "exa"}\`\n`);
 
   results.push({
     name: "json-output",

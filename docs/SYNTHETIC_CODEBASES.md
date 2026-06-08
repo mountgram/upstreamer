@@ -22,7 +22,7 @@ Synthetic codebases are useful when the downstream has a durable identity of its
 
 | Upstream | Synthetic downstream | Why it helps |
 | --- | --- | --- |
-| A Python CLI | A TypeScript CLI plus importable library | Keep behavior and source coverage, but fit a JS/TS ecosystem. |
+| A Python CLI | An installable skill with bundled TypeScript source | Keep behavior and source coverage, but make the installed skill self-contained. |
 | A full agent framework | A markdown-only skill pack | Keep the portable workflows while dropping binaries, telemetry, and host-specific setup. |
 | A SaaS app | A local-first starter app | Preserve UX and architecture patterns while replacing production services. |
 | A large SDK | A tiny task-specific client | Track API changes without inheriting every abstraction. |
@@ -60,7 +60,7 @@ If qualitative eval fails, the converter should fix and rerun it. If it cannot m
 
 `codebases/tstack/` converts `garrytan/gstack` into a markdown-only skill pack. The downstream keeps portable agent workflows and drops helper binaries, telemetry, generated templates, package infrastructure, and host-specific state. Its eval focuses on instruction fidelity, because a short summary of a rich skill is not good enough.
 
-`codebases/last30days-ts/` converts `mvanhorn/last30days-skill` into a TypeScript CLI/library. The downstream keeps recent-public-signal research behavior while changing the runtime and source adapters. It intentionally removes DuckDuckGo because the unofficial scraping path is unreliable, and uses Exa with Brave fallback for web search.
+`codebases/last30days-ts/` converts `mvanhorn/last30days-skill` into a self-contained installable skill with bundled Bun/TypeScript source. The downstream keeps recent-public-signal research behavior while changing the runtime and source adapters. It intentionally removes DuckDuckGo because the unofficial scraping path is unreliable, and uses Exa with Brave fallback for web search.
 
 ## When Not To Use Upstreamer
 

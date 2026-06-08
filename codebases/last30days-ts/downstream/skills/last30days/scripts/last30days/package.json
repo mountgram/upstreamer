@@ -1,0 +1,29 @@
+{
+  "name": "last30days-skill",
+  "version": "0.1.0",
+  "description": "Self-contained Last30Days agent skill with a bundled TypeScript research CLI",
+  "repository": "github:mountgram/upstreamer",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "last30days": "bun run src/cli.ts",
+    "setup": "bun run src/cli.ts setup",
+    "start": "bun run src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "exa-js": "^1.3.0",
+    "openai": "^4.104.0",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.1.0",
+    "tsx": "^4.19.0"
+  }
+}

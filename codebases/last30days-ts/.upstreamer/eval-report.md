@@ -2,24 +2,26 @@
 
 ## Summary
 
-- Accept with follow-up. Exa and Brave web-search baselines produce recent, cited, non-placeholder results; JSON/API shape is usable; the X/Grok adapter now produces X items. The remaining warning is isolated to optional Perplexity source labeling/diagnostics.
+- Accept with follow-up. The downstream is now a self-contained installable skill: `skills/last30days/` includes the agent workflow, install reference, Bun package metadata, TypeScript source, tests, `.env.example`, planning guidance, reranking guidance, and license. Maintainer live evals live outside the installed skill at `downstream/eval/`. Exa, Brave, X/Grok, and JSON evals pass. The remaining warning is isolated to optional Perplexity source labeling/diagnostics.
 
 ## Findings
 
-1. [Warning] Optional Perplexity eval is not cleanly inspectable as Perplexity.
-Evidence: `codebases/last30days-ts/downstream/eval-output/summary-20260608.md`; `codebases/last30days-ts/downstream/eval-output/perplexity-20260608/judgment.md`.
-Why it matters: Optional keyed-source status should be clear to users.
-Required fix: Keep as warning per eval policy, or improve source labeling/diagnostics so Perplexity results are explicitly identifiable.
+1. [Warning] Optional Perplexity eval status is thin.
+Evidence: `codebases/last30days-ts/downstream/eval-output/perplexity-20260608/judgment.md`.
+Why it matters: Optional provider coverage is less clearly proven than Exa, Brave, and X/Grok.
+Required fix: Non-blocking follow-up; improve Perplexity source labeling or judgment if desired.
 
 ## Sampled Areas
 
-- `Exa web search`: PASS - `eval-output/web-search-20260608/compact.md` has recent cited web items.
-- `Brave fallback`: PASS - `eval-output/brave-20260608/compact.md` has recent cited Brave-backed web results.
-- `X/Grok adapter`: PASS - `src/sources/x.ts` uses xAI `responses.create`, `grok-4.3`, `x_search`, and parses `output_text`; live eval produced X items.
-- `JSON/API`: PASS - `eval-output/json-20260608/output.json` has structured clusters, candidates, source metadata, and no warnings.
-- `Optional-source isolation`: PASS - Perplexity warning did not break Exa, Brave, or X runs.
-- `Docs/config/skill`: PASS - README, `.env.example`, and skill document source-scoped keys.
-- `Removed paths`: PASS - DuckDuckGo, Python runtime files, and removed X cookie/session auth were not present in tracked source/docs/tests.
+- `README.md`: PASS - explains the installable self-contained skill and source setup.
+- `skills/last30days/SKILL.md`: PASS - practical agent-facing Bun setup, CLI usage, JSON output, eval, and citation guidance.
+- `skills/last30days/scripts/last30days/package.json`: PASS - build, typecheck, test, setup, and `last30days` scripts are present.
+- `skills/last30days/scripts/last30days/src/`: PASS - source-scoped adapters, isolated failures, structured library API, Exa/Brave/X implementations.
+- `skills/last30days/scripts/last30days/test/`: PASS - deterministic config, dates, ranking, and adapter-shape coverage.
+- `downstream/eval/`: PASS WITH WARNINGS - maintainer evals live outside the installed skill; Exa, Brave, X, and JSON passed; Perplexity warning is isolated.
+- `skills/last30days/scripts/last30days/.env.example`: PASS - optional keys documented without global required API key.
+- `skills/last30days/references/planning.md` and `skills/last30days/references/reranking.md`: PASS - textual guidance, no provider-backed scripts.
+- Removed paths: PASS - no Python runtime, plugin packaging, DuckDuckGo runtime, or removed Twitter cookie/session auth under the installed skill.
 
 ## Eval Artifacts Reviewed
 
@@ -31,14 +33,12 @@ Required fix: Keep as warning per eval policy, or improve source labeling/diagno
 
 ## Attempted Fixes
 
-- Removed DuckDuckGo runtime, dependency, docs, tests, and verifier requirements.
-- Made Exa the preferred reliable web-search path.
-- Added Brave as an alternative/fallback web-search path in planning and evals.
-- Updated live evals to record a Brave result when `BRAVE_API_KEY` is present.
-- Fixed the X/Grok adapter by parsing strict JSON posts from xAI `output_text` instead of nonexistent top-level `tool_results`.
-- Added X parser regression coverage for Responses API output shape and date normalization.
-- Updated docs, skill guidance, contract, verifier, and changelog.
+- Moved the runnable Bun/TypeScript project into `skills/last30days/scripts/last30days/` so installing the skill brings source, tests, package metadata, env docs, and support references.
+- Kept maintainer live evals outside the installed skill at `downstream/eval/`.
+- Replaced global/npm CLI instructions with `bun install`, `bun run setup`, and `bun run last30days -- ...` from the bundled script directory.
+- Updated verifier and eval standards for the self-contained skill-bundle shape.
+- Removed stale root package/source layout assumptions from downstream docs and contract.
 
 ## Recommendation
 
-- Accept with follow-up; do not block state update on isolated optional Perplexity warnings.
+- Accept with follow-up; do not block on isolated optional Perplexity warnings.

@@ -15,13 +15,14 @@ This is not a shell-script check. It is a product and behavior eval for a busy e
 - Upstream checkout: `tmp/upstreamer/last30days-ts/upstream/`
 - Upstream README: `tmp/upstreamer/last30days-ts/upstream/README.md`
 - Upstream skill: `tmp/upstreamer/last30days-ts/upstream/skills/last30days/SKILL.md`
+- Downstream eval runner: `codebases/last30days-ts/downstream/eval/run.ts`
 - Downstream eval artifacts: `codebases/last30days-ts/downstream/eval-output/` when present
 
 ## Review Method
 
 1. Read the contract first, then the upstream README and upstream skill.
-2. Inspect the downstream README, `skills/last30days/SKILL.md`, source adapters, CLI/library API, tests, and eval outputs.
-3. Prefer actual commands and generated artifacts when available: `npm test`, `npm run typecheck`, `npm run build`, `npm run eval`, and files under `eval-output/`.
+2. Inspect the downstream README, `skills/last30days/SKILL.md`, bundled source adapters, CLI/library API, tests, evals, and support docs under `skills/last30days/`.
+3. Prefer actual commands and generated artifacts when available: from `skills/last30days/scripts/last30days/`, run `bun install`, `bun run typecheck`, `bun run test`, `bun run build`; run live evals with `bunx tsx ../../../../eval/run.ts`; inspect files under `eval-output/` at the downstream root.
 4. If commands were already run in the conversion log, inspect their artifacts instead of rerunning expensive live evals unless the artifacts are missing or stale.
 5. Judge whether the downstream would help a user research a current topic without hidden credentials or Python/plugin setup.
 
@@ -36,7 +37,7 @@ The downstream should satisfy these product-level requirements:
 - The CLI output is concise, cited, recent, and readable.
 - JSON output is available for programmatic use.
 - Ranking combines freshness, relevance, engagement, source quality, and deduplication enough to avoid low-signal dumps.
-- The README and installable skill explain how to run the tool, configure optional sources, interpret warnings, and enable stronger evals with `.env.example`.
+- The README and installable skill explain that installing the skill brings the bundled Bun/TypeScript implementation, how to run it from the installed skill directory, how to configure optional sources, and how to interpret warnings. Maintainer live evals stay outside the installed skill.
 - Python runtime, plugin packaging, logged-in Twitter/session-cookie auth, and provider upsell flows stay removed.
 - Live eval outputs are inspected for actual usefulness, not treated as passing just because a command exited successfully.
 
@@ -50,7 +51,7 @@ Return `FAIL` if any of these are true:
 - Source adapters are stubs that return placeholders rather than real or testable source items.
 - Citations, dates, or source metadata are missing enough that output cannot be trusted.
 - Eval artifacts show generic, stale, uncited, duplicate-heavy, or fabricated-looking results.
-- The TypeScript API requires shelling out to use core behavior.
+- The installed skill lacks the bundled TypeScript source, package metadata, tests, install reference, or `.env.example` needed to run independently.
 - Python files, Python packaging, plugin packaging, or removed Twitter cookie/session auth reappear.
 - The downstream claims support for a source but the implementation is absent and no explicit deferral explains why.
 
@@ -66,13 +67,13 @@ Return `PASS` only when the Exa-backed or Brave-backed web search path and repre
 
 Review these closely:
 
-- `src/index.ts` and `src/cli.ts`: orchestration, source availability, failure isolation, JSON/Markdown output, and library API shape.
-- `src/sources/`: adapters should be independently optional and should not contain placeholder-only behavior for claimed support.
-- `src/sources/x.ts`: X/Twitter support must use xAI/Grok-style API keys only and must not mention or depend on logged-in Twitter cookies, `AUTH_TOKEN`, or `CT0`.
-- `src/sources/reddit.ts`, `github.ts`, `digg.ts`, `youtube.ts`, and web-search adapters: these should preserve meaningful upstream source behavior where practical.
-- `skills/last30days/SKILL.md`: should teach another agent when to use the tool, setup checks, command examples, source warnings, eval commands, and how to cite output.
-- `README.md` and `.env.example`: should make Exa/Brave web search setup obvious and keep other keys optional and source-scoped.
-- `eval/run.ts` and `eval-output/`: should prove the tool produces recent, cited, source-diverse, non-placeholder output.
+- `skills/last30days/scripts/last30days/src/index.ts` and `skills/last30days/scripts/last30days/src/cli.ts`: orchestration, source availability, failure isolation, JSON/Markdown output, and library API shape.
+- `skills/last30days/scripts/last30days/src/sources/`: adapters should be independently optional and should not contain placeholder-only behavior for claimed support.
+- `skills/last30days/scripts/last30days/src/sources/x.ts`: X/Twitter support must use xAI/Grok-style API keys only and must not mention or depend on logged-in Twitter cookies, `AUTH_TOKEN`, or `CT0`.
+- `skills/last30days/scripts/last30days/src/sources/reddit.ts`, `github.ts`, `digg.ts`, `youtube.ts`, and web-search adapters: these should preserve meaningful upstream source behavior where practical.
+- `skills/last30days/SKILL.md`: should teach another agent when to use the tool, run `bun install`, run bundled command examples, understand source warnings, run eval commands, and cite output.
+- `README.md` and `skills/last30days/.env.example`: should make Exa/Brave web search setup obvious and keep other keys optional and source-scoped.
+- `eval/run.ts` and root `eval-output/`: should prove the tool produces recent, cited, source-diverse, non-placeholder output without bundling eval code or artifacts into the installed skill.
 
 ## Output Format
 

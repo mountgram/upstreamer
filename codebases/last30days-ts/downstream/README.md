@@ -1,174 +1,85 @@
-# Last30Days TS
+# Last30Days Skill
 
-Research what people actually say about any topic in the last 30 days. Searches Exa web search, Reddit, Hacker News, X/Twitter, YouTube, TikTok, GitHub, Polymarket, Digg, and other optional sources — scores by engagement, and produces a concise brief. TypeScript rewrite of [mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill).
+Last30Days is an installable agent skill with a bundled Bun/TypeScript research CLI under `scripts/last30days/`. Installing the skill brings the agent instructions, source code, source adapters, tests, config examples, and planning/reranking references together in one skill directory.
 
-## Install
+It researches what people actually say about a topic in the last N days across Exa or Brave web search, Reddit, Hacker News, X/Twitter, YouTube, TikTok, GitHub, Polymarket, Digg, and other optional sources.
 
-```bash
-npm install -g mountgram/last30days-ts
-# or run directly:
-npx last30days "your topic"
-```
-
-## Quick Start
-
-Configure Exa for primary web search. Brave is also supported as a web-search fallback when `BRAVE_API_KEY` is present:
+## Install The Skill
 
 ```bash
-export EXA_API_KEY=your-key
-npx last30days "React Server Components"
-npx last30days "AI agent frameworks"
-npx last30days "NVIDIA earnings"
+npx skills add mountgram/upstreamer/codebases/last30days-ts/downstream --skill last30days
 ```
 
-## CLI Usage
-
-```
-last30days <topic> [options]
-
-Options:
-  --lookback <days>     Days to look back (default: 30)
-  --depth <level>       quick, medium, or deep (default: medium)
-  --format <type>       markdown, json, or compact (default: markdown)
-  --output <dir>        Output directory (default: ./output)
-  --debug               Enable debug output
-  --x-handle <handle>   X/Twitter handle for person search
-  --subreddits <list>   Comma-separated subreddits
-  --github-user <user>  GitHub username for person search
-  --github-repos <list> Comma-separated owner/repo
-```
-
-Check source availability:
+The installed `last30days` skill directory contains the runnable Bun project. After installing, open that skill directory and run:
 
 ```bash
-npx last30days setup
+cd scripts/last30days
+bun install
+bun run setup
+bun run last30days -- "React Server Components"
 ```
 
-## Sources
+## What Gets Installed
 
-### Public or Local Sources
+```text
+last30days/
+├── SKILL.md
+├── references/
+│   ├── planning.md
+│   ├── reranking.md
+│   └── INSTALL.md
+└── scripts/
+    └── last30days/
+        ├── package.json
+        ├── bun.lock
+        ├── .env.example
+        ├── src/
+        └── test/
+```
 
-| Source | Method |
-|--------|--------|
-| Reddit | Keyless JSON/RSS public access |
-| Hacker News | Algolia public API |
-| GitHub | Unauthenticated API (60 req/hr) |
-| Polymarket | Public API |
-| Digg | Optional `digg-pp-cli` binary, no API key |
+The skill is self-contained. It does not require a separate global `last30days` npm package.
 
-### Optional (key unlocks more)
+## Source Configuration
 
-| Source | Key | Method |
-|--------|-----|--------|
-| Exa | `EXA_API_KEY` | Preferred reliable web search |
-| Brave | `BRAVE_API_KEY` | Alternative/fallback web search |
-| Serper | `SERPER_API_KEY` | Google search |
-| Parallel | `PARALLEL_API_KEY` | AI-powered search |
-| X/Twitter | `XAI_API_KEY` or `GROK_API_KEY` | xAI Grok API |
-| Perplexity | `OPENROUTER_API_KEY` | Grounded search via OpenRouter |
-| TikTok | `SCRAPECREATORS_API_KEY` | ScrapeCreators API |
-| Instagram | `SCRAPECREATORS_API_KEY` | ScrapeCreators API |
-| Threads | `SCRAPECREATORS_API_KEY` | ScrapeCreators API |
-| Pinterest | `SCRAPECREATORS_API_KEY` | ScrapeCreators API |
-| Bluesky | `BSKY_HANDLE` + `BSKY_APP_PASSWORD` | AT Protocol |
-| Truth Social | `TRUTHSOCIAL_TOKEN` | API |
+Configure `EXA_API_KEY` for preferred web search or `BRAVE_API_KEY` as a fallback. Other source-specific keys are optional and isolated.
 
-## Configuration
+Public or local sources can still work when available:
 
-Most sources are independently optional. Configure `EXA_API_KEY` or `BRAVE_API_KEY` for reliable web search; public APIs such as Reddit, Hacker News, GitHub, Polymarket, YouTube, and Digg remain best-effort source adapters.
+- Reddit public JSON/RSS
+- Hacker News Algolia API
+- GitHub unauthenticated API
+- Polymarket public API
+- Digg through optional `digg-pp-cli`
+- YouTube through optional `yt-dlp`
 
-### Environment Variables
+Optional keyed sources include Exa, Brave, Serper, Parallel, X/Grok, Perplexity through OpenRouter, ScrapeCreators social sources, Bluesky, and Truth Social. See `scripts/last30days/.env.example` inside the installed skill for the exact variables.
 
-Copy `.env.example` to `.env` and fill in keys for the sources you want:
+## Run And Verify
+
+From the installed skill directory:
 
 ```bash
-cp .env.example .env
-# Edit .env with your keys
+cd scripts/last30days
+bun install
+bun run typecheck
+bun run test
 ```
 
-Or export them directly:
+Live evals are maintained outside the installed skill at `downstream/eval/`. They write generated artifacts to `downstream/eval-output/`, which is ignored by git and should not be installed on a customer machine.
+
+From `downstream/skills/last30days/scripts/last30days`, maintainers can run:
 
 ```bash
-export EXA_API_KEY=your-key
-export XAI_API_KEY=your-key
-npx last30days "topic"
+bunx tsx ../../../../eval/run.ts
 ```
 
-See `.env.example` for the complete list of supported variables.
+## Notes
 
-### Setup Helper
-
-Run the setup command to see which sources are available:
-
-```bash
-npx last30days setup
-```
-
-This prints a table showing which sources are configured and how to enable others.
-
-### YouTube
-
-YouTube search uses the same `yt-dlp` binary approach as upstream Last30Days. Install with:
-
-```bash
-brew install yt-dlp
-```
-
-If `yt-dlp` is not installed, YouTube is skipped with a warning — the rest of the run continues.
-
-### Planning and Reranking
-
-Planning guidance for effective research queries lives in `skills/planning.md`. Reranking and scoring logic is documented in `skills/reranking.md`. Both are textual reference files for agents and developers — no API keys or model calls are involved.
-
-## Agent Skill
-
-This repository includes an installable agent skill at `skills/last30days/SKILL.md`. Install it in any Agent Skills host:
-
-```bash
-npx skills add mountgram/upstreamer/codebases/last30days-ts/downstream -g
-```
-
-The skill teaches agents when and how to invoke the `last30days` CLI from within a project that has this package installed.
-
-## Output Formats
-
-- **markdown** (default) — Human-readable brief with badge, prose synthesis, key patterns, and emoji footer
-- **json** — Machine-readable full report with all candidates, clusters, and metadata
-- **compact** — Agent-consumable format with evidence clusters, stats, and pass-through footer
-
-## Development
-
-```bash
-# Install dependencies
-npm install
-
-# Run type checking
-npm run typecheck
-
-# Build
-npm run build
-
-# Run tests
-npm test
-
-# Run live evals
-npm run eval
-```
-
-### Evals
-
-Live evals test source adapters against real endpoints:
-
-```bash
-npm run eval          # Exa web eval plus available optional keyed evals
-npm run eval:offline  # Smoke tests without network
-```
-
-Eval artifacts are written to `eval-output/` (git-ignored). Each eval produces:
-- Raw JSON/Markdown output
-- Adapter status and warnings
-- A judgment file assessing output quality
+- The X/Grok adapter uses xAI `responses.create` with the `x_search` tool and parses strict JSON posts from `output_text`.
+- Unofficial scraping-based web search adapters are intentionally omitted in favor of Exa and Brave.
+- Planning guidance lives in `references/planning.md`; scoring and synthesis guidance lives in `references/reranking.md`.
+- This downstream is derived from `mvanhorn/last30days-skill` and rewritten as a self-contained TypeScript skill bundle.
 
 ## License
 
-MIT — derived from [mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill), rewritten in TypeScript.
+MIT

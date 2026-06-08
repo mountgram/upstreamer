@@ -2,6 +2,7 @@
 
 ## Latest Sync
 
+- Reshaped the downstream so installing the `last30days` skill includes the Bun/TypeScript source, package metadata, tests, `.env.example`, install reference, planning guidance, and reranking guidance in one self-contained skill directory. Maintainer live evals now live outside the installed skill.
 - Fixed the X/Grok adapter: xAI `x_search` results are returned through the final `output_text`, not top-level `tool_results`, so the adapter now requests and parses strict JSON posts.
 - Removed DuckDuckGo from the downstream and made Exa the preferred reliable web-search path, with Brave as an alternative/fallback when `BRAVE_API_KEY` is present.
 - Improved live eval behavior: baseline Exa web-search evals are separated from optional keyed-source evals, optional keyed-source failures report as warnings, zero-item outputs fail eval, and compact evidence includes dates.

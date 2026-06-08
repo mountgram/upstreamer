@@ -19,7 +19,7 @@ The goal is to make recurring translation explicit instead of tribal. The contra
 ## What You Might Do With It
 
 - Track a popular package while maintaining a TypeScript, Swift, Go, or local-first rewrite.
-- Extract a focused CLI or library from a larger app or agent skill.
+- Extract a focused, self-contained agent skill with bundled source from a larger app or skill project.
 - Maintain a markdown-only skill pack from a framework that ships binaries and host-specific glue.
 - Convert a research prototype into a stable teaching/reference repo.
 - Keep an internal starter kit aligned with an upstream public app while replacing infrastructure choices.
@@ -45,21 +45,21 @@ Each run reads `codebases/<name>/upstreamer.md`, invokes `opencode` with the con
 Two generated downstreams can be installed from their paths in this repo:
 
 ```bash
-# Install the TStack skill collection globally
-npx skills add mountgram/upstreamer/codebases/tstack/downstream -g
+# Install every TStack skill into the current project
+npx skills add mountgram/upstreamer/codebases/tstack/downstream --skill '*'
 
-# Install the Last30Days research skill globally
-npx skills add mountgram/upstreamer/codebases/last30days-ts/downstream -g
+# Install the Last30Days research skill into the current project
+npx skills add mountgram/upstreamer/codebases/last30days-ts/downstream --skill last30days
 ```
 
-Use `tstack` when you want portable review, QA, design, security, shipping, and planning workflows. Use `last30days` when you want an agent to research recent public signals with the TypeScript CLI/library.
+Use `tstack` when you want portable review, QA, design, security, shipping, and planning workflows. Use `last30days` when you want an agent to install a self-contained research skill with bundled Bun/TypeScript source.
 
 ## Current Examples
 
 | Codebase | Upstream | Downstream purpose |
 | --- | --- | --- |
 | [`tstack`](codebases/tstack/upstreamer.md) | [`garrytan/gstack`](https://github.com/garrytan/gstack) | A pure-markdown agent skills collection with helper scripts, telemetry, binaries, and package infrastructure removed. |
-| [`last30days-ts`](codebases/last30days-ts/upstreamer.md) | [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill) | A TypeScript research CLI and library generated from a Python-oriented agent skill project, with DuckDuckGo removed in favor of Exa and Brave web search. |
+| [`last30days-ts`](codebases/last30days-ts/upstreamer.md) | [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill) | A self-contained Last30Days agent skill with bundled Bun/TypeScript source, DuckDuckGo removed, and Exa/Brave web search. |
 
 ## What Can You Rewrite?
 
@@ -70,7 +70,7 @@ Start with a project whose behavior you like, then describe the downstream you a
 | Popular Python package | TypeScript library with similar behavior | Preserve public behavior and tests; rewrite runtime, packaging, and examples. |
 | Agent skills bundle | Markdown-only skill pack | Keep portable `SKILL.md` workflows; drop custom binaries, telemetry, config, and host-specific glue. |
 | Full-stack app | Smaller starter or reference implementation | Keep architecture and UX patterns; remove deployment-specific services and local assumptions. |
-| Research CLI | CLI plus importable library | Keep source coverage and output quality; simplify setup, adapters, and evals. |
+| Research CLI or skill | Self-contained installable skill with bundled source | Keep source coverage and output quality; simplify setup, adapters, and evals. |
 
 The contract is the product spec. The generated files are outputs of that contract. See [`docs/SYNTHETIC_CODEBASES.md`](docs/SYNTHETIC_CODEBASES.md) for how to decide whether this pattern fits your project.
 
@@ -170,7 +170,7 @@ Important per-codebase paths:
 
 Today `upstreamer` is a repo-local Bash wrapper plus agent skills, not an installable library or package API.
 
-Generated downstreams can be libraries, as `last30days-ts` demonstrates. If `upstreamer` itself grows a library interface, the likely extraction points are contract parsing, upstream resolution, conversion prompt construction, state updates, and verifier execution. Until then, `scripts/upstream` is the supported interface.
+Generated downstreams can be installable skill bundles, as `last30days-ts` demonstrates. If `upstreamer` itself grows a library interface, the likely extraction points are contract parsing, upstream resolution, conversion prompt construction, state updates, and verifier execution. Until then, `scripts/upstream` is the supported interface.
 
 ## Requirements
 

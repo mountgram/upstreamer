@@ -6,7 +6,7 @@ model: deepseek/deepseek-v4-pro
 
 # Last30Days TS Rewrite Rules
 
-Last30Days TS is a **small TypeScript research CLI and library** derived from `mvanhorn/last30days-skill`. It keeps the upstream idea - search recent public signals across the full upstream source set, rank them by freshness and engagement, and produce a concise brief - but rewrites the implementation from Python into TypeScript and removes the tightly coupled orchestration that makes broad source coverage feel like an all-or-nothing setup.
+Last30Days TS is a **self-contained installable agent skill with a bundled Bun/TypeScript research CLI** derived from `mvanhorn/last30days-skill`. It keeps the upstream idea - search recent public signals across the full upstream source set, rank them by freshness and engagement, and produce a concise brief - but packages the implementation inside the installed skill instead of requiring a separate npm package or global CLI.
 
 This conversion should produce a fresh downstream repository, not a lightly edited copy of the upstream tree. Use the upstream project as source material for behavior and tests, then write an idiomatic TypeScript project with a simpler provider model.
 
@@ -17,7 +17,7 @@ The conversion is not complete when the code merely compiles. The agent doing th
 - Local codebase name: `last30days-ts`.
 - Downstream repo identity: `mountgram/last30days-ts`.
 - The downstream is a Node.js TypeScript package, not a Python package and not a Claude/OpenClaw plugin bundle.
-- The downstream must include installable agent skill documentation under `skills/` so a user can install this repository with a skill installer such as `npx skills add <github-repo>` and have another agent understand when and how to use Last30Days TS. Skills may invoke the TypeScript CLI/library, but must not reintroduce upstream Python.
+- The downstream must be installable as a skill with `npx skills add mountgram/upstreamer/codebases/last30days-ts/downstream --skill last30days`. Installing the skill must bring the agent instructions, TypeScript source, package metadata, tests, `.env.example`, install reference, and planning/reranking references together in `skills/last30days/`. Live evals must stay outside the installed skill at `downstream/eval/`. Do not require a separate global npm package.
 - The downstream should preserve the upstream source surface where practical, but each source must be independently optional at runtime.
 
 ## Philosophy
@@ -47,12 +47,12 @@ After inspecting these files, write a short internal judgment in the final repor
 
 Keep these concepts, rewritten in TypeScript:
 
-- A `last30days` CLI that accepts a topic and searches recent results.
+- A bundled `last30days` Bun script that accepts a topic and searches recent results from inside the installed skill directory.
 - A library API that can be called from tests and other TypeScript code without shelling out.
 - A normalized evidence item shape with source, title, URL, body/snippet, author/container, published date, engagement, and relevance metadata.
 - A query plan shape with one or more subqueries and per-source selection.
 - Planning, usage, and reranking guidance from upstream, rewritten as textual skill instructions rather than executable planner/reranker scripts.
-- An installable primary skill at `skills/last30days/SKILL.md` that teaches agents how to use the `last30days` CLI/library from an arbitrary downstream repository.
+- An installable primary skill at `skills/last30days/SKILL.md` that teaches agents how to install dependencies with Bun and use the bundled CLI/library from the installed skill directory.
 - Date-window handling for the last 30 days, plus an explicit lookback option.
 - Engagement-aware ranking and source-aware deduplication.
 - Simple clustering or grouping for near-duplicate stories when the same story appears in multiple sources.
@@ -116,7 +116,7 @@ LAST30DAYS_DIR    optional, output/cache directory
 
 Keep a global setup script, but make it a thin optional helper. It should read/write a local env file, show which adapters are currently available, and never imply that any key is required for baseline use. Users should also be able to configure everything by exporting environment variables directly.
 
-Create `.env.example` in the downstream root. It must be safe to commit, contain no real credentials, and include every supported optional environment variable from the configuration surface. Group keys by source area so users can copy it to `.env` and selectively fill values before running better live evals. Include brief comments for aliases such as `XAI_API_KEY` and `GROK_API_KEY`.
+Create `.env.example` in `skills/last30days/scripts/last30days/`. It must be safe to commit, contain no real credentials, and include every supported optional environment variable from the configuration surface. Group keys by source area so users can copy it to `.env` and selectively fill values before running better searches or local maintainer evals. Include brief comments for aliases such as `XAI_API_KEY` and `GROK_API_KEY`.
 
 Do not require a primary API key. Do not make one provider unlock unrelated sources. Do not require model-provider keys for ordinary retrieval orchestration.
 
@@ -146,59 +146,44 @@ Use a small TypeScript structure similar to this:
 codebases/last30days-ts/downstream/
 ├── README.md
 ├── upstreamer-changelog.md
-├── .env.example
-├── .gitignore
 ├── LICENSE
-├── package.json
-├── tsconfig.json
-├── src/
-│   ├── cli.ts
-│   ├── index.ts
-│   ├── config.ts
-│   ├── dates.ts
-│   ├── ranking.ts
-│   ├── render.ts
-│   ├── schema.ts
-│   └── sources/
-│       ├── exa.ts
-│       ├── brave.ts
-│       ├── github.ts
-│       ├── hackernews.ts
-│       ├── instagram.ts
-│       ├── perplexity.ts
-│       ├── polymarket.ts
-│       ├── reddit.ts
-│       ├── scrapecreators.ts
-│       ├── serper.ts
-│       ├── tiktok.ts
-│       ├── x.ts
-│       └── youtube.ts
-│   └── setup.ts
+├── .gitignore
+├── eval/
+│   └── run.ts
 ├── skills/
-│   ├── last30days/
-│   │   └── SKILL.md
-│   ├── planning.md
-│   └── reranking.md
-└── test/
-    ├── dates.test.ts
-    ├── ranking.test.ts
-    └── sources.test.ts
+│   └── last30days/
+│       ├── SKILL.md
+│       ├── references/
+│       │   ├── planning.md
+│       │   ├── reranking.md
+│       │   └── INSTALL.md
+│       ├── scripts/
+│       │   └── last30days/
+│       │       ├── package.json
+│       │       ├── bun.lock
+│       │       ├── tsconfig.json
+│       │       ├── vitest.config.ts
+│       │       ├── .env.example
+│       │       ├── .gitignore
+│       │       ├── LICENSE
+│       │       ├── src/
+│       │       └── test/
 ```
 
-This exact tree is not mandatory, but the downstream must be recognizably TypeScript and must keep source adapters separated enough that users can mix and match them.
+The installable skill directory is the product. `npx skills add ... --skill last30days` must install the agent workflow and all runnable TypeScript sources together.
 
 ## What to Adapt
 
 Adapt these upstream behaviors, not necessarily their exact implementations:
 
-- CLI flags from `last30days.py` into a Node CLI. Keep only flags that matter for the simplified downstream: topic, lookback days, depth/limit, output format, output directory, debug/status output, and web backend if needed.
+- CLI flags from `last30days.py` into a Bun-run TypeScript CLI inside `skills/last30days/scripts/last30days/src/`. Keep only flags that matter for the simplified downstream: topic, lookback days, depth/limit, output format, output directory, debug/status output, and web backend if needed.
 - The upstream setup wizard into a TypeScript setup command or script that writes optional environment variables and reports adapter availability without pressuring the user through one preferred signup path.
 - The upstream setup wizard into a TypeScript setup command or script that writes optional environment variables and reports adapter availability without pressuring the user through one preferred signup path. The setup helper may read from `.env` if a lightweight dependency is already justified, but direct environment variables and `.env.example` must remain clear enough to use without the helper.
 - `schema.py` dataclasses into TypeScript interfaces or zod-style schemas. Prefer plain TypeScript interfaces unless validation is needed.
 - Pipeline orchestration into a small async source runner that discovers available adapters and executes useful sources concurrently.
 - Ranking into deterministic TypeScript functions that combine freshness, engagement, source quality, and text relevance.
-- Upstream planning and reranking prompt logic into textual skills, such as `skills/planning.md` and `skills/reranking.md`. These files should instruct an agent how to form subqueries, choose useful source emphasis, judge relevance, and resolve ties. They should not call model APIs, require provider keys, or be implemented as scripts.
-- The upstream user-facing Last30Days behavior into `skills/last30days/SKILL.md`. This skill must be useful after installing the repo into another project: it should explain triggers, setup checks, CLI invocation, source availability, `.env.example`, eval commands, output interpretation, and when to cite/run the tool before answering.
+- Upstream planning and reranking prompt logic into textual references inside the installed skill directory: `skills/last30days/references/planning.md` and `skills/last30days/references/reranking.md`. These files should instruct an agent how to form subqueries, choose useful source emphasis, judge relevance, and resolve ties. They should not call model APIs, require provider keys, or be implemented as scripts.
+- The upstream user-facing Last30Days behavior into `skills/last30days/SKILL.md`. This skill must be useful after installing it into another project: it should explain triggers, Bun setup, bundled CLI invocation, source availability, `.env.example`, eval commands, output interpretation, and when to cite/run the tool before answering.
 - Markdown rendering into a compact, citation-preserving output. Avoid the upstream's very large prompt-law contract.
 - Tests into a TypeScript test suite using the repository's chosen test runner.
 
@@ -228,7 +213,7 @@ Remove these upstream areas from the downstream output:
 - Avoid heavy scraping dependencies unless a required source cannot be implemented safely without one.
 - Do not vendor upstream dependencies. Prefer normal npm package dependencies over copied code.
 - Include a generated lockfile only when the chosen package manager expects one and it helps reproducible tests/builds.
-- Do not delete ignored local install/build/eval artifacts such as `node_modules/`, `dist/`, or `eval-output/` after running checks. They should be ignored by `.gitignore`, not manually removed as part of conversion cleanup.
+- Do not commit local install/build/eval artifacts such as `node_modules/`, `dist/`, `eval-output/`, or `output/`. They should be ignored by `.gitignore`.
 - Prefer a simple test runner such as `vitest` or Node's built-in test runner.
 
 ## Test And Eval Requirements
@@ -254,7 +239,7 @@ The eval suite must:
 - Use live model/provider connections only where they unlock a source adapter or a dedicated eval judge. Do not reintroduce model-provider keys as requirements for ordinary retrieval orchestration.
 - Write full eval artifacts to an ignored output directory such as `eval-output/`: raw JSON brief, rendered Markdown brief, adapter status, warnings, and the exact command/options used.
 - Include an agent-readable judgment file for each eval run that records whether the output is useful, recent, cited, source-diverse, non-fabricated, and consistent with the upstream README's promise.
-- Make eval commands explicit in `package.json`, for example `npm run eval` for available live evals and `npm run eval:offline` for non-network smoke evals if useful.
+- Keep live evals outside the installed skill directory at `downstream/eval/run.ts`. They are upstreamer/release QA, not customer-installed skill source.
 
 The converting agent must run every eval that can run in the current environment. If optional credentials are unavailable, it must run the Exa-backed baseline eval when `EXA_API_KEY` is present and document skipped optional keyed evals. After running evals, inspect the full Markdown/JSON outputs, not just pass/fail status, and make a concrete quality judgment in the final report.
 
@@ -276,14 +261,16 @@ If the answer is no, improve the implementation and rerun the eval before claimi
 The downstream README must include:
 
 - What Last30Days TS does in one paragraph.
-- Install and local development commands.
-- CLI examples, including Exa-backed web search usage and a run that mixes Exa with available public/social adapters.
+- `npx skills add mountgram/upstreamer/codebases/last30days-ts/downstream --skill last30days` install command.
+- A clear statement that installing the skill brings the Bun/TypeScript source, tests, package metadata, install reference, and docs with it, while maintainer live evals live outside the installed skill.
+- Bun setup and usage commands from inside the installed skill directory.
+- CLI examples using `bun run last30days -- ...`, including Exa-backed web search usage and a run that mixes Exa with available public/social adapters.
 - A source matrix showing which sources need keys.
 - The exact supported environment variables.
-- A `.env.example` section explaining how to copy it to `.env` for local evals without making any key globally required.
+- A `.env.example` section explaining how to copy the installed skill's env example to `.env` for local evals without making any key globally required.
 - A setup section explaining both direct environment-variable configuration and the optional setup helper.
-- A note that planning and reranking guidance lives in textual skills, not provider-backed scripts.
-- A section explaining that `skills/last30days/SKILL.md` is the installable agent-facing skill for `npx skills add` style workflows.
+- A note that planning and reranking guidance lives inside the installable skill directory, not provider-backed scripts.
+- A section explaining that `skills/last30days/SKILL.md` is the installable agent-facing skill and that the skill directory is self-contained.
 - A note that YouTube uses the same `yt-dlp` binary approach as upstream Last30Days.
 - A short note that the project is derived from `mvanhorn/last30days-skill` and rewritten in TypeScript.
 
@@ -292,11 +279,15 @@ The downstream README must include:
 Before finishing a conversion run, verify:
 
 - The downstream output has `package.json`, `tsconfig.json`, `src/`, and `README.md`.
-- The downstream output has `.env.example`, and it documents all supported optional keys without real secrets.
-- The downstream output has `.gitignore` entries for `node_modules/`, `dist/`, `eval-output/`, and `.env`, so generated local artifacts can remain untracked after checks/evals.
+- The downstream output has `README.md`, `LICENSE`, `upstreamer-changelog.md`, and `skills/last30days/`.
+- `skills/last30days/` has `SKILL.md`, `references/INSTALL.md`, `references/planning.md`, `references/reranking.md`, and `scripts/last30days/`.
+- `skills/last30days/scripts/last30days/` has `package.json`, `bun.lock`, `tsconfig.json`, `.env.example`, `.gitignore`, `src/`, and `test/`.
+- `downstream/eval/run.ts` exists and is not inside `skills/last30days/`.
+- The installed skill's `.env.example` documents all supported optional keys without real secrets.
+- The downstream root `.gitignore` ignores root `eval-output/`. The installed skill script package `.gitignore` ignores `node_modules/`, `dist/`, `output/`, and `.env`.
 - The downstream output contains no `AUTH_TOKEN`, `CT0`, logged-in Twitter, cookie-based Twitter, or session-token X/Twitter setup in code, docs, env examples, tests, evals, generated artifacts, or reports.
 - There are no Python source or packaging files.
-- There is at least one TypeScript file under `src/`.
+- There is at least one TypeScript file under `skills/last30days/scripts/last30days/src/`.
 - Exa is documented and implemented as the preferred reliable web search source.
 - Brave is documented and implemented as an alternative/fallback reliable web search source.
 - `EXA_API_KEY` controls only the Exa web search source.
@@ -305,12 +296,12 @@ Before finishing a conversion run, verify:
 - The orchestration can mix no-key and keyed sources in one run without requiring every source.
 - YouTube is implemented through `yt-dlp` as an optional local binary dependency for that source.
 - The setup helper is optional and environment-variable based.
-- Planning and reranking are represented as textual skill/instruction files, not scripts or model-provider API calls.
-- `skills/last30days/SKILL.md` exists, is agent-facing, and gives practical instructions for using the CLI/library from a newly installed repository.
+- Planning and reranking are represented as textual files inside `skills/last30days/`, not scripts or model-provider API calls.
+- `skills/last30days/SKILL.md` exists, is agent-facing, references `references/INSTALL.md`, and gives practical instructions for running `bun install`, `bun run setup`, and `bun run last30days -- ...` from `scripts/last30days/`.
 - `upstreamer-changelog.md` exists and describes user-facing downstream changes without commit hashes, `.upstreamer/state.yaml`, verifier internals, or sync bookkeeping.
 - Optional upstream sources are represented as adapters or explicitly documented as intentionally deferred with a reason.
 - TypeScript checks and tests pass if dependencies can be installed in the environment.
-- `package.json` includes maintained SDK dependencies for provider-backed adapters where appropriate. The xAI/Grok X adapter may reuse the `openai` SDK against `https://api.x.ai/v1` instead of adding extra AI SDK dependencies.
+- `skills/last30days/scripts/last30days/package.json` includes maintained SDK dependencies for provider-backed adapters where appropriate. The xAI/Grok X adapter may reuse the `openai` SDK against `https://api.x.ai/v1` instead of adding extra AI SDK dependencies.
 - Hard-coded model identifiers are current for May 18 2026. The xAI/Grok X adapter uses `grok-4.3` with the `x_search` tool unless explicitly overridden by the user. The OpenRouter/Perplexity adapter should use `perplexity/sonar-pro` unless the user explicitly selects a newer model.
 - Live eval tests exist, can skip or warn on missing, invalid, or rate-limited optional credentials cleanly, and write full output artifacts for agent review. X/Twitter keyed evals must look only for `XAI_API_KEY` or `GROK_API_KEY`. Optional keyed-source failures should not fail the conversion eval unless they break baseline behavior, are hidden from the user, contaminate unrelated sources, or are falsely reported as passing.
 - Live eval docs point users to `.env.example` for enabling stronger keyed evals.
