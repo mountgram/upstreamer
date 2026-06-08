@@ -125,7 +125,7 @@ Planning guidance for effective research queries lives in `skills/planning.md`. 
 This repository includes an installable agent skill at `skills/last30days/SKILL.md`. Install it in any Agent Skills host:
 
 ```bash
-npx skills add mountgram/last30days-ts -g
+npx skills add mountgram/upstreamer/codebases/last30days-ts/downstream -g
 ```
 
 The skill teaches agents when and how to invoke the `last30days` CLI from within a project that has this package installed.

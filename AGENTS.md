@@ -17,6 +17,8 @@ Prefer small, explicit conventions:
 ## Codebase Map
 
 - `README.md`: project overview, `upstreamer.md` format, and usage examples.
+- `docs/`: explanatory documentation for upstreamer concepts and workflows.
+- `docs/SYNTHETIC_CODEBASES.md`: explanation of synthetic codebases, when to use them, and how contracts/evals fit together.
 - `AGENTS.md`: this guide for agents working in the repository. Update this file when the directory structure or agent workflow changes.
 - `scripts/upstream`: command wrapper for running one configured codebase through opencode.
 - `.agents/skills/upstreamer-converter/SKILL.md`: reusable workflow for converting an upstream repo into a downstream output from an `upstreamer.md` contract.

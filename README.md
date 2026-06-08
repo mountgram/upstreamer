@@ -2,7 +2,28 @@
 
 Keep **synthetic codebases** in sync with upstream repos, rewritten around your own local purpose.
 
-A synthetic codebase is a downstream repo derived from an upstream source but transformed by a plain-English contract. It stays close enough to track real upstream changes, while dropping or rewriting the parts you do not want.
+Upstreamer is for projects that should follow an upstream repo without becoming a normal fork. You write a plain-English rewrite contract, run the wrapper, and get a downstream codebase that keeps the parts you care about while removing or replacing the parts that do not fit.
+
+Use it when you want to repeatedly translate a real project into a different shape: a Python tool into a TypeScript library, a full agent framework into portable markdown skills, a large app into a smaller reference implementation, or an unreliable adapter into a better local choice.
+
+The durable artifact is the contract in `codebases/<name>/upstreamer.md`. The generated downstream files are outputs of that contract.
+
+For a deeper explanation, see [`docs/SYNTHETIC_CODEBASES.md`](docs/SYNTHETIC_CODEBASES.md).
+
+## Why This Exists
+
+Forks are good when you want to preserve upstream structure and make local patches. Dependencies are good when you can use upstream as-is. Upstreamer is for the middle case: upstream has useful behavior, examples, workflows, or product direction, but the downstream should have a different runtime, package shape, security model, docs surface, or user experience.
+
+The goal is to make recurring translation explicit instead of tribal. The contract says what to keep, adapt, drop, verify, and evaluate. When upstream changes, you rerun the contract and review the generated diff.
+
+## What You Might Do With It
+
+- Track a popular package while maintaining a TypeScript, Swift, Go, or local-first rewrite.
+- Extract a focused CLI or library from a larger app or agent skill.
+- Maintain a markdown-only skill pack from a framework that ships binaries and host-specific glue.
+- Convert a research prototype into a stable teaching/reference repo.
+- Keep an internal starter kit aligned with an upstream public app while replacing infrastructure choices.
+- Run qualitative evals that catch "looks complete but lost the important workflow" failures.
 
 ## Quick Start
 
@@ -18,6 +39,20 @@ OPENCODE_MODEL=anthropic/claude-sonnet-4-5 ./scripts/upstream tstack
 ```
 
 Each run reads `codebases/<name>/upstreamer.md`, invokes `opencode` with the converter skill, writes output under `codebases/<name>/downstream`, and logs the run under `codebases/<name>/.upstreamer/logs/`.
+
+## Install The Public Skills
+
+Two generated downstreams can be installed from their paths in this repo:
+
+```bash
+# Install the TStack skill collection globally
+npx skills add mountgram/upstreamer/codebases/tstack/downstream -g
+
+# Install the Last30Days research skill globally
+npx skills add mountgram/upstreamer/codebases/last30days-ts/downstream -g
+```
+
+Use `tstack` when you want portable review, QA, design, security, shipping, and planning workflows. Use `last30days` when you want an agent to research recent public signals with the TypeScript CLI/library.
 
 ## Current Examples
 
@@ -37,7 +72,7 @@ Start with a project whose behavior you like, then describe the downstream you a
 | Full-stack app | Smaller starter or reference implementation | Keep architecture and UX patterns; remove deployment-specific services and local assumptions. |
 | Research CLI | CLI plus importable library | Keep source coverage and output quality; simplify setup, adapters, and evals. |
 
-The contract is the product spec. The generated files are outputs of that contract.
+The contract is the product spec. The generated files are outputs of that contract. See [`docs/SYNTHETIC_CODEBASES.md`](docs/SYNTHETIC_CODEBASES.md) for how to decide whether this pattern fits your project.
 
 ## How It Works
 
@@ -104,6 +139,8 @@ The wrapper uses workspace-local temporary paths under `tmp/upstreamer/<name>/`,
 upstreamer/
 ├── scripts/
 │   └── upstream
+├── docs/
+│   └── SYNTHETIC_CODEBASES.md
 ├── .agents/
 │   └── skills/
 │       ├── upstreamer-converter/
