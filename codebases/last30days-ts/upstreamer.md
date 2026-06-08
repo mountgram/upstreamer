@@ -59,6 +59,7 @@ Keep these concepts, rewritten in TypeScript:
 - Markdown output as the default human-readable format.
 - JSON output for programmatic use.
 - A concise README with install, configuration, source availability, and examples.
+- A concise `upstreamer-changelog.md` with user-facing release-note style bullets describing upstream-driven downstream changes.
 - A committed `.env.example` listing every supported optional key with empty values and comments that map each key to the adapter it unlocks.
 - A committed `.gitignore` that ignores generated/local artifacts including `node_modules/`, `dist/`, `eval-output/`, and `.env`.
 - The upstream MIT license.
@@ -144,6 +145,7 @@ Use a small TypeScript structure similar to this:
 ```text
 codebases/last30days-ts/downstream/
 ├── README.md
+├── upstreamer-changelog.md
 ├── .env.example
 ├── .gitignore
 ├── LICENSE
@@ -304,6 +306,7 @@ Before finishing a conversion run, verify:
 - The setup helper is optional and environment-variable based.
 - Planning and reranking are represented as textual skill/instruction files, not scripts or model-provider API calls.
 - `skills/last30days/SKILL.md` exists, is agent-facing, and gives practical instructions for using the CLI/library from a newly installed repository.
+- `upstreamer-changelog.md` exists and describes user-facing downstream changes without commit hashes, `.upstreamer/state.yaml`, verifier internals, or sync bookkeeping.
 - Optional upstream sources are represented as adapters or explicitly documented as intentionally deferred with a reason.
 - TypeScript checks and tests pass if dependencies can be installed in the environment.
 - `package.json` includes maintained SDK dependencies for provider-backed adapters where appropriate. The xAI/Grok X adapter may reuse the `openai` SDK against `https://api.x.ai/v1` instead of adding extra AI SDK dependencies.
@@ -331,6 +334,8 @@ grep -RInE 'yt-dlp|ytdlp' <downstream-dir>
 
 Review every model-provider grep hit before finishing. It is acceptable for a key to appear when it unlocks one optional adapter; it is a violation if the README, setup helper, or orchestration makes that key globally required. Fix real violations and rerun verification until it passes.
 
+After the bundled verifier passes, run the qualitative eval in `codebases/last30days-ts/.upstreamer/eval.md` from a fresh review context. Fix and rerun eval failures before updating sync state. If the eval cannot be made to pass in the current run, write `codebases/last30days-ts/.upstreamer/eval-report.md` as the bankruptcy report and do not update sync state.
+
 ## Final Report
 
 Return:
@@ -342,5 +347,7 @@ Return:
 - API keys supported and what each unlocks.
 - Verification commands run and results.
 - Eval commands run, skipped evals with reasons, artifact locations, and the agent's judgment of output quality.
+- Qualitative eval result and `codebases/last30days-ts/.upstreamer/eval-report.md` path.
 - SDKs/packages chosen for source adapters, plus any notable direct-HTTP choices and why they are acceptable.
+- Summary added to `upstreamer-changelog.md`.
 - Any remaining uncertainty or behavior intentionally simplified from upstream.

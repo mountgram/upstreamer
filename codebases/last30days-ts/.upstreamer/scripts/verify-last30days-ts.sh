@@ -28,6 +28,7 @@ require_dir() {
 }
 
 require_file "README.md"
+require_file "upstreamer-changelog.md"
 require_file "LICENSE"
 require_file "package.json"
 require_file "tsconfig.json"

@@ -91,6 +91,8 @@ downstream_dir="codebases/$codebase/downstream"
 log_dir="codebases/$codebase/.upstreamer/logs"
 state_file="codebases/$codebase/.upstreamer/state.yaml"
 verifier="codebases/$codebase/.upstreamer/scripts/verify-$codebase.sh"
+eval_file="codebases/$codebase/.upstreamer/eval.md"
+eval_report_file="codebases/$codebase/.upstreamer/eval-report.md"
 
 if [ ! -f "$contract" ]; then
   echo "ERROR: missing rewrite contract: $contract" >&2
@@ -147,7 +149,12 @@ if [ "$force" -eq 0 ] && [ -n "$last_upstream_commit" ] && [ -d "$downstream_dir
     if [ -n "$current_upstream_commit" ] && [ "$current_upstream_commit" = "$last_upstream_commit" ]; then
       echo "Writing opencode log to $log_file" >&2
       {
-        echo "No upstream changes for $codebase."
+        echo "Run summary"
+        echo "==========="
+        echo "Upstream changes since last run: none."
+        echo "Downstream changes made: none; existing downstream output was left unchanged."
+        echo "Verification: running unchanged-output verifier."
+        echo
         echo "Upstream commit: $current_upstream_commit"
         echo "Last processed: $last_upstream_commit"
 
@@ -172,7 +179,13 @@ Stay inside this workspace. Clone or copy upstream sources under @$upstream_dir 
 
 Track upstream sync state in @$state_file. The last processed upstream commit is: ${last_upstream_commit:-none}. Force conversion is: $force. If force conversion is 1, run the conversion even when the upstream commit is unchanged because the local contract may have changed. If a last commit exists and force conversion is 0, inspect upstream changes since that commit first and update the existing downstream output instead of redoing unrelated work. If no last commit exists, perform a full conversion. After successful verification, update @$state_file with the exact upstream commit processed as upstream_commit: <sha>.
 
-Read both files first and treat @$contract as the binding rewrite contract. Execute the conversion end-to-end: acquire the upstream repo, inventory every upstream SKILL.md, decide KEEP/ADAPT/DROP, write the downstream output, run the contract verification including any bundled .upstreamer scripts, fix violations, and return the final report requested by the contract.
+Read both files first and treat @$contract as the binding rewrite contract. Execute the conversion end-to-end: acquire the upstream repo, inventory every upstream SKILL.md, decide KEEP/ADAPT/DROP, write the downstream output, run the contract verification including any bundled .upstreamer scripts, run @$eval_file in a fresh subagent or separate review context if it exists, fix violations, and return the final report requested by the contract.
+
+If @$eval_file exists, write the latest qualitative eval result to @$eval_report_file. If the eval fails, fix the downstream or contract, rerun mechanical verification, and rerun the eval. Repeat until the eval passes or passes with warnings, or until three focused fix/eval attempts have failed or no coherent fix remains. If the eval still fails, declare bankruptcy: do not update @$state_file, write the failed eval result plus attempted fixes and recommended human next action to @$eval_report_file, and make the final report clearly say eval failed.
+
+The final report must begin with a "Run summary" section that explains what changed upstream since the last verified run and what you put into the downstream output in response. Keep it useful at a glance for a busy engineer: notable upstream features or behavior changes, downstream files/features/skills added or adapted, why the choices match the contract, verification result, qualitative eval result if an eval exists, and the eval report path. If this is a full conversion with no previous commit, summarize the upstream snapshot used instead of an incremental diff.
+
+Also update @$downstream_dir/upstreamer-changelog.md with the same user-facing summary in concise changelog form. The downstream changelog is for users of the generated repo, so do not include commit hashes, .upstreamer/state.yaml changes, verifier internals, or sync bookkeeping there.
 
 This is a non-interactive run. Do not wait for follow-up instructions after the final report. If blocked, write a final report explaining the blocker and stop. After the final report is complete, exit the opencode run.
 EOF

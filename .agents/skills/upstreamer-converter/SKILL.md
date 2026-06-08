@@ -19,7 +19,7 @@ Convert an upstream repository into a synthetic downstream codebase following th
 1. Clone or open the upstream repository named by `upstreamer.md` in a workspace-safe location. Prefer `tmp/upstreamer/<codebase>/upstream` inside the current workspace. Do not use `/tmp` or another external directory unless the user explicitly authorizes it.
 2. Read `.upstreamer/state.yaml` for `upstream_commit` when it exists. This is the last upstream commit that was successfully converted and verified.
 3. Record the current upstream `HEAD` commit before making downstream changes.
-4. If `UPSTREAM_COMMIT` exists and is an ancestor of current `HEAD`, inspect the upstream diff first with `git diff --name-status <UPSTREAM_COMMIT>..HEAD` and focus the update on changed files and affected skills.
+4. If `UPSTREAM_COMMIT` exists and is an ancestor of current `HEAD`, inspect the upstream diff first with `git diff --name-status <UPSTREAM_COMMIT>..HEAD` and focus the update on changed files and affected skills. Keep a concise summary of those upstream changes for the final report.
 5. If there is no prior commit, the prior commit is missing upstream, or the downstream output does not exist, perform a full conversion.
 6. Inspect the top-level tree to understand major directories, but do not preserve upstream structure by default.
 7. Build an inventory of every upstream `SKILL.md` before writing downstream files. On incremental runs, include unchanged skills in the inventory but mark unchanged decisions as reused when appropriate.
@@ -58,7 +58,7 @@ Use `DROP` when the core value is a custom binary, hosted service, database, tel
 
 Use `ADAPT` when the skill idea is valuable but the upstream workflow depends on removable infrastructure. Rewrite it around generic agent capabilities or standard commands. If the generic rewrite would be vague or misleading, drop it instead.
 
-Keep a concise decision log while working so the final report can explain notable drops and adaptations.
+Keep a concise decision log while working so the final report can explain notable drops and adaptations, including what was put into the downstream and why.
 
 ## Step 5: Rewrite kept skills as fresh markdown
 
@@ -82,6 +82,7 @@ Unless `upstreamer.md` explicitly says otherwise, the downstream repository must
 ```text
 <downstream-name>/
 ├── README.md
+├── upstreamer-changelog.md
 ├── LICENSE
 ├── VERSION
 └── <skill-name>/
@@ -113,9 +114,9 @@ Exclude:
 2. CI, package manager, or helper-script instructions.
 3. Telemetry, config, session, or hosted-service references.
 
-## Step 8: Verify and iterate
+## Step 8: Mechanical verification
 
-Run the verification checklist from `upstreamer.md` and add these checks when relevant:
+Run the verifier and mechanical checklist from `upstreamer.md`. These checks should be deterministic: required files, allowed shapes, banned paths, banned infrastructure references, executable bits, package manager files, and other objective invariants.
 
 ```bash
 find <downstream-dir> -type f | sort
@@ -133,7 +134,21 @@ If verification fails:
 2. Re-run the failed check.
 3. Prefer a smaller coherent downstream set over a broad set with weak or infrastructure-dependent skills.
 
-## Step 9: Update sync state
+## Step 9: Qualitative eval
+
+If `codebases/<name>/.upstreamer/eval.md` exists, run it after mechanical verification passes and before updating sync state. Write the latest eval result to `codebases/<name>/.upstreamer/eval-report.md`.
+
+The eval is a fresh-context review standard, not a shell script. Use a subagent or otherwise start a separate review context when the tool environment supports it. The evaluator should read the eval file, the rewrite contract, relevant upstream sources, and downstream output; it should not rely on the converter's prior reasoning. The evaluator should report `PASS`, `PASS WITH WARNINGS`, or `FAIL` with concrete findings.
+
+Treat `FAIL` as a blocker. Fix the downstream or contract, re-run mechanical verification, and re-run the eval. Repeat until the eval returns `PASS` or `PASS WITH WARNINGS`, or until you have made three focused fix/eval attempts or no coherent fix remains within the contract.
+
+If the eval still fails, declare bankruptcy instead of quietly accepting the conversion:
+
+1. Do not update `.upstreamer/state.yaml`.
+2. Write `codebases/<name>/.upstreamer/eval-report.md` with the failed eval result, attempted fixes, remaining blockers, and recommended next action for a human.
+3. Return a final report that clearly says the conversion did not pass eval and points to the eval report file.
+
+## Step 10: Update sync state
 
 After downstream verification passes, update `.upstreamer/state.yaml` for the codebase with the exact upstream commit processed:
 
@@ -145,12 +160,52 @@ Only update this state after successful verification. Do not update it if conver
 
 ## Final report
 
-Return:
+Start the final report with a section named `Run summary`. It must be useful to someone reviewing the log later and must include:
+
+1. `Upstream changes since last run`: summarize the meaningful upstream commits/files/features inspected since the previous verified commit. For a first run, say there was no previous verified commit and summarize the upstream snapshot used.
+2. `Downstream changes made`: summarize what you added, adapted, removed, or left unchanged in the downstream output, including the main files, skills, library modules, CLI behavior, docs, or tests affected.
+3. `Why these downstream changes`: connect the downstream changes to the rewrite contract, especially judgment calls about what was kept, adapted, or dropped.
+4. `Verification`: state the commands/checks run and whether they passed.
+
+Also update `upstreamer-changelog.md` in the downstream root. This changelog is user-facing and should read like concise release notes for a busy engineer, not sync bookkeeping. Include at-a-glance bullets about upstream product changes, downstream user-visible changes, and notable omissions or compatibility notes. Do not mention commit hashes, `.upstreamer/state.yaml`, verifier internals, or other implementation bookkeeping in the downstream changelog.
+
+Then return the detailed report:
 
 1. Output location.
 2. Count of kept, adapted, and dropped skills.
 3. Notable drop/adapt decisions.
 4. Verification commands run and results.
-5. Previous upstream commit and current upstream commit.
-6. Whether the run was full or incremental, including notable upstream files changed since the previous commit.
-7. Any remaining uncertainty or rules that required judgment.
+5. Qualitative eval run, result, and `eval-report.md` path when `.upstreamer/eval.md` exists.
+6. Previous upstream commit and current upstream commit.
+7. Whether the run was full or incremental, including notable upstream files changed since the previous commit.
+8. Any remaining uncertainty or rules that required judgment.
+
+### Example run summaries
+
+Example incremental TypeScript library run:
+
+```markdown
+## Run summary
+
+Upstream changes since last run: the meaningful delta was README and skill behavior updates, new Reddit public fallback paths, GitHub/http/pipeline/planner changes, Digg coverage, and expanded tests. Removed upstream docs, plugin packaging, and historical fixtures stayed dropped by contract.
+
+Downstream changes made: updated the TypeScript CLI/library to preserve the new source behavior. Added a `digg` optional adapter, strengthened Reddit fallback handling, expanded GitHub result handling, updated setup/docs/tests, and kept generated eval artifacts ignored.
+
+Why these downstream changes: the contract requires preserving the upstream source surface where practical while keeping each source independently optional and avoiding Python/plugin packaging. Reddit, GitHub, and Digg behavior mapped cleanly to optional TypeScript adapters; removed docs and packaging did not.
+
+Verification: `npm test`, `npm run typecheck`, `npm run build`, live evals, and `verify-last30days-ts.sh` ran. Deterministic checks and verifier passed; live evals had usable zero-key and Exa results with some keyed-provider warnings.
+```
+
+Example incremental markdown skills run:
+
+```markdown
+## Run summary
+
+Upstream changes since last run: the upstream diff was broad, dominated by infrastructure, tests, docs, and helper binaries, but it also included new or changed portable `SKILL.md` workflows including iOS, document/spec, design, QA, scraping, canary, Codex, and Hacker News frontpage skills.
+
+Downstream changes made: added fresh markdown-only skill directories for the portable new workflows: `canary`, `codex`, `design-consultation`, `design-html`, `design-shotgun`, `devex-review`, `document-generate`, `hackernews-frontpage`, `ios-clean`, `ios-design-review`, `ios-fix`, `ios-qa`, `qa-only`, `qa`, `scrape`, and `spec`. Refreshed the downstream README skill list.
+
+Why these downstream changes: the contract requires one `SKILL.md` per skill directory with no helper scripts, binaries, telemetry, config, or upstream-specific state. Portable workflows were adapted into concise markdown; infrastructure-heavy upstream changes and nested helper implementations were dropped.
+
+Verification: `verify-tstack.sh` plus manual shape/reference checks passed. The downstream has only README/LICENSE/VERSION plus one-file skill directories, no nested files, no executables, and no banned upstream infrastructure references.
+```

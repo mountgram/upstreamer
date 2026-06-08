@@ -22,12 +22,15 @@ Prefer small, explicit conventions:
 - `.agents/skills/upstreamer-converter/SKILL.md`: reusable workflow for converting an upstream repo into a downstream output from an `upstreamer.md` contract.
 - `.agents/skills/upstreamer-codebase-entry/SKILL.md`: workflow for writing or updating configured `codebases/<name>/` entries.
 - `.agents/skills/skill-writer/`: local skill authoring materials used when maintaining agent skills.
+- `.agents/skills/<tstack-skill>/`: symlinks to `codebases/tstack/downstream/<skill>/` so the generated TStack skills are usable in this repo without copying generated files.
 - `codebases/`: configured synthetic codebases. Each child directory is one downstream project.
 - `codebases/tstack/upstreamer.md`: working example of a rewrite contract.
 - `codebases/<name>/downstream/`: generated downstream output for a configured codebase.
 - `codebases/<name>/.upstreamer/state.yaml`: generated sync state, including the last verified upstream commit.
 - `codebases/<name>/.upstreamer/logs/`: generated logs from wrapper and opencode runs.
 - `codebases/<name>/.upstreamer/scripts/`: optional codebase-specific verification scripts.
+- `codebases/<name>/.upstreamer/eval.md`: optional qualitative eval standard that the converter runs in a fresh review context after mechanical verification.
+- `codebases/<name>/.upstreamer/eval-report.md`: latest qualitative eval result, including bankruptcy reports when eval cannot be made to pass.
 - `tmp/`: workspace-local temporary files used by upstreamer runs.
 
 ## Skills

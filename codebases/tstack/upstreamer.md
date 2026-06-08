@@ -23,7 +23,9 @@ This conversion should produce a fresh downstream repository, not a lightly edit
 
 ## What to Keep
 
-Start with every `SKILL.md` file from the upstream repo. Evaluate each one individually.
+Start with every upstream skill directory. For instruction fidelity, prefer the sibling `SKILL.md.tmpl` when it exists because it usually contains the portable skill-specific workflow without the expanded gstack preamble. Use the expanded `SKILL.md` as a fallback and as a cross-check for generated sections, but do not let preamble noise distract from the workflow in the template.
+
+Evaluate each skill individually.
 
 Before writing output files, create a working inventory of every upstream `SKILL.md` using this shape:
 
@@ -68,7 +70,9 @@ Remove these directories and files completely (no attempt to salvage):
 
 For each skill, the agent should:
 
-Do not perform a mechanical search-and-replace conversion. Rewrite each kept skill as fresh markdown in TStack's voice, preserving only the portable workflow, prompts, checklists, judgment criteria, and standard-tool commands.
+Do not perform a mechanical search-and-replace conversion. Rewrite each kept skill as fresh markdown in TStack's voice, preserving the portable workflow, prompts, checklists, judgment criteria, output formats, safety gates, scorecards, and standard-tool commands.
+
+Do not summarize a rich upstream skill into a short topic checklist. The downstream skill may be shorter after removing gstack infrastructure, but it must preserve the source skill's operational model: phases, required evidence, rubrics, refusal rules, output templates, and verification loops. A useful adaptation should let an agent actually perform the original workflow without the gstack-specific binaries.
 
 ### 1. Evaluate: Can this skill work without external helper scripts?
 
@@ -118,6 +122,7 @@ Keep these sections if present:
 - `## Voice` (personality/tone instructions)
 - `## AskUserQuestion Format` (only if it's generic, not gstack-specific)
 - The actual skill steps, checklists, prompts
+- Scorecards, phase gates, evidence requirements, output templates, safety/refusal rules, and verification loops from `SKILL.md.tmpl`
 
 ### 3. Clean the YAML frontmatter
 
@@ -227,6 +232,7 @@ The repo should look like:
 ```
 codebases/tstack/downstream/
 ├── README.md
+├── upstreamer-changelog.md
 ├── LICENSE
 ├── VERSION
 ├── review/
@@ -243,6 +249,7 @@ codebases/tstack/downstream/
 Each directory has exactly one file: `SKILL.md`.
 No subdirectories within skill directories.
 No generated files.
+Keep `upstreamer-changelog.md` as a concise user-facing changelog of upstream-driven downstream changes. It should read like release notes for a busy engineer and must not include commit hashes, `.upstreamer/state.yaml`, verifier internals, or sync bookkeeping.
 No templates.
 
 ## Verification
@@ -253,6 +260,8 @@ Before finishing, verify:
 - [ ] No telemetry, analytics, or routing references
 - [ ] No files other than SKILL.md in skill directories
 - [ ] no upstream CI/CD, no infrastructure files, no package.json
+- [ ] `upstreamer-changelog.md` exists and describes user-facing downstream changes
+- [ ] Rich workflow skills preserve operational instructions from `SKILL.md.tmpl`, not just the topic. For example, `devex-review` must still include TTHW measurement, TESTED/PARTIAL/INFERRED evidence labels, 0-10 scoring, a scorecard, and the core DX audit dimensions.
 
 Run the bundled verifier against the downstream output directory:
 
@@ -272,6 +281,8 @@ grep -RInE 'gstack|garrytan|~/.gstack|~/.tstack|~/.claude/skills/(gstack|tstack)
 
 Review every grep hit before finishing. Fix any real violation and rerun verification until it passes.
 
+After the bundled verifier passes, run the qualitative eval in `codebases/tstack/.upstreamer/eval.md` from a fresh review context. The eval is responsible for instruction-fidelity judgment: whether rich upstream workflows were preserved instead of summarized into generic checklists.
+
 ## Final Report
 
 Return:
@@ -281,4 +292,5 @@ Return:
 - The decision inventory, or a concise summary of it
 - Notable drop/adapt decisions
 - Verification commands run and results
+- Summary added to `upstreamer-changelog.md`
 - Any remaining uncertainty or rules that required judgment

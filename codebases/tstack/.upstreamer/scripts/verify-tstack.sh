@@ -45,6 +45,7 @@ check_required_file() {
 }
 
 check_required_file "README.md"
+check_required_file "upstreamer-changelog.md"
 check_required_file "LICENSE"
 check_required_file "VERSION"
 

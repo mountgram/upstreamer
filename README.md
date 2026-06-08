@@ -44,8 +44,12 @@ The contract is the product spec. The generated files are outputs of that contra
 1. Configure each synthetic codebase in `codebases/<name>/upstreamer.md`.
 2. `scripts/upstream` clones or fetches the upstream repo with git and checks the last verified upstream commit.
 3. If upstream changed, or `--force` is passed, the wrapper launches `opencode run` with `.agents/skills/upstreamer-converter/SKILL.md`.
-4. The conversion agent reads the contract, rewrites the downstream output, runs any codebase-specific verifier, and updates `.upstreamer/state.yaml` only after successful verification.
-5. If upstream has not changed and downstream output already exists, the wrapper skips the model run and executes the verifier directly.
+4. The conversion agent reads the contract, summarizes what changed upstream since the last verified run, rewrites the downstream output, runs any codebase-specific verifier, runs any qualitative `.upstreamer/eval.md`, and updates `.upstreamer/state.yaml` only after successful verification and eval.
+5. If upstream has not changed and downstream output already exists, the wrapper writes a no-change run summary and executes the verifier directly.
+
+Each log starts with, or includes, an at-a-glance run summary that explains the upstream delta, what was put into the downstream output, why those changes match the contract, verification results, and qualitative eval results. Model-backed runs also update `upstreamer-changelog.md` in the downstream root with user-facing release-note style bullets.
+
+If a qualitative eval fails, the converter must fix and rerun it or declare bankruptcy in `codebases/<name>/.upstreamer/eval-report.md`. Failed evals block `.upstreamer/state.yaml` updates.
 
 `upstreamer` does not commit or push generated results for you. Review the output, logs, and git diff before committing.
 
@@ -68,6 +72,7 @@ The markdown body should be specific about what to keep, adapt, drop, verify, an
 - Keep/adapt/drop rules.
 - Expected output structure.
 - Verification commands or quality criteria.
+- Optional `.upstreamer/eval.md` criteria for fresh-context qualitative review.
 - Final report requirements.
 
 See [`codebases/tstack/upstreamer.md`](codebases/tstack/upstreamer.md) for a markdown-only skills rewrite and [`codebases/last30days-ts/upstreamer.md`](codebases/last30days-ts/upstreamer.md) for a library/CLI rewrite.
@@ -121,6 +126,8 @@ Important per-codebase paths:
 - `codebases/<name>/.upstreamer/state.yaml`: last verified upstream commit.
 - `codebases/<name>/.upstreamer/logs/`: wrapper and opencode logs.
 - `codebases/<name>/.upstreamer/scripts/`: optional verification scripts.
+- `codebases/<name>/.upstreamer/eval.md`: optional qualitative eval run by a fresh review context after mechanical checks.
+- `codebases/<name>/.upstreamer/eval-report.md`: latest qualitative eval result or bankruptcy report.
 
 ## Library Status
 
