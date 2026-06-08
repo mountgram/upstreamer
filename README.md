@@ -24,7 +24,7 @@ Each run reads `codebases/<name>/upstreamer.md`, invokes `opencode` with the con
 | Codebase | Upstream | Downstream purpose |
 | --- | --- | --- |
 | [`tstack`](codebases/tstack/upstreamer.md) | [`garrytan/gstack`](https://github.com/garrytan/gstack) | A pure-markdown agent skills collection with helper scripts, telemetry, binaries, and package infrastructure removed. |
-| [`last30days-ts`](codebases/last30days-ts/upstreamer.md) | [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill) | A TypeScript research CLI and library generated from a Python-oriented agent skill project. |
+| [`last30days-ts`](codebases/last30days-ts/upstreamer.md) | [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill) | A TypeScript research CLI and library generated from a Python-oriented agent skill project, with DuckDuckGo removed in favor of Exa and Brave web search. |
 
 ## What Can You Rewrite?
 

@@ -59,7 +59,7 @@ For broad topics, break into subqueries:
 
 ## Source-Specific Planning
 
-### Web Search (DuckDuckGo, Exa, Brave)
+### Web Search (Exa, Brave)
 - Use natural language queries
 - Include date references for recency
 - Consider news-specific searches for breaking stories

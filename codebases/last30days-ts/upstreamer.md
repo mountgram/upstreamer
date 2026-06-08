@@ -28,7 +28,7 @@ The conversion is not complete when the code merely compiles. The agent doing th
 - Sources are plug-ins: each source owns its own config and availability check.
 - A global setup helper may exist, but it must be optional and should only collect environment variables for source-specific keys.
 - API keys are optional source capabilities, not prerequisites for the whole tool or the higher-level orchestration.
-- Web search must support both no-key DuckDuckGo and optional Exa search.
+- Web search must use reliable web APIs: prefer Exa via `EXA_API_KEY`, and support Brave via `BRAVE_API_KEY` as an alternative/fallback. Do not include DuckDuckGo; its unofficial scraping path is too unreliable for this downstream.
 - Keep the data model and output understandable enough for downstream users to extend.
 - Prefer real, maintained SDKs for external services when they reduce protocol guessing or make the adapter more faithful. Hand-rolled `fetch` is acceptable for simple public JSON endpoints, but not as a shortcut around well-supported provider clients.
 
@@ -70,8 +70,8 @@ Port the upstream source surface into TypeScript adapters. The orchestrator shou
 
 ### Required Sources
 
-- `duckduckgo` - default no-key web search. This is the baseline web source and should work without configuration.
-- `exa` - optional web search enabled by `EXA_API_KEY`. This is additive beyond DuckDuckGo, not a replacement.
+- `exa` - preferred reliable web search enabled by `EXA_API_KEY`.
+- `brave` - alternative/fallback web search enabled by `BRAVE_API_KEY`.
 
 ### Upstream Sources to Preserve
 
@@ -82,7 +82,7 @@ Create TypeScript source adapters for these upstream concepts where the upstream
 - `github` - unauthenticated GitHub API by default, optional `GITHUB_TOKEN` for higher rate limits.
 - `polymarket` - public API where the upstream implementation can be carried over cleanly.
 - `youtube` - required adapter using the same `yt-dlp` binary approach as upstream Last30Days for YouTube search/transcripts. If `yt-dlp` is missing, skip YouTube with a clear optional-dependency warning rather than failing the whole run.
-- `x` - optional X/Twitter source backed only by the xAI/Grok API using `XAI_API_KEY` or `GROK_API_KEY`. Use the modern xAI model `grok-4.3` for this adapter unless the user explicitly selects a newer model. Implement X search from the official xAI docs at `https://docs.x.ai/developers/tools/x-search`: use the tool named `x_search`; do not invent or pass `search_parameters`. The transformed downstream output must not include logged-in Twitter, browser cookies, session auth, cookie extraction, `AUTH_TOKEN`, or `CT0` in code, docs, `.env.example`, tests, evals, or user-facing reports.
+- `x` - optional X/Twitter source backed only by the xAI/Grok API using `XAI_API_KEY` or `GROK_API_KEY`. Use the modern xAI model `grok-4.3` for this adapter unless the user explicitly selects a newer model. Implement X search from the official xAI docs at `https://docs.x.ai/developers/tools/x-search`: use the tool named `x_search`; do not invent or pass `search_parameters`. xAI's Responses API does not return top-level `tool_results`; parse the final `output_text` as strict JSON and use `usage.server_side_tool_usage_details.x_search_calls` only as diagnostics. The transformed downstream output must not include logged-in Twitter, browser cookies, session auth, cookie extraction, `AUTH_TOKEN`, or `CT0` in code, docs, `.env.example`, tests, evals, or user-facing reports.
 - `tiktok`, `instagram`, `threads`, `pinterest`, `bluesky`, `truthsocial`, `xiaohongshu`, and `digg` - preserve as optional adapters when the upstream source has a clear API or command dependency.
 - `brave`, `serper`, `parallel`, `perplexity`, and other grounded web/provider search paths - keep as optional web/search adapters, not as planner/model-provider requirements.
 
@@ -92,7 +92,7 @@ Create TypeScript source adapters for these upstream concepts where the upstream
 - The default run should use a topic-aware set of available adapters.
 - Missing optional keys or local tools should skip only the unavailable adapter, with a clear warning in debug/status output.
 - A failure in one optional source must not fail the whole research run unless every useful source failed.
-- The same run must be able to mix keyed and no-key sources, such as DuckDuckGo, Exa, Reddit, and GitHub.
+- The same run must be able to mix Exa-backed web search with no-key public sources such as Reddit, Hacker News, GitHub, Polymarket, YouTube, and Digg.
 - If an internal source allowlist is needed for tests or debugging, keep it an internal/config-level mechanism rather than the main CLI contract.
 
 ## API Key and Setup Simplification
@@ -100,7 +100,7 @@ Create TypeScript source adapters for these upstream concepts where the upstream
 The downstream should have a source-scoped configuration surface. Keys unlock only their own adapters:
 
 ```text
-EXA_API_KEY       optional, enables Exa web search
+EXA_API_KEY       preferred for reliable Exa web search
 BRAVE_API_KEY     optional, enables Brave web search
 SERPER_API_KEY    optional, enables Serper web search
 PARALLEL_API_KEY  optional, enables Parallel web search
@@ -160,7 +160,6 @@ codebases/last30days-ts/downstream/
 │   ├── render.ts
 │   ├── schema.ts
 │   └── sources/
-│       ├── duckduckgo.ts
 │       ├── exa.ts
 │       ├── brave.ts
 │       ├── github.ts
@@ -222,8 +221,8 @@ Remove these upstream areas from the downstream output:
 
 - Keep runtime dependencies small. Prefer built-in `fetch` on supported Node versions.
 - Use official SDKs or well-maintained npm packages when they make an adapter safer, clearer, or more complete than hand-rolled HTTP calls. This is a positive requirement, not an optional nice-to-have.
-- Install and use source-specific packages where appropriate for APIs such as DuckDuckGo search, Exa, YouTube/`yt-dlp` wrapping, Reddit, GitHub, HN, OpenRouter/Perplexity, Brave, Serper, Parallel, ScrapeCreators, Bluesky/AT Protocol, or social/search providers.
-- Prefer `exa-js` or the current official Exa SDK for Exa. Prefer the official OpenAI SDK for OpenRouter-compatible providers such as Perplexity/Sonar and xAI/Grok when the provider exposes an OpenAI-compatible API. For xAI/Grok, use `openai` with `baseURL: "https://api.x.ai/v1"` and `client.responses.create({ model: "grok-4.3", tools: [{ type: "x_search" }], ... })` unless the user explicitly selects a newer model. Follow `https://docs.x.ai/developers/tools/x-search`; the tool name is `x_search`, and the adapter must not use a `search_parameters` field. Use `@ai-sdk/xai` with `ai` only if the downstream genuinely needs Vercel AI SDK abstractions; do not add it just to satisfy a dependency checklist.
+- Install and use source-specific packages where appropriate for APIs such as Exa, YouTube/`yt-dlp` wrapping, Reddit, GitHub, HN, OpenRouter/Perplexity, Brave, Serper, Parallel, ScrapeCreators, Bluesky/AT Protocol, or social/search providers.
+- Prefer `exa-js` or the current official Exa SDK for Exa. Prefer the official OpenAI SDK for OpenRouter-compatible providers such as Perplexity/Sonar and xAI/Grok when the provider exposes an OpenAI-compatible API. For xAI/Grok, use `openai` with `baseURL: "https://api.x.ai/v1"` and `client.responses.create({ model: "grok-4.3", tools: [{ type: "x_search" }], ... })` unless the user explicitly selects a newer model. Follow `https://docs.x.ai/developers/tools/x-search`; the tool name is `x_search`, the adapter must not use a `search_parameters` field, and it must not look for top-level `tool_results`. Request strict JSON in the prompt and parse posts from `output_text`. Use `@ai-sdk/xai` with `ai` only if the downstream genuinely needs Vercel AI SDK abstractions; do not add it just to satisfy a dependency checklist.
 - If an official SDK exists but the adapter uses `fetch`, explicitly justify that choice in the final report, for example because the endpoint is a simple unauthenticated public JSON API or the SDK is unmaintained/incompatible.
 - Do not add a framework.
 - Avoid heavy scraping dependencies unless a required source cannot be implemented safely without one.
@@ -249,7 +248,7 @@ Add an eval suite under `eval/` or `test/eval/` that can run against live connec
 The eval suite must:
 
 - Execute the built CLI or public library API on real research topics, not only mocked adapters.
-- Include at least one zero-key eval that exercises the no-key baseline sources.
+- Include at least one Exa-backed web search eval that exercises the baseline search path.
 - Document that copying `.env.example` to `.env` and filling source-specific keys enables stronger keyed eval coverage.
 - Include keyed evals for available providers such as Exa, OpenRouter/Perplexity, Brave, Serper, Parallel, ScrapeCreators, GitHub token, Bluesky, or other configured source adapters. Skip a keyed eval with a clear reason when its env vars are absent; do not fail the whole suite for missing optional credentials.
 - Use live model/provider connections only where they unlock a source adapter or a dedicated eval judge. Do not reintroduce model-provider keys as requirements for ordinary retrieval orchestration.
@@ -257,7 +256,7 @@ The eval suite must:
 - Include an agent-readable judgment file for each eval run that records whether the output is useful, recent, cited, source-diverse, non-fabricated, and consistent with the upstream README's promise.
 - Make eval commands explicit in `package.json`, for example `npm run eval` for available live evals and `npm run eval:offline` for non-network smoke evals if useful.
 
-The converting agent must run every eval that can run in the current environment. If credentials are unavailable, it must still run the zero-key eval and document skipped keyed evals. After running evals, inspect the full Markdown/JSON outputs, not just pass/fail status, and make a concrete quality judgment in the final report.
+The converting agent must run every eval that can run in the current environment. If optional credentials are unavailable, it must run the Exa-backed baseline eval when `EXA_API_KEY` is present and document skipped optional keyed evals. After running evals, inspect the full Markdown/JSON outputs, not just pass/fail status, and make a concrete quality judgment in the final report.
 
 ### Eval Judgment Criteria
 
@@ -278,7 +277,7 @@ The downstream README must include:
 
 - What Last30Days TS does in one paragraph.
 - Install and local development commands.
-- CLI examples, including zero-key DuckDuckGo-backed usage and a run where Exa is additionally available.
+- CLI examples, including Exa-backed web search usage and a run that mixes Exa with available public/social adapters.
 - A source matrix showing which sources need keys.
 - The exact supported environment variables.
 - A `.env.example` section explaining how to copy it to `.env` for local evals without making any key globally required.
@@ -298,8 +297,10 @@ Before finishing a conversion run, verify:
 - The downstream output contains no `AUTH_TOKEN`, `CT0`, logged-in Twitter, cookie-based Twitter, or session-token X/Twitter setup in code, docs, env examples, tests, evals, generated artifacts, or reports.
 - There are no Python source or packaging files.
 - There is at least one TypeScript file under `src/`.
-- DuckDuckGo and Exa are both documented and implemented as web search sources.
-- `EXA_API_KEY` is optional and only controls the Exa source.
+- Exa is documented and implemented as the preferred reliable web search source.
+- Brave is documented and implemented as an alternative/fallback reliable web search source.
+- `EXA_API_KEY` controls only the Exa web search source.
+- DuckDuckGo is not present in runtime code, README, skills, tests, or package dependencies.
 - The README does not present any required primary API key.
 - The orchestration can mix no-key and keyed sources in one run without requiring every source.
 - YouTube is implemented through `yt-dlp` as an optional local binary dependency for that source.
@@ -311,7 +312,7 @@ Before finishing a conversion run, verify:
 - TypeScript checks and tests pass if dependencies can be installed in the environment.
 - `package.json` includes maintained SDK dependencies for provider-backed adapters where appropriate. The xAI/Grok X adapter may reuse the `openai` SDK against `https://api.x.ai/v1` instead of adding extra AI SDK dependencies.
 - Hard-coded model identifiers are current for May 18 2026. The xAI/Grok X adapter uses `grok-4.3` with the `x_search` tool unless explicitly overridden by the user. The OpenRouter/Perplexity adapter should use `perplexity/sonar-pro` unless the user explicitly selects a newer model.
-- Live eval tests exist, can skip missing optional credentials cleanly, and write full output artifacts for agent review. X/Twitter keyed evals must look only for `XAI_API_KEY` or `GROK_API_KEY`.
+- Live eval tests exist, can skip or warn on missing, invalid, or rate-limited optional credentials cleanly, and write full output artifacts for agent review. X/Twitter keyed evals must look only for `XAI_API_KEY` or `GROK_API_KEY`. Optional keyed-source failures should not fail the conversion eval unless they break baseline behavior, are hidden from the user, contaminate unrelated sources, or are falsely reported as passing.
 - Live eval docs point users to `.env.example` for enabling stronger keyed evals.
 - The converting agent has run all available deterministic tests and live evals, inspected the generated eval artifacts, and judged whether the downstream output is as useful as the upstream README claims.
 
@@ -328,7 +329,7 @@ find <downstream-dir> -type f | sort
 find <downstream-dir> -type f \( -name '*.py' -o -name 'pyproject.toml' -o -name 'uv.lock' -o -name 'requirements.txt' \)
 grep -RInE 'OPENAI_API_KEY|GEMINI_API_KEY|XAI_API_KEY' <downstream-dir> || true
 grep -RInE 'AUTH_TOKEN|CT0|logged[- ]in Twitter|cookie[- ]based Twitter|session-token X|Twitter cookies' <downstream-dir> && exit 1 || true
-grep -RInE 'duckduckgo|DuckDuckGo|EXA_API_KEY|Exa' <downstream-dir>
+grep -RInE 'EXA_API_KEY|Exa' <downstream-dir>
 grep -RInE 'yt-dlp|ytdlp' <downstream-dir>
 ```
 

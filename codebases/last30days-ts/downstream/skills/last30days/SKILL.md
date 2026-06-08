@@ -29,8 +29,7 @@ Before first use, verify the CLI is available:
 npx last30days setup
 ```
 
-This shows which sources are active. Sources that work without keys:
-- **DuckDuckGo** (web search, no key)
+This shows which sources are active. Configure `EXA_API_KEY` for preferred web search or `BRAVE_API_KEY` as a fallback. Sources that can work without source-specific keys:
 - **Reddit** (public JSON, no key)
 - **Hacker News** (Algolia API, no key)
 - **Polymarket** (public API, no key)
@@ -45,7 +44,8 @@ cp .env.example .env
 ## CLI Usage
 
 ```bash
-# Basic research (uses DuckDuckGo + no-key sources)
+# Basic research (uses Exa or Brave web search plus available public sources)
+export EXA_API_KEY=your-key
 npx last30days "your topic here"
 
 # Extended lookback
@@ -68,13 +68,12 @@ npx last30days "Person" --github-user username
 
 | Source | Key Required | Notes |
 |--------|-------------|-------|
-| DuckDuckGo | None | Default web search |
+| Exa | EXA_API_KEY | Preferred reliable web search |
 | Reddit | None | Public JSON API |
 | Hacker News | None | Algolia API |
 | GitHub | None (optional GITHUB_TOKEN) | 60 req/hr without token |
 | Polymarket | None | Public API |
-| Exa | EXA_API_KEY | Semantic web search |
-| Brave | BRAVE_API_KEY | 2000 free/month |
+| Brave | BRAVE_API_KEY | Alternative/fallback web search |
 | Serper | SERPER_API_KEY | Google results |
 | Parallel | PARALLEL_API_KEY | AI-powered search |
 | X/Twitter | XAI_API_KEY or GROK_API_KEY | Via xAI Grok API |

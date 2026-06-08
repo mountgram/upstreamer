@@ -1,6 +1,6 @@
 # Last30Days TS
 
-Research what people actually say about any topic in the last 30 days. Searches Reddit, Hacker News, X/Twitter, YouTube, TikTok, GitHub, Polymarket, Digg, and the web — scores by engagement, and produces a concise brief. TypeScript rewrite of [mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill).
+Research what people actually say about any topic in the last 30 days. Searches Exa web search, Reddit, Hacker News, X/Twitter, YouTube, TikTok, GitHub, Polymarket, Digg, and other optional sources — scores by engagement, and produces a concise brief. TypeScript rewrite of [mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill).
 
 ## Install
 
@@ -12,10 +12,10 @@ npx last30days "your topic"
 
 ## Quick Start
 
-No configuration needed for basic use:
+Configure Exa for primary web search. Brave is also supported as a web-search fallback when `BRAVE_API_KEY` is present:
 
 ```bash
-# Research any topic (uses DuckDuckGo + no-key public sources)
+export EXA_API_KEY=your-key
 npx last30days "React Server Components"
 npx last30days "AI agent frameworks"
 npx last30days "NVIDIA earnings"
@@ -46,11 +46,10 @@ npx last30days setup
 
 ## Sources
 
-### Free (no key required)
+### Public or Local Sources
 
 | Source | Method |
 |--------|--------|
-| DuckDuckGo | Public web search |
 | Reddit | Keyless JSON/RSS public access |
 | Hacker News | Algolia public API |
 | GitHub | Unauthenticated API (60 req/hr) |
@@ -61,8 +60,8 @@ npx last30days setup
 
 | Source | Key | Method |
 |--------|-----|--------|
-| Exa | `EXA_API_KEY` | Semantic web search |
-| Brave | `BRAVE_API_KEY` | Web search (2000 free/month) |
+| Exa | `EXA_API_KEY` | Preferred reliable web search |
+| Brave | `BRAVE_API_KEY` | Alternative/fallback web search |
 | Serper | `SERPER_API_KEY` | Google search |
 | Parallel | `PARALLEL_API_KEY` | AI-powered search |
 | X/Twitter | `XAI_API_KEY` or `GROK_API_KEY` | xAI Grok API |
@@ -76,7 +75,7 @@ npx last30days setup
 
 ## Configuration
 
-All sources are independently optional. The tool works out of the box with DuckDuckGo and public APIs.
+Most sources are independently optional. Configure `EXA_API_KEY` or `BRAVE_API_KEY` for reliable web search; public APIs such as Reddit, Hacker News, GitHub, Polymarket, YouTube, and Digg remain best-effort source adapters.
 
 ### Environment Variables
 
@@ -161,7 +160,7 @@ npm run eval
 Live evals test source adapters against real endpoints:
 
 ```bash
-npm run eval          # All available evals (skips missing keys)
+npm run eval          # Exa web eval plus available optional keyed evals
 npm run eval:offline  # Smoke tests without network
 ```
 

@@ -17,7 +17,7 @@ Different sources carry different implicit signal quality:
 
 | Source | Weight | Rationale |
 |--------|--------|-----------|
-| Web search (DuckDuckGo, Exa, Brave) | 0.85-1.0 | Editorial and news content, generally reliable |
+| Web search (Exa, Brave) | 0.85-1.0 | Editorial and news content, generally reliable |
 | X/Twitter | 0.68 | Real-time reactions, can be noisy |
 | Reddit | 0.60 | Community discussion, variable quality |
 | YouTube | 0.55 | Long-form content, but engagement is spread out |

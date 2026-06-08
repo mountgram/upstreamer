@@ -52,13 +52,14 @@ if find "$downstream" -type d -name '__pycache__' | grep -q .; then
   exit 1
 fi
 
-if ! grep -RInE 'duckduckgo|DuckDuckGo' "$downstream/README.md" "$downstream/src" >/dev/null; then
-  echo "ERROR: DuckDuckGo source is not documented or implemented" >&2
+if ! grep -RInE 'EXA_API_KEY|Exa|exa' "$downstream/README.md" "$downstream/src" >/dev/null; then
+  echo "ERROR: Exa source or EXA_API_KEY is not documented or implemented" >&2
   exit 1
 fi
 
-if ! grep -RInE 'EXA_API_KEY|Exa|exa' "$downstream/README.md" "$downstream/src" >/dev/null; then
-  echo "ERROR: Exa source or EXA_API_KEY is not documented or implemented" >&2
+if grep -RInE 'duckduckgo|DuckDuckGo|duck-duck' "$downstream/README.md" "$downstream/package.json" "$downstream/src" "$downstream/test" "$downstream/skills" >/dev/null; then
+  echo "ERROR: DuckDuckGo is still present in downstream runtime, README, skills, tests, or package metadata" >&2
+  grep -RInE 'duckduckgo|DuckDuckGo|duck-duck' "$downstream/README.md" "$downstream/package.json" "$downstream/src" "$downstream/test" "$downstream/skills" >&2
   exit 1
 fi
 

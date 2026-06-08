@@ -29,7 +29,7 @@ This is not a shell-script check. It is a product and behavior eval for a busy e
 
 The downstream should satisfy these product-level requirements:
 
-- Baseline zero-key use works or is credibly demonstrated through eval artifacts.
+- Exa-backed web search works or Brave-backed web search works as a fallback, credibly demonstrated through eval artifacts.
 - Optional keyed sources are source-scoped. Missing keys skip only their adapters and do not break the whole run.
 - Source coverage reflects the upstream surface where practical, with explicit deferrals where a source cannot be reasonably ported.
 - The TypeScript library API is usable without shelling out and exposes structured results.
@@ -44,7 +44,7 @@ The downstream should satisfy these product-level requirements:
 
 Return `FAIL` if any of these are true:
 
-- The downstream compiles but cannot demonstrate a useful zero-key research run.
+- The downstream compiles but cannot demonstrate a useful Exa-backed or Brave-backed web search run.
 - A missing optional key or local tool can fail the whole pipeline instead of skipping its adapter.
 - The README or skill implies a global required API key.
 - Source adapters are stubs that return placeholders rather than real or testable source items.
@@ -54,9 +54,13 @@ Return `FAIL` if any of these are true:
 - Python files, Python packaging, plugin packaging, or removed Twitter cookie/session auth reappear.
 - The downstream claims support for a source but the implementation is absent and no explicit deferral explains why.
 
-Return `PASS WITH WARNINGS` when the downstream is useful but some optional source coverage, live-provider eval, or output quality is limited by missing credentials or external service behavior.
+Optional keyed-source failures are warnings, not automatic failures, when the failure is isolated to that adapter, the Exa/Brave web-search baseline still works, and the output clearly reports the unavailable source. This includes missing, expired, invalid, or rate-limited credentials for X/Grok, OpenRouter/Perplexity, Serper, Parallel, ScrapeCreators, Bluesky, or similar optional adapters.
 
-Return `PASS` only when the zero-key path and representative configured-source behavior are useful, documented, and consistent with the contract.
+Return `PASS WITH WARNINGS` when the downstream is useful but some optional source coverage, live-provider eval, or output quality is limited by missing credentials, invalid credentials, rate limits, or external service behavior.
+
+Return `FAIL` for keyed paths only when an optional-source failure breaks the whole run, is hidden from the user, contaminates unrelated sources, or the README/eval claims the keyed path passed when it did not.
+
+Return `PASS` only when the Exa-backed or Brave-backed web search path and representative optional-source behavior are useful, documented, and consistent with the contract.
 
 ## High-Risk Areas
 
@@ -67,7 +71,7 @@ Review these closely:
 - `src/sources/x.ts`: X/Twitter support must use xAI/Grok-style API keys only and must not mention or depend on logged-in Twitter cookies, `AUTH_TOKEN`, or `CT0`.
 - `src/sources/reddit.ts`, `github.ts`, `digg.ts`, `youtube.ts`, and web-search adapters: these should preserve meaningful upstream source behavior where practical.
 - `skills/last30days/SKILL.md`: should teach another agent when to use the tool, setup checks, command examples, source warnings, eval commands, and how to cite output.
-- `README.md` and `.env.example`: should make baseline usage obvious and keep every key optional and source-scoped.
+- `README.md` and `.env.example`: should make Exa/Brave web search setup obvious and keep other keys optional and source-scoped.
 - `eval/run.ts` and `eval-output/`: should prove the tool produces recent, cited, source-diverse, non-placeholder output.
 
 ## Output Format

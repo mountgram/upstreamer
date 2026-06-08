@@ -4,7 +4,6 @@ import { recencyScore, daysAgo } from "./dates.js";
 // Source quality weights matching upstream signals.py
 const SOURCE_QUALITY: Record<string, number> = {
   grounding: 1.0,
-  duckduckgo: 0.9,
   exa: 0.9,
   brave: 0.85,
   serper: 0.85,
@@ -159,12 +158,26 @@ export function annotateStream(
   return items.map((item, i) => {
     const sq = sourceQuality(item.source);
     const score = relNorm[i] * 0.35 + freshNorm[i] * 0.30 + engNorm[i] * 0.25 + sq * 100 * 0.10;
-    return { ...item, score: Math.round(score * 100) / 100 };
+    const primaryToken = normalizeText(rankingQuery).split(" ").find(t => !STOPWORDS.has(t) && t.length > 2);
+    const text = normalizeText(`${item.title} ${item.body}`);
+    return {
+      ...item,
+      score: Math.round(score * 100) / 100,
+      metadata: {
+        ...item.metadata,
+        local_relevance: relScores[i],
+        primary_query_token_match: primaryToken ? text.includes(primaryToken) : true,
+      },
+    };
   }).sort((a, b) => b.score - a.score);
 }
 
 export function pruneLowRelevance(items: SourceItem[], minimum = 15): SourceItem[] {
-  return items.filter(item => item.score >= minimum);
+  return items.filter(item => {
+    const local = typeof item.metadata.local_relevance === "number" ? item.metadata.local_relevance : 1;
+    const primaryMatch = item.metadata.primary_query_token_match !== false;
+    return item.score >= minimum && local >= 0.34 && primaryMatch;
+  });
 }
 
 function itemText(item: Candidate | SourceItem): string {

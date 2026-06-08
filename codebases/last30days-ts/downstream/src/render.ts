@@ -2,7 +2,6 @@ import type { Candidate, Cluster, Report } from "./schema.js";
 import { formatDate } from "./dates.js";
 
 const SOURCE_LABELS: Record<string, string> = {
-  duckduckgo: "Web",
   exa: "Web",
   brave: "Web",
   serper: "Web",
@@ -97,7 +96,7 @@ export function renderMarkdown(report: Report): string {
   lines.push("");
 
   const sourceEmojis: Record<string, string> = {
-    grounding: "🌐", duckduckgo: "🌐", exa: "🌐", brave: "🌐", serper: "🌐",
+    grounding: "🌐", exa: "🌐", brave: "🌐", serper: "🌐",
     parallel: "🌐", perplexity: "🔍",
     reddit: "🤖", x: "🐦", youtube: "▶️", tiktok: "🎵", instagram: "📷",
     hackernews: "🔶", polymarket: "📊", github: "🐙", bluesky: "🦋",
@@ -156,7 +155,11 @@ export function renderCompact(report: Report): string {
 
     for (const c of cands) {
       const srcLabels = c.source_items.map(si => `[${SOURCE_LABELS[si.source] || si.source}]`).join("");
-      lines.push(`1. ${srcLabels} [${c.title}](${c.url})`);
+      const dates = c.source_items
+        .map(si => si.published_at?.slice(0, 10))
+        .filter(Boolean);
+      const dateText = dates.length ? ` (${[...new Set(dates)].slice(0, 2).join(", ")})` : "";
+      lines.push(`1. ${srcLabels} [${c.title}](${c.url})${dateText}`);
       if (c.snippet) lines.push(`  - ${c.snippet}`);
     }
     if (uncertainty) lines.push(uncertainty);
@@ -196,7 +199,7 @@ export function renderCompact(report: Report): string {
   lines.push("");
 
   const sourceEmojis: Record<string, string> = {
-    duckduckgo: "🌐", exa: "🌐", brave: "🌐", serper: "🌐",
+    exa: "🌐", brave: "🌐", serper: "🌐",
     parallel: "🌐", perplexity: "🔍",
     reddit: "🤖", x: "🐦", youtube: "▶️", tiktok: "🎵", instagram: "📷",
     hackernews: "🔶", polymarket: "📊", github: "🐙", bluesky: "🦋",

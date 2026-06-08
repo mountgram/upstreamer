@@ -13,14 +13,13 @@ export function diagnose(): SourceStatus[] {
   const results: SourceStatus[] = [];
   const hasDigg = !spawnSync("digg-pp-cli", ["--help"], { encoding: "utf-8", timeout: 5000 }).error;
 
-  results.push({ source: "duckduckgo", available: true, key: null, method: "no-key public API" });
   results.push({ source: "reddit", available: true, key: null, method: "keyless JSON/RSS public access" });
   results.push({ source: "hackernews", available: true, key: null, method: "Algolia public API" });
   results.push({ source: "polymarket", available: true, key: null, method: "public API" });
   results.push({ source: "github", available: true, key: config.githubToken || null, method: config.githubToken ? "authenticated API" : "unauthenticated API" });
 
-  results.push({ source: "exa", available: !!config.exaApiKey, key: config.exaApiKey ? "EXA_API_KEY" : null, method: "Exa SDK" });
-  results.push({ source: "brave", available: !!config.braveApiKey, key: config.braveApiKey ? "BRAVE_API_KEY" : null, method: "Brave Search API" });
+  results.push({ source: "exa", available: !!config.exaApiKey, key: config.exaApiKey ? "EXA_API_KEY" : null, method: "preferred reliable web search via Exa SDK" });
+  results.push({ source: "brave", available: !!config.braveApiKey, key: config.braveApiKey ? "BRAVE_API_KEY" : null, method: "alternative/fallback web search via Brave Search API" });
   results.push({ source: "serper", available: !!config.serperApiKey, key: config.serperApiKey ? "SERPER_API_KEY" : null, method: "Serper API" });
   results.push({ source: "parallel", available: !!config.parallelApiKey, key: config.parallelApiKey ? "PARALLEL_API_KEY" : null, method: "Parallel API" });
 

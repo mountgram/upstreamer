@@ -28,7 +28,7 @@ describe("Source adapter shapes", () => {
   it("SourceItem shape is valid", () => {
     const item: SourceItem = {
       item_id: "test-1",
-      source: "duckduckgo",
+      source: "exa",
       title: "Test",
       body: "Test body",
       url: "https://example.com",
@@ -105,11 +105,6 @@ describe("Source adapter shapes", () => {
 });
 
 describe("No-key source availability", () => {
-  it("DuckDuckGo adapter is importable", async () => {
-    const mod = await import("../src/sources/duckduckgo.js");
-    expect(typeof mod.searchDuckDuckGo).toBe("function");
-  });
-
   it("Reddit adapter is importable", async () => {
     const mod = await import("../src/sources/reddit.js");
     expect(typeof mod.searchReddit).toBe("function");
@@ -160,6 +155,40 @@ describe("Key-based source adapters are importable", () => {
   it("X adapter is importable", async () => {
     const mod = await import("../src/sources/x.js");
     expect(typeof mod.searchX).toBe("function");
+  });
+
+  it("X adapter parses Responses API output_text JSON", async () => {
+    const mod = await import("../src/sources/x.js");
+    const posts = mod.__test__.parseXPosts(`[
+      {
+        "author_handle": "@example",
+        "text": "AI news from this week",
+        "url": "https://x.com/example/status/12345",
+        "created_at": "2026-06-05T09:32:01Z"
+      }
+    ]`);
+
+    expect(posts).toHaveLength(1);
+    expect(posts[0].text).toContain("AI news");
+    expect(mod.__test__.extractStatusId(posts[0].url)).toBe("12345");
+  });
+
+  it("X adapter normalizes provider date strings", async () => {
+    const mod = await import("../src/sources/x.js");
+    expect(mod.__test__.normalizeXDate("2026-06-05T09:32:01Z")).toBe("2026-06-05T09:32:01.000Z");
+    expect(mod.__test__.normalizeXDate("Jun 6 10:44:46 UTC")).toContain("2026-06-06T10:44:46.000Z");
+  });
+
+  it("X adapter extracts message output_text when output_text shortcut is absent", async () => {
+    const mod = await import("../src/sources/x.js");
+    const text = mod.__test__.extractOutputText({
+      output: [
+        { type: "custom_tool_call" },
+        { type: "message", content: [{ type: "output_text", text: "[]" }] },
+      ],
+    });
+
+    expect(text).toBe("[]");
   });
 
   it("Bluesky adapter is importable", async () => {

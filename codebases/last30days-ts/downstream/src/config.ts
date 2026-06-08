@@ -37,15 +37,17 @@ function loadConfig(): Config {
   // Load from .env file if present
   try {
     const cwd = process.cwd();
-    const envFile = readFileSync(resolve(cwd, ".env"), "utf-8");
-    for (const line of envFile.split("\n")) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) continue;
-      const eqIdx = trimmed.indexOf("=");
-      if (eqIdx === -1) continue;
-      const key = trimmed.slice(0, eqIdx).trim();
-      const value = trimmed.slice(eqIdx + 1).trim();
-      if (!env[key]) env[key] = value;
+    if (env.LAST30DAYS_IGNORE_ENV_FILE !== "1") {
+      const envFile = readFileSync(resolve(cwd, ".env"), "utf-8");
+      for (const line of envFile.split("\n")) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) continue;
+        const eqIdx = trimmed.indexOf("=");
+        if (eqIdx === -1) continue;
+        const key = trimmed.slice(0, eqIdx).trim();
+        const value = stripEnvQuotes(trimmed.slice(eqIdx + 1).trim());
+        if (!env[key]) env[key] = value;
+      }
     }
   } catch {
     // .env file is optional
@@ -67,4 +69,15 @@ function loadConfig(): Config {
   config.last30daysDir = env.LAST30DAYS_DIR || "./output";
 
   return config;
+}
+
+function stripEnvQuotes(value: string): string {
+  if (value.length >= 2) {
+    const first = value[0];
+    const last = value[value.length - 1];
+    if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+      return value.slice(1, -1);
+    }
+  }
+  return value;
 }

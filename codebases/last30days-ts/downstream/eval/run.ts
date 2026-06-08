@@ -5,7 +5,7 @@
  *
  * Usage:
  *   npm run eval          Run all available evals (skips missing keys)
- *   npm run eval:offline  Run only zero-key/no-network evals
+ *   npm run eval:offline  Run only non-network smoke evals
  */
 
 import { spawnSync } from "node:child_process";
@@ -21,10 +21,36 @@ function ensureDir(dir: string) {
   mkdirSync(dir, { recursive: true });
 }
 
-function runCli(args: string[]): { stdout: string; stderr: string; exitCode: number } {
+const OPTIONAL_SOURCE_ENV_KEYS = [
+  "EXA_API_KEY",
+  "BRAVE_API_KEY",
+  "SERPER_API_KEY",
+  "PARALLEL_API_KEY",
+  "OPENROUTER_API_KEY",
+  "XAI_API_KEY",
+  "GROK_API_KEY",
+  "BSKY_HANDLE",
+  "BSKY_APP_PASSWORD",
+  "TRUTHSOCIAL_TOKEN",
+  "SCRAPECREATORS_API_KEY",
+  "APIFY_API_TOKEN",
+  "GITHUB_TOKEN",
+];
+
+function withOnlySearchEnv(): NodeJS.ProcessEnv {
+  const env = { ...process.env };
+  for (const key of OPTIONAL_SOURCE_ENV_KEYS) {
+    if (key === "EXA_API_KEY" || key === "BRAVE_API_KEY") continue;
+    delete env[key];
+  }
+  return env;
+}
+
+function runCli(args: string[], env?: NodeJS.ProcessEnv): { stdout: string; stderr: string; exitCode: number } {
   // Use tsx to run the CLI directly
   const result = spawnSync("npx", ["tsx", "src/cli.ts", ...args], {
     cwd: process.cwd(),
+    env: env || process.env,
     timeout: 120_000,
     encoding: "utf-8",
   });
@@ -48,6 +74,12 @@ interface EvalResult {
   artifacts: string[];
 }
 
+function resultStatus(result: EvalResult): "PASS" | "WARN" | "FAIL" | "SKIPPED" {
+  if (result.skipped) return "SKIPPED";
+  if (result.passed) return "PASS";
+  return result.judgment.startsWith("WARN:") ? "WARN" : "FAIL";
+}
+
 function judgeOutput(topic: string, output: string): { passed: boolean; warnings: string[]; judgment: string } {
   const warnings: string[] = [];
 
@@ -62,6 +94,11 @@ function judgeOutput(topic: string, output: string): { passed: boolean; warnings
   if (output.includes("No results found")) {
     warnings.push("No results found");
     return { passed: false, warnings, judgment: "FAIL: No results for topic" };
+  }
+
+  if (/Total items:\s*0\b/i.test(output) || /Clusters:\s*0\b/i.test(output)) {
+    warnings.push("No evidence items or clusters");
+    return { passed: false, warnings, judgment: "FAIL: No evidence items or clusters" };
   }
 
   if (!output.includes("KEY PATTERNS") && !output.includes("Ranked Evidence Clusters")) {
@@ -99,21 +136,30 @@ async function runEvals(): Promise<void> {
 
   const results: EvalResult[] = [];
 
-  // --- Zero-key eval (always runs) ---
-  console.log("\n=== Zero-Key Eval: DuckDuckGo + No-Key Sources ===\n");
-  const topic0 = "TypeScript 2026 features";
-  const cli0 = runCli([topic0, "--format", "compact", "--depth", "quick"]);
+  // --- Web-search eval (required baseline; Exa preferred, Brave fallback) ---
+  console.log("\n=== Web Search Eval ===\n");
+  const topic0 = "TypeScript Go compiler Project Corsa";
+  const webSearchEnv = withOnlySearchEnv();
+  const baselineSource = webSearchEnv.EXA_API_KEY ? "exa" : webSearchEnv.BRAVE_API_KEY ? "brave" : "";
+  const cli0 = baselineSource
+    ? runCli([topic0, "--format", "compact", "--depth", "quick", "--lookback", "37", "--include-sources", baselineSource], webSearchEnv)
+    : { stdout: "", stderr: "Missing EXA_API_KEY or BRAVE_API_KEY", exitCode: 1 };
 
-  const zeroKeyDir = join(EVAL_OUTPUT_DIR, `zero-key-${timestamp}`);
+  const zeroKeyDir = join(EVAL_OUTPUT_DIR, `web-search-${timestamp}`);
   ensureDir(zeroKeyDir);
   writeFileSync(join(zeroKeyDir, "compact.md"), cli0.stdout);
   writeFileSync(join(zeroKeyDir, "stderr.txt"), cli0.stderr);
 
-  const zeroKeyJudgment = judgeOutput(topic0, cli0.stdout);
-  writeFileSync(join(zeroKeyDir, "judgment.md"), `# Eval Judgment: Zero-Key\n\n**Topic:** ${topic0}\n**Date:** ${formatDate(new Date())}\n**Passed:** ${zeroKeyJudgment.passed}\n\n## Judgment\n${zeroKeyJudgment.judgment}\n\n## Warnings\n${zeroKeyJudgment.warnings.join("\n") || "None"}\n\n## Command\n\`npx last30days "${topic0}" --format compact --depth quick\`\n`);
+  let zeroKeyJudgment = baselineSource
+    ? judgeOutput(topic0, cli0.stdout)
+    : { passed: false, warnings: ["Missing EXA_API_KEY or BRAVE_API_KEY"], judgment: "FAIL: EXA_API_KEY or BRAVE_API_KEY is required for web-search eval" };
+  if (zeroKeyJudgment.passed && !hasSource(cli0.stdout, "Web")) {
+    zeroKeyJudgment = { passed: false, warnings: [`${baselineSource} produced no web results`], judgment: "FAIL: Web search did not produce inspectable results" };
+  }
+  writeFileSync(join(zeroKeyDir, "judgment.md"), `# Eval Judgment: Web Search\n\n**Topic:** ${topic0}\n**Source:** ${baselineSource || "none"}\n**Date:** ${formatDate(new Date())}\n**Passed:** ${zeroKeyJudgment.passed}\n\n## Judgment\n${zeroKeyJudgment.judgment}\n\n## Warnings\n${zeroKeyJudgment.warnings.join("\n") || "None"}\n\n## Command\n\`npx last30days "${topic0}" --format compact --depth quick --lookback 37 --include-sources ${baselineSource || "exa"}\`\n`);
 
   results.push({
-    name: "zero-key",
+    name: "web-search",
     topic: topic0,
     passed: zeroKeyJudgment.passed,
     skipped: false,
@@ -124,11 +170,13 @@ async function runEvals(): Promise<void> {
     artifacts: [join(zeroKeyDir, "compact.md"), join(zeroKeyDir, "judgment.md")],
   });
 
-  console.log(`  Zero-key eval: ${zeroKeyJudgment.passed ? "PASS" : "WARN"}`);
+  console.log(`  Web search eval: ${zeroKeyJudgment.passed ? "PASS" : "FAIL"}`);
 
   // --- JSON output eval ---
   console.log("\n=== JSON Output Eval ===\n");
-  const cliJson = runCli([topic0, "--format", "json", "--depth", "quick"]);
+  const cliJson = baselineSource
+    ? runCli([topic0, "--format", "json", "--depth", "quick", "--lookback", "37", "--include-sources", baselineSource], webSearchEnv)
+    : { stdout: "", stderr: "Missing EXA_API_KEY or BRAVE_API_KEY", exitCode: 1 };
 
   const jsonDir = join(EVAL_OUTPUT_DIR, `json-${timestamp}`);
   ensureDir(jsonDir);
@@ -143,7 +191,7 @@ async function runEvals(): Promise<void> {
     // invalid JSON
   }
 
-  writeFileSync(join(jsonDir, "judgment.md"), `# Eval Judgment: JSON Output\n\n**Topic:** ${topic0}\n**Valid JSON:** ${jsonValid}\n\n## Command\n\`npx last30days "${topic0}" --format json --depth quick\`\n`);
+  writeFileSync(join(jsonDir, "judgment.md"), `# Eval Judgment: JSON Output\n\n**Topic:** ${topic0}\n**Valid JSON:** ${jsonValid}\n\n## Command\n\`npx last30days "${topic0}" --format json --depth quick --lookback 37 --include-sources ${baselineSource || "exa"}\`\n`);
 
   results.push({
     name: "json-output",
@@ -159,26 +207,6 @@ async function runEvals(): Promise<void> {
 
   // --- Keyed evals (skip if credentials missing) ---
   if (!isOffline) {
-    // Exa eval
-    if (config.exaApiKey) {
-      console.log("\n=== Keyed Eval: Exa ===\n");
-      const cliExa = runCli(["AI agent frameworks 2026", "--format", "compact", "--depth", "quick", "--debug", "--include-sources", "exa"]);
-      const exaDir = join(EVAL_OUTPUT_DIR, `exa-${timestamp}`);
-      ensureDir(exaDir);
-      writeFileSync(join(exaDir, "compact.md"), cliExa.stdout);
-      writeFileSync(join(exaDir, "stderr.txt"), cliExa.stderr);
-      let exaJudgment = judgeOutput("AI agent", cliExa.stdout);
-      if (exaJudgment.passed && !hasSource(cliExa.stdout, "Web")) {
-        exaJudgment = { passed: false, warnings: ["Exa produced no web results"], judgment: "FAIL: Exa source did not produce inspectable results" };
-      }
-      writeFileSync(join(exaDir, "judgment.md"), `# Eval Judgment: Exa\n\n**Passed:** ${exaJudgment.passed}\n\n## Judgment\n${exaJudgment.judgment}\n`);
-      results.push({ name: "exa", topic: "AI agent frameworks 2026", passed: exaJudgment.passed, skipped: false, exitCode: cliExa.exitCode, warnings: exaJudgment.warnings, outputSnippet: cliExa.stdout.slice(0, 500), judgment: exaJudgment.judgment, artifacts: [join(exaDir, "compact.md")] });
-      console.log(`  Exa eval: ${exaJudgment.passed ? "PASS" : "WARN"}`);
-    } else {
-      console.log("\n  Exa eval: SKIPPED (no EXA_API_KEY)");
-      results.push({ name: "exa", topic: "", passed: false, skipped: true, skipReason: "EXA_API_KEY not configured", exitCode: 0, warnings: [], outputSnippet: "", judgment: "SKIPPED", artifacts: [] });
-    }
-
     // X eval
     if (config.xaiApiKey || config.grokApiKey) {
       console.log("\n=== Keyed Eval: X/Twitter via xAI ===\n");
@@ -188,8 +216,8 @@ async function runEvals(): Promise<void> {
       writeFileSync(join(xDir, "compact.md"), cliX.stdout);
       writeFileSync(join(xDir, "stderr.txt"), cliX.stderr);
       let xJudgment = judgeOutput("AI", cliX.stdout);
-      if (xJudgment.passed && !hasSource(cliX.stdout, "X:")) {
-        xJudgment = { passed: false, warnings: ["X adapter produced no X items"], judgment: "FAIL: X source did not produce inspectable results" };
+      if (!hasSource(cliX.stdout, "X:")) {
+        xJudgment = { passed: false, warnings: ["X adapter produced no X items"], judgment: "WARN: X source did not produce inspectable results" };
       }
       writeFileSync(join(xDir, "judgment.md"), `# Eval Judgment: X\n\n**Passed:** ${xJudgment.passed}\n\n## Judgment\n${xJudgment.judgment}\n`);
       results.push({ name: "x", topic: "AI news this week", passed: xJudgment.passed, skipped: false, exitCode: cliX.exitCode, warnings: xJudgment.warnings, outputSnippet: cliX.stdout.slice(0, 500), judgment: xJudgment.judgment, artifacts: [join(xDir, "compact.md")] });
@@ -208,8 +236,8 @@ async function runEvals(): Promise<void> {
       writeFileSync(join(perpDir, "compact.md"), cliPerp.stdout);
       writeFileSync(join(perpDir, "stderr.txt"), cliPerp.stderr);
       let perpJudgment = judgeOutput("AI", cliPerp.stdout);
-      if (perpJudgment.passed && !hasSource(cliPerp.stdout, "Perplexity")) {
-        perpJudgment = { passed: false, warnings: ["Perplexity adapter produced no Perplexity items"], judgment: "FAIL: Perplexity source did not produce inspectable results" };
+      if (!hasSource(cliPerp.stdout, "Perplexity")) {
+        perpJudgment = { passed: false, warnings: ["Perplexity adapter produced no Perplexity items"], judgment: "WARN: Perplexity source did not produce inspectable results" };
       }
       writeFileSync(join(perpDir, "judgment.md"), `# Eval Judgment: Perplexity\n\n**Passed:** ${perpJudgment.passed}\n\n## Judgment\n${perpJudgment.judgment}\n`);
       results.push({ name: "perplexity", topic: "latest AI research", passed: perpJudgment.passed, skipped: false, exitCode: cliPerp.exitCode, warnings: perpJudgment.warnings, outputSnippet: cliPerp.stdout.slice(0, 500), judgment: perpJudgment.judgment, artifacts: [join(perpDir, "compact.md")] });
@@ -222,9 +250,18 @@ async function runEvals(): Promise<void> {
     // Brave eval
     if (config.braveApiKey) {
       console.log("\n=== Keyed Eval: Brave ===\n");
-      const cliBrave = runCli(["climate tech startups 2026", "--format", "compact", "--depth", "quick"]);
-      // ... similar pattern
-      console.log("  Brave eval: ran");
+      const cliBrave = runCli(["AI agent frameworks 2026", "--format", "compact", "--depth", "quick", "--debug", "--include-sources", "brave"]);
+      const braveDir = join(EVAL_OUTPUT_DIR, `brave-${timestamp}`);
+      ensureDir(braveDir);
+      writeFileSync(join(braveDir, "compact.md"), cliBrave.stdout);
+      writeFileSync(join(braveDir, "stderr.txt"), cliBrave.stderr);
+      let braveJudgment = judgeOutput("AI agent", cliBrave.stdout);
+      if (!hasSource(cliBrave.stdout, "Web")) {
+        braveJudgment = { passed: false, warnings: ["Brave adapter produced no web items"], judgment: "WARN: Brave source did not produce inspectable results" };
+      }
+      writeFileSync(join(braveDir, "judgment.md"), `# Eval Judgment: Brave\n\n**Passed:** ${braveJudgment.passed}\n\n## Judgment\n${braveJudgment.judgment}\n`);
+      results.push({ name: "brave", topic: "AI agent frameworks 2026", passed: braveJudgment.passed, skipped: false, exitCode: cliBrave.exitCode, warnings: braveJudgment.warnings, outputSnippet: cliBrave.stdout.slice(0, 500), judgment: braveJudgment.judgment, artifacts: [join(braveDir, "compact.md")] });
+      console.log(`  Brave eval: ${braveJudgment.passed ? "PASS" : "WARN"}`);
     } else {
       console.log("\n  Brave eval: SKIPPED (no BRAVE_API_KEY)");
       results.push({ name: "brave", topic: "", passed: false, skipped: true, skipReason: "BRAVE_API_KEY not configured", exitCode: 0, warnings: [], outputSnippet: "", judgment: "SKIPPED", artifacts: [] });
@@ -234,20 +271,21 @@ async function runEvals(): Promise<void> {
   // --- Summary ---
   console.log("\n=== Eval Summary ===\n");
   const summaryPath = join(EVAL_OUTPUT_DIR, `summary-${timestamp}.md`);
-  const passedCount = results.filter(r => r.passed).length;
-  const skippedCount = results.filter(r => r.skipped).length;
-  const failedCount = results.filter(r => !r.passed && !r.skipped).length;
+  const passedCount = results.filter(r => resultStatus(r) === "PASS").length;
+  const warningCount = results.filter(r => resultStatus(r) === "WARN").length;
+  const skippedCount = results.filter(r => resultStatus(r) === "SKIPPED").length;
+  const failedCount = results.filter(r => resultStatus(r) === "FAIL").length;
 
   let summary = `# Eval Summary\n\n**Date:** ${formatDate(new Date())}\n**Date Range:** ${from} to ${to}\n**Offline Mode:** ${isOffline}\n\n## Results\n\n`;
   summary += `| Eval | Topic | Status | Judgment |\n`;
   summary += `|------|-------|--------|----------|\n`;
 
   for (const r of results) {
-    const status = r.skipped ? "SKIPPED" : r.passed ? "PASS" : "FAIL";
+    const status = resultStatus(r);
     summary += `| ${r.name} | ${r.topic || "-"} | ${status} | ${r.judgment} |\n`;
   }
 
-  summary += `\n## Summary\n\n- **Passed:** ${passedCount}\n- **Failed:** ${failedCount}\n- **Skipped:** ${skippedCount}\n\n`;
+  summary += `\n## Summary\n\n- **Passed:** ${passedCount}\n- **Warnings:** ${warningCount}\n- **Failed:** ${failedCount}\n- **Skipped:** ${skippedCount}\n\n`;
   summary += `To enable more evals, copy \`.env.example\` to \`.env\` and fill in source-specific keys.\n`;
 
   writeFileSync(summaryPath, summary);

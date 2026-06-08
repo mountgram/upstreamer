@@ -39,9 +39,9 @@ function defaultQueryPlan(topic: string, sources: string[], depth: string): Repo
     comparison: ["reddit", "x", "hackernews", "youtube"],
     prediction: ["polymarket", "x", "hackernews", "reddit"],
     breaking_news: ["x", "reddit", "hackernews", "youtube", "polymarket"],
-    how_to: ["youtube", "reddit", "hackernews", "duckduckgo"],
-    product: ["youtube", "reddit", "x", "tiktok", "hackernews"],
-    concept: ["hackernews", "reddit", "duckduckgo", "youtube"],
+    how_to: ["exa", "brave", "youtube", "reddit", "hackernews"],
+    product: ["exa", "brave", "hackernews", "youtube", "reddit", "github", "x", "tiktok"],
+    concept: ["exa", "brave", "hackernews", "youtube", "reddit"],
   };
   const selected = depth === "quick"
     ? (quickPriority[intent] || quickPriority.concept).filter((source) => sources.includes(source)).slice(0, 3)
@@ -69,7 +69,7 @@ export async function runResearch(options: RunOptions): Promise<Report> {
   const errorsBySource: Record<string, string> = {};
 
   // Determine available sources
-  const availableSources: string[] = ["duckduckgo"];
+  const availableSources: string[] = [];
 
   // Always available (no-key)
   availableSources.push("reddit", "hackernews", "polymarket", "github");
@@ -217,8 +217,6 @@ async function searchSource(
   depth: string
 ): Promise<SourceItem[]> {
   switch (source) {
-    case "duckduckgo":
-      return (await import("./sources/duckduckgo.js")).searchDuckDuckGo(options.topic, from, to, depth);
     case "exa":
       return (await import("./sources/exa.js")).searchExa(options.topic, from, to, depth, config);
     case "brave":
