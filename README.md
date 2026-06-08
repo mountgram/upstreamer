@@ -10,6 +10,11 @@ The durable artifact is the contract in `codebases/<name>/upstreamer.md`. The ge
 
 For a deeper explanation, see [`docs/SYNTHETIC_CODEBASES.md`](docs/SYNTHETIC_CODEBASES.md).
 
+## Explainer
+
+- Read the public write-up: https://toppingdesign.com/upstreamer/
+- Watch the short explainer video: https://toppingdesign.com/upstreamer/explainer/upstreamer-explainer.mp4
+
 ## Why This Exists
 
 Forks are good when you want to preserve upstream structure and make local patches. Dependencies are good when you can use upstream as-is. Upstreamer is for the middle case: upstream has useful behavior, examples, workflows, or product direction, but the downstream should have a different runtime, package shape, security model, docs surface, or user experience.
