@@ -60,6 +60,7 @@ export interface QueryPlan {
   cluster_mode: string;
   subqueries: SubQuery[];
   source_weights: Record<string, number>;
+  notes?: string[];
 }
 
 export interface ProviderRuntime {
@@ -97,6 +98,7 @@ export interface RunOptions {
   subreddits?: string[];
   githubUser?: string;
   githubRepos?: string[];
+  queryPlan?: QueryPlan;
 }
 
 export interface SourceAdapter {

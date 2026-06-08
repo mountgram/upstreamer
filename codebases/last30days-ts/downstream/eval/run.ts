@@ -87,6 +87,10 @@ function judgeOutput(topic: string, output: string): { passed: boolean; warnings
   return { passed, warnings, judgment };
 }
 
+function hasSource(output: string, sourceLabel: string): boolean {
+  return output.toLowerCase().includes(sourceLabel.toLowerCase());
+}
+
 async function runEvals(): Promise<void> {
   ensureDir(EVAL_OUTPUT_DIR);
   const config = getConfig();
@@ -158,12 +162,15 @@ async function runEvals(): Promise<void> {
     // Exa eval
     if (config.exaApiKey) {
       console.log("\n=== Keyed Eval: Exa ===\n");
-      const cliExa = runCli(["AI agent frameworks 2026", "--format", "compact", "--depth", "quick"]);
+      const cliExa = runCli(["AI agent frameworks 2026", "--format", "compact", "--depth", "quick", "--debug", "--include-sources", "exa"]);
       const exaDir = join(EVAL_OUTPUT_DIR, `exa-${timestamp}`);
       ensureDir(exaDir);
       writeFileSync(join(exaDir, "compact.md"), cliExa.stdout);
       writeFileSync(join(exaDir, "stderr.txt"), cliExa.stderr);
-      const exaJudgment = judgeOutput("AI agent", cliExa.stdout);
+      let exaJudgment = judgeOutput("AI agent", cliExa.stdout);
+      if (exaJudgment.passed && !hasSource(cliExa.stdout, "Web")) {
+        exaJudgment = { passed: false, warnings: ["Exa produced no web results"], judgment: "FAIL: Exa source did not produce inspectable results" };
+      }
       writeFileSync(join(exaDir, "judgment.md"), `# Eval Judgment: Exa\n\n**Passed:** ${exaJudgment.passed}\n\n## Judgment\n${exaJudgment.judgment}\n`);
       results.push({ name: "exa", topic: "AI agent frameworks 2026", passed: exaJudgment.passed, skipped: false, exitCode: cliExa.exitCode, warnings: exaJudgment.warnings, outputSnippet: cliExa.stdout.slice(0, 500), judgment: exaJudgment.judgment, artifacts: [join(exaDir, "compact.md")] });
       console.log(`  Exa eval: ${exaJudgment.passed ? "PASS" : "WARN"}`);
@@ -175,12 +182,15 @@ async function runEvals(): Promise<void> {
     // X eval
     if (config.xaiApiKey || config.grokApiKey) {
       console.log("\n=== Keyed Eval: X/Twitter via xAI ===\n");
-      const cliX = runCli(["AI news this week", "--format", "compact", "--depth", "quick"]);
+      const cliX = runCli(["AI news this week", "--format", "compact", "--depth", "quick", "--debug", "--include-sources", "x"]);
       const xDir = join(EVAL_OUTPUT_DIR, `x-${timestamp}`);
       ensureDir(xDir);
       writeFileSync(join(xDir, "compact.md"), cliX.stdout);
       writeFileSync(join(xDir, "stderr.txt"), cliX.stderr);
-      const xJudgment = judgeOutput("AI", cliX.stdout);
+      let xJudgment = judgeOutput("AI", cliX.stdout);
+      if (xJudgment.passed && !hasSource(cliX.stdout, "X:")) {
+        xJudgment = { passed: false, warnings: ["X adapter produced no X items"], judgment: "FAIL: X source did not produce inspectable results" };
+      }
       writeFileSync(join(xDir, "judgment.md"), `# Eval Judgment: X\n\n**Passed:** ${xJudgment.passed}\n\n## Judgment\n${xJudgment.judgment}\n`);
       results.push({ name: "x", topic: "AI news this week", passed: xJudgment.passed, skipped: false, exitCode: cliX.exitCode, warnings: xJudgment.warnings, outputSnippet: cliX.stdout.slice(0, 500), judgment: xJudgment.judgment, artifacts: [join(xDir, "compact.md")] });
       console.log(`  X eval: ${xJudgment.passed ? "PASS" : "WARN"}`);
@@ -192,12 +202,15 @@ async function runEvals(): Promise<void> {
     // OpenRouter/Perplexity eval
     if (config.openrouterApiKey) {
       console.log("\n=== Keyed Eval: OpenRouter/Perplexity ===\n");
-      const cliPerp = runCli(["latest AI research papers", "--format", "compact", "--depth", "quick"]);
+      const cliPerp = runCli(["latest AI research papers", "--format", "compact", "--depth", "quick", "--debug", "--include-sources", "perplexity"]);
       const perpDir = join(EVAL_OUTPUT_DIR, `perplexity-${timestamp}`);
       ensureDir(perpDir);
       writeFileSync(join(perpDir, "compact.md"), cliPerp.stdout);
       writeFileSync(join(perpDir, "stderr.txt"), cliPerp.stderr);
-      const perpJudgment = judgeOutput("AI", cliPerp.stdout);
+      let perpJudgment = judgeOutput("AI", cliPerp.stdout);
+      if (perpJudgment.passed && !hasSource(cliPerp.stdout, "Perplexity")) {
+        perpJudgment = { passed: false, warnings: ["Perplexity adapter produced no Perplexity items"], judgment: "FAIL: Perplexity source did not produce inspectable results" };
+      }
       writeFileSync(join(perpDir, "judgment.md"), `# Eval Judgment: Perplexity\n\n**Passed:** ${perpJudgment.passed}\n\n## Judgment\n${perpJudgment.judgment}\n`);
       results.push({ name: "perplexity", topic: "latest AI research", passed: perpJudgment.passed, skipped: false, exitCode: cliPerp.exitCode, warnings: perpJudgment.warnings, outputSnippet: cliPerp.stdout.slice(0, 500), judgment: perpJudgment.judgment, artifacts: [join(perpDir, "compact.md")] });
       console.log(`  Perplexity eval: ${perpJudgment.passed ? "PASS" : "WARN"}`);

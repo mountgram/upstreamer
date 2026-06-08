@@ -23,6 +23,40 @@ function generateId(): string {
   return `c_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function inferIntent(topic: string): string {
+  const text = topic.toLowerCase();
+  if (/\b(vs|versus|compare|compared to|difference between)\b/.test(text)) return "comparison";
+  if (/\b(odds|predict|prediction|forecast|chance|probability|will .* win)\b/.test(text)) return "prediction";
+  if (/\b(how to|tutorial|guide|setup|step by step|deploy|install)\b/.test(text)) return "how_to";
+  if (/\b(latest|news|announced|just shipped|launched|released|update|trending|this week|right now|today)\b/.test(text)) return "breaking_news";
+  if (/\b(pricing|feature|features|best .* for|top .* for)\b/.test(text)) return "product";
+  return "concept";
+}
+
+function defaultQueryPlan(topic: string, sources: string[], depth: string): Report["query_plan"] {
+  const intent = inferIntent(topic);
+  const quickPriority: Record<string, string[]> = {
+    comparison: ["reddit", "x", "hackernews", "youtube"],
+    prediction: ["polymarket", "x", "hackernews", "reddit"],
+    breaking_news: ["x", "reddit", "hackernews", "youtube", "polymarket"],
+    how_to: ["youtube", "reddit", "hackernews", "duckduckgo"],
+    product: ["youtube", "reddit", "x", "tiktok", "hackernews"],
+    concept: ["hackernews", "reddit", "duckduckgo", "youtube"],
+  };
+  const selected = depth === "quick"
+    ? (quickPriority[intent] || quickPriority.concept).filter((source) => sources.includes(source)).slice(0, 3)
+    : sources;
+  const runSources = selected.length ? selected : sources;
+  return {
+    intent,
+    freshness_mode: intent === "breaking_news" || intent === "prediction" ? "strict_recent" : "evergreen_ok",
+    cluster_mode: intent === "comparison" ? "debate" : intent === "prediction" ? "market" : intent === "how_to" ? "workflow" : "story",
+    subqueries: [{ label: "primary", search_query: topic, ranking_query: topic, sources: runSources, weight: 1.0 }],
+    source_weights: Object.fromEntries(runSources.map((source) => [source, 1.0 / runSources.length])),
+    notes: ["deterministic-local-plan"],
+  };
+}
+
 export async function runResearch(options: RunOptions): Promise<Report> {
   const config = getConfig();
   const { from, to } = getDateRange(options.lookbackDays || 30);
@@ -52,35 +86,48 @@ export async function runResearch(options: RunOptions): Promise<Report> {
   }
   if (config.bskyHandle && config.bskyAppPassword) availableSources.push("bluesky");
   if (config.truthsocialToken) availableSources.push("truthsocial");
+  availableSources.push("digg");
 
   // YouTube always attemptable (yt-dlp)
   availableSources.push("youtube");
 
   // Filter by includeSources if specified
-  const sourcesToRun = options.includeSources
+  const eligibleSources = options.includeSources
     ? availableSources.filter(s => options.includeSources!.includes(s))
     : availableSources;
 
+  const queryPlan = options.queryPlan || defaultQueryPlan(options.topic, eligibleSources, depth);
+  const sourcesToRun = Array.from(new Set(
+    queryPlan.subqueries.flatMap((subquery) => subquery.sources).filter((source) => eligibleSources.includes(source))
+  ));
+
   // Run source adapters concurrently
-  const sourcePromises = sourcesToRun.map(async (source) => {
-    try {
-      const items = await searchSource(source, options, config, from, to, depth);
-      if (items.length > 0) {
-        itemsBySource[source] = items;
+  const sourcePromises = queryPlan.subqueries.flatMap((subquery) => {
+    const subquerySources = subquery.sources.filter((source) => eligibleSources.includes(source));
+    return subquerySources.map(async (source) => {
+      try {
+        const items = await searchSource(source, { ...options, topic: subquery.search_query }, config, from, to, depth);
+        if (items.length > 0) {
+          const annotated = items.map((item) => ({
+            ...item,
+            metadata: { ...item.metadata, subquery: subquery.label, ranking_query: subquery.ranking_query },
+          }));
+          itemsBySource[source] = [...(itemsBySource[source] || []), ...annotated];
+        }
+      } catch (err) {
+        errorsBySource[source] = err instanceof Error ? err.message : String(err);
+        if (options.debug) {
+          console.error(`[${source}] Error: ${err}`);
+        }
       }
-    } catch (err) {
-      errorsBySource[source] = err instanceof Error ? err.message : String(err);
-      if (options.debug) {
-        console.error(`[${source}] Error: ${err}`);
-      }
-    }
+    });
   });
 
   await Promise.all(sourcePromises);
 
   // Normalize, score, dedupe per source
   for (const [source, items] of Object.entries(itemsBySource)) {
-    const rankingQuery = options.topic;
+    const rankingQuery = String(items[0]?.metadata.ranking_query || options.topic);
     const scored = annotateStream(items, rankingQuery);
     const pruned = pruneLowRelevance(scored);
     const deduped = dedupeItems(pruned);
@@ -146,13 +193,7 @@ export async function runResearch(options: RunOptions): Promise<Report> {
       rerank_model: "deterministic",
       x_search_backend: config.xaiApiKey ? "xai" : "none",
     },
-    query_plan: {
-      intent: "general",
-      freshness_mode: "recent",
-      cluster_mode: "standard",
-      subqueries: [{ label: options.topic, search_query: options.topic, ranking_query: options.topic, sources: sourcesToRun, weight: 1.0 }],
-      source_weights: Object.fromEntries(sourcesToRun.map(s => [s, 1.0])),
-    },
+    query_plan: queryPlan,
     clusters,
     ranked_candidates: candidates,
     items_by_source: itemsBySource,
@@ -187,7 +228,7 @@ async function searchSource(
     case "parallel":
       return (await import("./sources/parallel.js")).searchParallel(options.topic, from, to, depth, config);
     case "reddit":
-      return (await import("./sources/reddit.js")).searchReddit(options.topic, from, to, depth);
+      return (await import("./sources/reddit.js")).searchReddit(options.topic, from, to, depth, options.subreddits);
     case "hackernews":
       return (await import("./sources/hackernews.js")).searchHackerNews(options.topic, from, to, depth);
     case "github":
@@ -212,6 +253,8 @@ async function searchSource(
       return (await import("./sources/pinterest.js")).searchPinterest(options.topic, from, to, depth, config);
     case "perplexity":
       return (await import("./sources/perplexity.js")).searchPerplexity(options.topic, from, to, depth, config);
+    case "digg":
+      return (await import("./sources/digg.js")).searchDigg(options.topic, from, to, depth);
     default:
       return [];
   }

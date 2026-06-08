@@ -137,7 +137,12 @@ if [ "$force" -eq 0 ] && [ -n "$last_upstream_commit" ] && [ -d "$downstream_dir
   fi
 
   if [ -d "$upstream_dir/.git" ]; then
-    current_upstream_commit="$(git -C "$upstream_dir" rev-parse HEAD 2>/dev/null || true)"
+    current_upstream_commit="$(
+      git -C "$upstream_dir" rev-parse refs/remotes/origin/HEAD 2>/dev/null ||
+        git -C "$upstream_dir" rev-parse origin/HEAD 2>/dev/null ||
+        git -C "$upstream_dir" rev-parse HEAD 2>/dev/null ||
+        true
+    )"
 
     if [ -n "$current_upstream_commit" ] && [ "$current_upstream_commit" = "$last_upstream_commit" ]; then
       echo "Writing opencode log to $log_file" >&2

@@ -1,6 +1,6 @@
 # Last30Days TS
 
-Research what people actually say about any topic in the last 30 days. Searches Reddit, Hacker News, X/Twitter, YouTube, TikTok, GitHub, Polymarket, and the web — scores by engagement, and produces a concise brief. TypeScript rewrite of [mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill).
+Research what people actually say about any topic in the last 30 days. Searches Reddit, Hacker News, X/Twitter, YouTube, TikTok, GitHub, Polymarket, Digg, and the web — scores by engagement, and produces a concise brief. TypeScript rewrite of [mvanhorn/last30days-skill](https://github.com/mvanhorn/last30days-skill).
 
 ## Install
 
@@ -51,10 +51,11 @@ npx last30days setup
 | Source | Method |
 |--------|--------|
 | DuckDuckGo | Public web search |
-| Reddit | Public JSON API |
+| Reddit | Keyless JSON/RSS public access |
 | Hacker News | Algolia public API |
 | GitHub | Unauthenticated API (60 req/hr) |
 | Polymarket | Public API |
+| Digg | Optional `digg-pp-cli` binary, no API key |
 
 ### Optional (key unlocks more)
 

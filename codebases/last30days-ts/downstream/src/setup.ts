@@ -1,4 +1,5 @@
 import { getConfig, type Config } from "./config.js";
+import { spawnSync } from "node:child_process";
 
 export interface SourceStatus {
   source: string;
@@ -10,9 +11,10 @@ export interface SourceStatus {
 export function diagnose(): SourceStatus[] {
   const config = getConfig();
   const results: SourceStatus[] = [];
+  const hasDigg = !spawnSync("digg-pp-cli", ["--help"], { encoding: "utf-8", timeout: 5000 }).error;
 
   results.push({ source: "duckduckgo", available: true, key: null, method: "no-key public API" });
-  results.push({ source: "reddit", available: true, key: null, method: "public JSON API" });
+  results.push({ source: "reddit", available: true, key: null, method: "keyless JSON/RSS public access" });
   results.push({ source: "hackernews", available: true, key: null, method: "Algolia public API" });
   results.push({ source: "polymarket", available: true, key: null, method: "public API" });
   results.push({ source: "github", available: true, key: config.githubToken || null, method: config.githubToken ? "authenticated API" : "unauthenticated API" });
@@ -35,7 +37,7 @@ export function diagnose(): SourceStatus[] {
   results.push({ source: "threads", available: scAvail, key: scAvail ? "SCRAPECREATORS_API_KEY" : null, method: "ScrapeCreators API" });
   results.push({ source: "pinterest", available: scAvail, key: scAvail ? "SCRAPECREATORS_API_KEY" : null, method: "ScrapeCreators API" });
 
-  results.push({ source: "digg", available: false, key: null, method: "digg-pp-cli binary" });
+  results.push({ source: "digg", available: hasDigg, key: null, method: "digg-pp-cli binary" });
 
   return results;
 }

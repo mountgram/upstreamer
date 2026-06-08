@@ -1,108 +1,143 @@
 # upstreamer
 
-Keep **sythnetic codebases** in sync with upstream repos, rewritten to your specifications.
+Keep **synthetic codebases** in sync with upstream repos, rewritten around your own local purpose.
 
-## What?
+A synthetic codebase is a downstream repo derived from an upstream source but transformed by a plain-English contract. It stays close enough to track real upstream changes, while dropping or rewriting the parts you do not want.
 
-A **sythnetic codebase** is a downstream repo derived from an upstream source but rewritten according to your rules. It's synthetic because it's generated, and it's authentic because it tracks the real upstream.
+## Quick Start
 
-`upstreamer` takes repos you like and periodically rewrites them into sythnetic codebases that stay up-to-date as the upstream evolves.
+```bash
+# Run one configured synthetic codebase
+./scripts/upstream tstack
 
-### Examples
+# Re-run even if upstream has not changed, useful after editing upstreamer.md
+./scripts/upstream tstack --force
 
-- **"I like this Python package, but I need it in TypeScript"**
-- **"I don't want all the extras—just these simple bits"**
-- **"I like this repo but it needs a different name and less cruft"**
+# Choose a model for one run
+OPENCODE_MODEL=anthropic/claude-sonnet-4-5 ./scripts/upstream tstack
+```
+
+Each run reads `codebases/<name>/upstreamer.md`, invokes `opencode` with the converter skill, writes output under `codebases/<name>/downstream`, and logs the run under `codebases/<name>/.upstreamer/logs/`.
+
+## Current Examples
+
+| Codebase | Upstream | Downstream purpose |
+| --- | --- | --- |
+| [`tstack`](codebases/tstack/upstreamer.md) | [`garrytan/gstack`](https://github.com/garrytan/gstack) | A pure-markdown agent skills collection with helper scripts, telemetry, binaries, and package infrastructure removed. |
+| [`last30days-ts`](codebases/last30days-ts/upstreamer.md) | [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill) | A TypeScript research CLI and library generated from a Python-oriented agent skill project. |
+
+## What Can You Rewrite?
+
+Start with a project whose behavior you like, then describe the downstream you actually want:
+
+| Upstream project type | Possible synthetic downstream | Contract focus |
+| --- | --- | --- |
+| Popular Python package | TypeScript library with similar behavior | Preserve public behavior and tests; rewrite runtime, packaging, and examples. |
+| Agent skills bundle | Markdown-only skill pack | Keep portable `SKILL.md` workflows; drop custom binaries, telemetry, config, and host-specific glue. |
+| Full-stack app | Smaller starter or reference implementation | Keep architecture and UX patterns; remove deployment-specific services and local assumptions. |
+| Research CLI | CLI plus importable library | Keep source coverage and output quality; simplify setup, adapters, and evals. |
+
+The contract is the product spec. The generated files are outputs of that contract.
 
 ## How It Works
 
-1. **Configure** each sythnetic codebase in its own directory with an `upstreamer.md` file
-2. **Poll** upstream repos for changes (via GitHub API)
-3. **Rewrite** codebases using the agent instructions written in natural language in each `upstreamer.md`
-4. **Commit** results to your sythnetic codebases
+1. Configure each synthetic codebase in `codebases/<name>/upstreamer.md`.
+2. `scripts/upstream` clones or fetches the upstream repo with git and checks the last verified upstream commit.
+3. If upstream changed, or `--force` is passed, the wrapper launches `opencode run` with `.agents/skills/upstreamer-converter/SKILL.md`.
+4. The conversion agent reads the contract, rewrites the downstream output, runs any codebase-specific verifier, and updates `.upstreamer/state.yaml` only after successful verification.
+5. If upstream has not changed and downstream output already exists, the wrapper skips the model run and executes the verifier directly.
 
-## Concrete Example
+`upstreamer` does not commit or push generated results for you. Review the output, logs, and git diff before committing.
 
-Take [gstack](https://github.com/garrytan/gstack) — a project with skills markdown, but also telemetry, complex infrastructure, and a name tied to the original author.
+## Contract Format
 
-With `upstreamer`, you can create a sythnetic `tstack` that:
-
-- Keeps only the **skills markdown** files
-- Removes all **telemetry** and **infrastructure complexity**
-- Renames the project from **"gstack"** to **"tstack"**
-- Automatically syncs when gstack updates
-
-## Project Structure
-
-Each sythnetic codebase lives in its own directory with an `upstreamer.md` file:
-
-```
-upstreamer/
-└── codebases/
-    ├── tstack/
-    │   └── upstreamer.md
-    └── some-lib-ts/
-        └── upstreamer.md
-```
-
-## upstreamer.md Format
-
-Each `upstreamer.md` is a markdown file with YAML frontmatter. The frontmatter defines the upstream source and sync schedule. The markdown body contains natural language transformation rules specific to that codebase (what to keep, what to drop, how to rewrite).
-
-The frontmatter may also specify the opencode model for that codebase:
+Each `upstreamer.md` file has YAML frontmatter plus markdown rewrite rules. The frontmatter identifies the upstream and downstream repositories and can choose a default opencode model:
 
 ```yaml
 ---
 upstream: garrytan/gstack
 downstream: mountgram/tstack
-schedule: "0 */6 * * *"
 model: deepseek/deepseek-v4-pro
 ---
 ```
 
-`OPENCODE_MODEL` overrides the frontmatter model for one-off runs.
+The markdown body should be specific about what to keep, adapt, drop, verify, and report. Good contracts usually include:
 
-The generic conversion workflow (clone, evaluate, process, verify) is handled by the `upstreamer-converter` skill in `.agents/skills/upstreamer-converter/`.
+- The downstream identity and philosophy.
+- Source material the converter must inspect.
+- Keep/adapt/drop rules.
+- Expected output structure.
+- Verification commands or quality criteria.
+- Final report requirements.
 
-See [`codebases/tstack/upstreamer.md`](codebases/tstack/upstreamer.md) for a working example.
+See [`codebases/tstack/upstreamer.md`](codebases/tstack/upstreamer.md) for a markdown-only skills rewrite and [`codebases/last30days-ts/upstreamer.md`](codebases/last30days-ts/upstreamer.md) for a library/CLI rewrite.
 
-## Usage
+## Usage Details
 
 ```bash
-# Run one configured sythnetic codebase through opencode
-./scripts/upstream tstack
+# Run a configured codebase
+./scripts/upstream <name>
 
-# Choose a specific opencode model
-OPENCODE_MODEL=anthropic/claude-sonnet-4-5 ./scripts/upstream tstack
+# Force conversion after changing the local contract
+./scripts/upstream <name> --force
 
 # Stop a stuck run after one hour
-UPSTREAMER_TIMEOUT_SECONDS=3600 ./scripts/upstream tstack
+UPSTREAMER_TIMEOUT_SECONDS=3600 ./scripts/upstream <name>
+
+# Pass extra args to opencode
+./scripts/upstream <name> -- --print-logs
+./scripts/upstream <name> -- --agent build
 ```
 
-`./scripts/upstream <name>` reads `codebases/<name>/upstreamer.md`, uses its `model:` frontmatter unless `OPENCODE_MODEL` is set, and invokes `opencode run` with the generic converter skill at `.agents/skills/upstreamer-converter/SKILL.md`. The generated prompt tells the agent to read both files first, execute the conversion end-to-end, write the downstream result to `codebases/<name>/downstream`, run any bundled verification scripts, and return the final report requested by the codebase contract.
+`OPENCODE_MODEL` overrides the `model:` value in frontmatter for one-off runs.
 
-The wrapper sets `TMPDIR` to `tmp/upstreamer/<name>/` and instructs opencode to keep temporary files there, so it does not need external-directory permissions for system `/tmp`.
+The wrapper uses workspace-local temporary paths under `tmp/upstreamer/<name>/`, so conversion agents do not need to write to system `/tmp`.
 
-Each run is logged under `codebases/<name>/.upstreamer/logs/` so another agent or reviewer can inspect what the conversion agent did.
+## Project Structure
 
-If a model does not stop after producing its final report, set `UPSTREAMER_TIMEOUT_SECONDS` to cap the run.
-
-The last successfully processed upstream commit is tracked in `codebases/<name>/.upstreamer/state.yaml`. On later runs, the wrapper includes that commit in the opencode prompt so the conversion agent can inspect upstream changes since the previous run and update only affected downstream files. The agent should update `upstream_commit` only after verification passes.
-
-If the current upstream HEAD matches `upstream_commit` and `codebases/<name>/downstream` already exists, the wrapper runs the codebase verifier, writes a log, and exits without launching opencode.
-
-Additional opencode arguments can be passed after `--`:
-
-```bash
-./scripts/upstream tstack -- --print-logs
-./scripts/upstream tstack -- --agent build
+```text
+upstreamer/
+├── scripts/
+│   └── upstream
+├── .agents/
+│   └── skills/
+│       ├── upstreamer-converter/
+│       └── upstreamer-codebase-entry/
+└── codebases/
+    ├── tstack/
+    │   ├── upstreamer.md
+    │   ├── downstream/
+    │   └── .upstreamer/
+    └── last30days-ts/
+        ├── upstreamer.md
+        ├── downstream/
+        └── .upstreamer/
 ```
+
+Important per-codebase paths:
+
+- `codebases/<name>/upstreamer.md`: binding rewrite contract.
+- `codebases/<name>/downstream/`: generated downstream output.
+- `codebases/<name>/.upstreamer/state.yaml`: last verified upstream commit.
+- `codebases/<name>/.upstreamer/logs/`: wrapper and opencode logs.
+- `codebases/<name>/.upstreamer/scripts/`: optional verification scripts.
+
+## Library Status
+
+Today `upstreamer` is a repo-local Bash wrapper plus agent skills, not an installable library or package API.
+
+Generated downstreams can be libraries, as `last30days-ts` demonstrates. If `upstreamer` itself grows a library interface, the likely extraction points are contract parsing, upstream resolution, conversion prompt construction, state updates, and verifier execution. Until then, `scripts/upstream` is the supported interface.
 
 ## Requirements
 
-- `opencode` CLI tool for executing the rewrite agent
-- API key for the model used by opencode (e.g., OpenAI, Anthropic)
-- GitHub access token for polling upstream repos
+- Bash and standard Unix tools.
+- `git` for cloning and fetching upstream repos.
+- `opencode` CLI for executing the rewrite agent.
+- API credentials for the opencode model you choose.
+- `perl` only when using `UPSTREAMER_TIMEOUT_SECONDS`.
+- GitHub credentials only when the upstream repo is private or your git transport requires them.
+
+Run commands from the repository root so relative paths resolve correctly.
 
 ## License
 

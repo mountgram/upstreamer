@@ -134,6 +134,11 @@ describe("No-key source availability", () => {
     const mod = await import("../src/sources/youtube.js");
     expect(typeof mod.searchYouTube).toBe("function");
   });
+
+  it("Digg adapter is importable", async () => {
+    const mod = await import("../src/sources/digg.js");
+    expect(typeof mod.searchDigg).toBe("function");
+  });
 });
 
 describe("Key-based source adapters are importable", () => {
