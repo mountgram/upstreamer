@@ -1,15 +1,21 @@
 # Upstreamer Changelog
 
-## Latest Sync
+## June 2026 Sync
 
-- Reshaped the downstream so installing the `last30days` skill includes the Bun/TypeScript source, package metadata, tests, `.env.example`, install reference, planning guidance, and reranking guidance in one self-contained skill directory. Maintainer live evals now live outside the installed skill.
-- Fixed the X/Grok adapter: xAI `x_search` results are returned through the final `output_text`, not top-level `tool_results`, so the adapter now requests and parses strict JSON posts.
-- Removed DuckDuckGo from the downstream and made Exa the preferred reliable web-search path, with Brave as an alternative/fallback when `BRAVE_API_KEY` is present.
-- Improved live eval behavior: baseline Exa web-search evals are separated from optional keyed-source evals, optional keyed-source failures report as warnings, zero-item outputs fail eval, and compact evidence includes dates.
-- Tuned Exa-backed planning and relevance pruning so TypeScript compiler evals use stronger source fallbacks and drop off-topic items that only match incidental date/version terms.
-- Fixed `.env` parsing so quoted optional API keys, including `GROK_API_KEY`, are passed to adapters without surrounding quote characters.
-- Added a Digg source adapter so the TypeScript package represents another upstream-supported no-key/local-tool source.
-- Strengthened Reddit coverage with JSON search, RSS fallback, subreddit targeting, deduplication, engagement ordering, and lightweight comment enrichment.
-- Expanded GitHub search behavior and CLI/library wiring so person- or repository-focused research works better from TypeScript.
-- Updated setup/docs/tests for the new optional source behavior while preserving the no-key baseline and source-scoped configuration model.
-- Kept upstream plugin packaging, Python runtime code, historical docs, and removed auth/session mechanisms out of the downstream because they do not fit the TypeScript CLI/library contract.
+Upstream introduced a major wave of features across health classification, hiring signals analysis, keyless web fetch, CJK tokenization, source health probes, and many individual source-adapter improvements alongside infrastructure-only additions (MCP Go server, plugin packaging changes, CI expansions). The TypeScript downstream preserved the portable adapter behavior and dropped infrastructure-only changes per the rewrite contract.
+
+- Added Hiring Signals analysis: the `--hiring-signals` flag with `--job-board` fetches public job postings from Greenhouse, Lever, and Ashby ATS APIs. It classifies hiring themes (enterprise readiness, go-to-market, AI/ML, infrastructure, product expansion, data/analytics), detects strategic/seniority roles, and infers company size from posting volume. Results appear in a dedicated section in both Markdown and compact output.
+- Added Health source adapter backed by the MedlinePlus/NIH public API, usable without any API key. Health results flow through the same ranking and deduplication pipeline as other sources.
+- Added keyless web fetch utility (`sources/web_fetch_keyless.ts`) that fetches URL content as markdown via the free Jina Reader API, available for adapters that need to enrich results with page content.
+- Added `jobs` source for opt-in public job board searches via the `--hiring-signals` CLI flag. Jobs bypass date-windowing (open postings are current regardless of post date) and are deduplicated by exact URL only.
+- Updated source quality weights to include Health (0.55) and Jobs (0.72) matching upstream signal quality calibration.
+- Upstream introduced keyless web search, hiring signals engine, health classification, CJK tokenization, source health probes, HTML publishing, permission preflight, MCP server, and expanded CI workflows. The TypeScript downstream preserves the portable adapter behavior (hiring signals, health, keyless web fetch utility, improved error isolation) and drops infrastructure-only additions (MCP Go server, Python plugin packaging, CI changes, HTML publish, browser-cookie auth paths, and DuckDuckGo-based keyless web search per contract).
+
+## Previous Sync
+
+- Added Hiring Signals analysis: the `--hiring-signals` flag with `--job-board` fetches public job postings from Greenhouse, Lever, and Ashby ATS APIs. It classifies hiring themes (enterprise readiness, go-to-market, AI/ML, infrastructure, product expansion, data/analytics), detects strategic/seniority roles, and infers company size from posting volume. Results appear in a dedicated section in both Markdown and compact output.
+- Added Health source adapter backed by the MedlinePlus/NIH public API, usable without any API key. Health results flow through the same ranking and deduplication pipeline as other sources.
+- Added keyless web fetch utility (`sources/web_fetch_keyless.ts`) that fetches URL content as markdown via the free Jina Reader API, available for adapters that need to enrich results with page content.
+- Added `jobs` source for opt-in public job board searches via the `--hiring-signals` CLI flag. Jobs bypass date-windowing (open postings are current regardless of post date) and are deduplicated by exact URL only.
+- Updated source quality weights to include Health (0.55) and Jobs (0.72) matching upstream signal quality calibration.
+- Upstream introduced keyless web search, hiring signals engine, health classification, CJK tokenization, source health probes, HTML publishing, permission preflight, MCP server, and expanded CI workflows. The TypeScript downstream preserves the portable adapter behavior (hiring signals, health, keyless web fetch utility, improved error isolation) and drops infrastructure-only additions (MCP Go server, Python plugin packaging, CI changes, HTML publish, browser-cookie auth paths, and DuckDuckGo-based keyless web search per contract).

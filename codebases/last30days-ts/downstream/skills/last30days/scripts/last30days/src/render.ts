@@ -21,6 +21,8 @@ const SOURCE_LABELS: Record<string, string> = {
   threads: "Threads",
   pinterest: "Pinterest",
   digg: "Digg",
+  health: "Health",
+  jobs: "Jobs",
 };
 
 function clusterKey(cluster: Cluster): string {
@@ -90,6 +92,29 @@ export function renderMarkdown(report: Report): string {
     lines.push("");
   }
 
+  // Hiring Signals (if present)
+  if (report.hiring_signals) {
+    lines.push("## Hiring Signals");
+    lines.push("");
+    const hs = report.hiring_signals;
+    lines.push(`Company size: **${hs.companySize}** (${hs.totalJobs} open roles)`);
+    lines.push("");
+    if (Object.keys(hs.themeSignals).length) {
+      lines.push("### Theme Signals");
+      for (const [theme, signal] of Object.entries(hs.themeSignals)) {
+        lines.push(`- **${theme}**: ${signal.count} roles (e.g. ${signal.examples.slice(0, 2).join(", ")})`);
+      }
+      lines.push("");
+    }
+    if (hs.strategicRoles.length) {
+      lines.push("### Strategic Roles");
+      for (const role of hs.strategicRoles.slice(0, 5)) {
+        lines.push(`- ${role}`);
+      }
+      lines.push("");
+    }
+  }
+
   // Footer
   lines.push("---");
   lines.push("<!-- PASS-THROUGH FOOTER -->");
@@ -101,6 +126,7 @@ export function renderMarkdown(report: Report): string {
     reddit: "🤖", x: "🐦", youtube: "▶️", tiktok: "🎵", instagram: "📷",
     hackernews: "🔶", polymarket: "📊", github: "🐙", bluesky: "🦋",
     truthsocial: "📯", threads: "🧵", pinterest: "📌", digg: "⛏️",
+    health: "🏥", jobs: "💼",
   };
 
   const treeLines: string[] = [];
@@ -177,6 +203,12 @@ export function renderCompact(report: Report): string {
   lines.push(`- Sources with results: ${Object.keys(report.items_by_source).length}`);
   lines.push(`- Clusters: ${report.clusters.length}`);
   lines.push(`- Warnings: ${report.warnings.length}`);
+
+  // Hiring Signals (if present)
+  if (report.hiring_signals) {
+    const hs = report.hiring_signals;
+    lines.push(`- Hiring Signals: ${hs.totalJobs} jobs, ${hs.companySize} company`);
+  }
   lines.push("");
 
   // Source coverage
@@ -204,6 +236,7 @@ export function renderCompact(report: Report): string {
     reddit: "🤖", x: "🐦", youtube: "▶️", tiktok: "🎵", instagram: "📷",
     hackernews: "🔶", polymarket: "📊", github: "🐙", bluesky: "🦋",
     truthsocial: "📯", threads: "🧵", pinterest: "📌", digg: "⛏️",
+    health: "🏥", jobs: "💼",
   };
 
   for (const [source, items] of Object.entries(report.items_by_source)) {

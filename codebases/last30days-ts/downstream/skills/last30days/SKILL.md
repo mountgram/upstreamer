@@ -71,6 +71,9 @@ bun run last30days -- "Person Name" --x-handle handle
 
 # GitHub person research
 bun run last30days -- "Person" --github-user username
+
+# Hiring signals analysis
+bun run last30days -- "Company" --hiring-signals --job-board companyname
 ```
 
 ## Source Availability
@@ -94,6 +97,9 @@ bun run last30days -- "Person" --github-user username
 | Pinterest | SCRAPECREATORS_API_KEY | ScrapeCreators |
 | Bluesky | BSKY_HANDLE + BSKY_APP_PASSWORD | AT Protocol |
 | Truth Social | TRUTHSOCIAL_TOKEN | Mastodon API |
+| Digg | None (digg-pp-cli binary) | Optional CLI tool |
+| Health | None | MedlinePlus/NIH public API |
+| Jobs | None (opt-in via --hiring-signals) | Public ATS APIs |
 
 ## Output Interpretation
 

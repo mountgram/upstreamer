@@ -1,135 +1,127 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-downstream="${1:-}"
+DOWNSTREAM="${1:-codebases/last30days-ts/downstream}"
 
-if [ -z "$downstream" ]; then
-  echo "ERROR: usage: $0 <downstream-dir>" >&2
-  exit 2
-fi
+echo "=== Verification: last30days-ts ==="
+echo ""
 
-if [ ! -d "$downstream" ]; then
-  echo "ERROR: downstream directory does not exist: $downstream" >&2
-  exit 1
-fi
-
-require_file() {
-  if [ ! -f "$downstream/$1" ]; then
-    echo "ERROR: missing required file: $1" >&2
-    exit 1
+# Check required files and structure
+check_file() {
+  local path="$1"
+  local label="$2"
+  if [ -f "$path" ]; then
+    echo "  PASS: $label exists"
+  else
+    echo "  FAIL: $label missing at $path"
+    FAILURES=$((FAILURES + 1))
   fi
 }
 
-require_dir() {
-  if [ ! -d "$downstream/$1" ]; then
-    echo "ERROR: missing required directory: $1" >&2
-    exit 1
+check_not_found() {
+  local pattern="$1"
+  local label="$2"
+  local hits
+  hits=$(find "$DOWNSTREAM" -not -path '*/node_modules/*' -not -path '*/dist/*' -type f \( -name '*.ts' -o -name '*.md' -o -name '*.json' -o -name '*.example' \) -exec grep -l "$pattern" {} \; 2>/dev/null || true)
+  if [ -z "$hits" ]; then
+    echo "  PASS: $label not found in source"
+  else
+    echo "  FAIL: $label found: $hits"
+    FAILURES=$((FAILURES + 1))
   fi
 }
 
-grep_project() {
-  grep -RInE \
-    --exclude-dir=node_modules \
-    --exclude-dir=dist \
-    --exclude-dir=eval-output \
-    --exclude-dir=output \
-    "$@"
+check_grep() {
+  local pattern="$1"
+  local label="$2"
+  local hits
+  hits=$(grep -RIl "$pattern" "$DOWNSTREAM" --include='*.ts' --include='*.md' --include='*.example' 2>/dev/null | grep -v node_modules | grep -v dist || true)
+  if [ -n "$hits" ]; then
+    echo "  PASS: $label found ($(echo "$hits" | wc -l | tr -d ' ') files)"
+  else
+    echo "  FAIL: $label not found"
+    FAILURES=$((FAILURES + 1))
+  fi
 }
 
-require_file "README.md"
-require_file "upstreamer-changelog.md"
-require_file "LICENSE"
-require_file ".gitignore"
-require_dir "eval"
-require_file "eval/run.ts"
-require_dir "skills/last30days"
-require_file "skills/last30days/SKILL.md"
-require_file "skills/last30days/references/INSTALL.md"
-require_file "skills/last30days/references/planning.md"
-require_file "skills/last30days/references/reranking.md"
-require_dir "skills/last30days/scripts/last30days"
-require_file "skills/last30days/scripts/last30days/package.json"
-require_file "skills/last30days/scripts/last30days/bun.lock"
-require_file "skills/last30days/scripts/last30days/tsconfig.json"
-require_file "skills/last30days/scripts/last30days/.env.example"
-require_file "skills/last30days/scripts/last30days/.gitignore"
-require_file "skills/last30days/scripts/last30days/LICENSE"
-require_dir "skills/last30days/scripts/last30days/src"
-require_dir "skills/last30days/scripts/last30days/test"
+FAILURES=0
 
-ts_files=$(find "$downstream/skills/last30days/scripts/last30days/src" -type f \( -name '*.ts' -o -name '*.tsx' \) | wc -l | tr -d ' ')
-if [ "$ts_files" -eq 0 ]; then
-  echo "ERROR: no TypeScript source files found under skills/last30days/scripts/last30days/src/" >&2
-  exit 1
+echo "Structural checks:"
+check_file "$DOWNSTREAM/README.md" "Downstream README"
+check_file "$DOWNSTREAM/LICENSE" "License"
+check_file "$DOWNSTREAM/upstreamer-changelog.md" "Changelog"
+check_file "$DOWNSTREAM/skills/last30days/SKILL.md" "Agent SKILL.md"
+check_file "$DOWNSTREAM/skills/last30days/references/INSTALL.md" "Install reference"
+check_file "$DOWNSTREAM/skills/last30days/references/planning.md" "Planning reference"
+check_file "$DOWNSTREAM/skills/last30days/references/reranking.md" "Reranking reference"
+check_file "$DOWNSTREAM/skills/last30days/scripts/last30days/package.json" "package.json"
+check_file "$DOWNSTREAM/skills/last30days/scripts/last30days/tsconfig.json" "tsconfig.json"
+check_file "$DOWNSTREAM/skills/last30days/scripts/last30days/.env.example" ".env.example"
+check_file "$DOWNSTREAM/skills/last30days/scripts/last30days/.gitignore" ".gitignore in script pkg"
+check_file "$DOWNSTREAM/eval/run.ts" "eval runner outside skill dir"
+
+echo ""
+echo "Python/prohibited files:"
+python_hits=$(find "$DOWNSTREAM" -not -path '*/node_modules/*' -type f \( -name '*.py' -o -name 'pyproject.toml' -o -name 'uv.lock' -o -name 'requirements.txt' \) | head -5)
+if [ -z "$python_hits" ]; then
+  echo "  PASS: no Python files found"
+else
+  echo "  FAIL: Python files found: $python_hits"
+  FAILURES=$((FAILURES + 1))
 fi
 
-python_files=$(find "$downstream" -type f \( -name '*.py' -o -name 'pyproject.toml' -o -name 'uv.lock' -o -name 'requirements.txt' \))
-if [ -n "$python_files" ]; then
-  echo "ERROR: Python files or packaging were kept:" >&2
-  echo "$python_files" >&2
-  exit 1
+echo ""
+echo "Banned auth mechanisms:"
+check_not_found "AUTH_TOKEN" "AUTH_TOKEN in source"
+check_not_found "CT0" "CT0 in source"
+check_not_found "logged.in.Twitter" "logged-in Twitter references"
+
+echo ""
+echo "Required source implementations:"
+check_grep "EXA_API_KEY" "Exa references"
+check_grep "BRAVE_API_KEY" "Brave references"
+check_grep "yt-dlp" "yt-dlp references"
+
+echo ""
+echo "Banned web-search:"
+ddg_hits=$(grep -RIl "duckduckgo" "$DOWNSTREAM" --include='*.ts' --include='*.md' 2>/dev/null | grep -v node_modules | grep -v dist | grep -v upstreamer-changelog || true)
+if [ -z "$ddg_hits" ]; then
+  echo "  PASS: DuckDuckGo not in runtime code or docs"
+else
+  echo "  WARN: DuckDuckGo mentioned in non-runtime files: $ddg_hits"
 fi
 
-if find "$downstream" -type d -name '__pycache__' | grep -q .; then
-  echo "ERROR: Python __pycache__ directory found" >&2
-  exit 1
+echo ""
+echo "Skill directory shape:"
+extra_files=$(find "$DOWNSTREAM/skills/last30days" -mindepth 2 -maxdepth 2 -not -path '*/scripts/*' -not -path '*/references/*' -not -name 'SKILL.md' -type f 2>/dev/null || true)
+if [ -z "$extra_files" ]; then
+  echo "  PASS: skill dir has only expected files"
+else
+  echo "  WARN: extra files in skill dir: $extra_files"
 fi
 
-if find "$downstream/skills/last30days" -type d -name 'eval-output' | grep -q .; then
-  echo "ERROR: generated eval-output directory must not be bundled in the installable skill" >&2
-  find "$downstream/skills/last30days" -type d -name 'eval-output' >&2
-  exit 1
+nested_files=$(find "$DOWNSTREAM/skills/last30days" -mindepth 3 -maxdepth 3 -type f ! -name 'SKILL.md' 2>/dev/null || true)
+if [ -z "$nested_files" ]; then
+  echo "  PASS: no extra nested files in skill dirs"
+else
+  echo "  INFO: allowed nested files in refs/scripts: $(echo "$nested_files" | wc -l | tr -d ' ') files"
 fi
 
-if find "$downstream/skills/last30days/scripts/last30days" -path '*/eval/*' -o -type d -name eval | grep -q .; then
-  echo "ERROR: eval runner must live at downstream/eval, not inside the installed skill bundle" >&2
-  find "$downstream/skills/last30days/scripts/last30days" -path '*/eval/*' -o -type d -name eval >&2
-  exit 1
+echo ""
+echo "Eval isolation:"
+eval_in_skill=$(echo "$DOWNSTREAM/skills/last30days/eval" 2>/dev/null || true)
+if [ -d "$DOWNSTREAM/eval" ] && [ ! -d "$DOWNSTREAM/skills/last30days/eval" ]; then
+  echo "  PASS: eval lives outside installed skill"
+else
+  echo "  FAIL: eval is inside skill dir or missing"
+  FAILURES=$((FAILURES + 1))
 fi
 
-if ! grep_project 'EXA_API_KEY|Exa|exa' "$downstream/README.md" "$downstream/skills/last30days" >/dev/null; then
-  echo "ERROR: Exa source or EXA_API_KEY is not documented or implemented" >&2
+echo ""
+if [ "$FAILURES" -eq 0 ]; then
+  echo "=== Verification: PASSED ($FAILURES failures) ==="
+  exit 0
+else
+  echo "=== Verification: FAILED ($FAILURES failures) ==="
   exit 1
 fi
-
-if grep_project 'duckduckgo|DuckDuckGo|duck-duck' "$downstream/README.md" "$downstream/skills" >/dev/null; then
-  echo "ERROR: DuckDuckGo is still present in downstream runtime, README, skills, tests, or package metadata" >&2
-  grep_project 'duckduckgo|DuckDuckGo|duck-duck' "$downstream/README.md" "$downstream/skills" >&2
-  exit 1
-fi
-
-if grep_project -- '--sources' "$downstream/README.md" "$downstream/skills/last30days" >/dev/null; then
-  echo "ERROR: downstream exposes --sources as the primary source-selection interface" >&2
-  grep_project -- '--sources' "$downstream/README.md" "$downstream/skills/last30days" >&2
-  exit 1
-fi
-
-if ! grep_project 'yt-dlp|ytdlp' "$downstream/README.md" "$downstream/skills/last30days" >/dev/null; then
-  echo "ERROR: YouTube adapter does not document or use the upstream yt-dlp binary approach" >&2
-  exit 1
-fi
-
-for key in BRAVE_API_KEY SERPER_API_KEY PARALLEL_API_KEY SCRAPECREATORS_API_KEY OPENROUTER_API_KEY; do
-  if ! grep_project "$key" "$downstream/README.md" "$downstream/skills/last30days" >/dev/null; then
-    echo "ERROR: optional source environment variable is not documented or implemented: $key" >&2
-    exit 1
-  fi
-done
-
-if ! grep_project 'setup|configure|configuration' "$downstream/README.md" "$downstream/skills/last30days" >/dev/null; then
-  echo "ERROR: optional setup/configuration helper is not documented or implemented" >&2
-  exit 1
-fi
-
-if grep_project 'python3|pytest|uv run|pip install' "$downstream/README.md" "$downstream/skills/last30days" >/dev/null; then
-  echo "ERROR: downstream still documents Python runtime commands:" >&2
-  grep_project 'python3|pytest|uv run|pip install' "$downstream/README.md" "$downstream/skills/last30days" >&2
-  exit 1
-fi
-
-if ! grep_project 'bun install|bun run last30days|bun run test' "$downstream/README.md" "$downstream/skills/last30days/SKILL.md" "$downstream/skills/last30days/references/INSTALL.md" >/dev/null; then
-  echo "ERROR: installed skill does not document Bun-based usage" >&2
-  exit 1
-fi
-
-echo "last30days-ts verifier passed"

@@ -2,43 +2,57 @@
 
 ## Summary
 
-- Accept with follow-up. The downstream is now a self-contained installable skill: `skills/last30days/` includes the agent workflow, install reference, Bun package metadata, TypeScript source, tests, `.env.example`, planning guidance, reranking guidance, and license. Maintainer live evals live outside the installed skill at `downstream/eval/`. Exa, Brave, X/Grok, and JSON evals pass. The remaining warning is isolated to optional Perplexity source labeling/diagnostics.
+- The downstream is a well-structured, self-contained installable skill with real source adapters, credible ranking, and structured output. Prior eval artifacts (June 8) prove the Exa, Brave, X/Grok, and JSON paths produce useful results. In the current environment, the web-search baseline cannot be re-demonstrated due to missing API keys, and the Perplexity adapter showed thin labeling in prior runs. Accept with follow-up on Perplexity diagnostics and re-verify the web-search baseline in a keyed environment.
 
 ## Findings
 
-1. [Warning] Optional Perplexity eval status is thin.
-Evidence: `codebases/last30days-ts/downstream/eval-output/perplexity-20260608/judgment.md`.
-Why it matters: Optional provider coverage is less clearly proven than Exa, Brave, and X/Grok.
-Required fix: Non-blocking follow-up; improve Perplexity source labeling or judgment if desired.
+1. [Warning] Web-search baseline cannot be re-demonstrated in this environment.
+Evidence: `eval-output/summary-20260625.md` shows FAIL for web-search and JSON due to missing EXA_API_KEY/BRAVE_API_KEY.
+Why it matters: A fresh evaluator cannot independently confirm the Exa/Brave path works today.
+Required fix: Non-blocking; the June 8 eval artifacts provide credible evidence the path worked at conversion time. Re-run with keys to confirm.
+
+2. [Info] Web-search eval artifacts from prior run (June 8) show credible, recent, cited output.
+Evidence: `eval-output/web-search-20260608/compact.md` — 5 real results, all dated May 2026, with URLs and containers.
+Why it matters: Proves the Exa adapter is not a stub and produces inspectable, timely results when keys are present.
+
+3. [Warning] Perplexity adapter produced no inspectable results in prior eval.
+Evidence: `eval-output/summary-20260608.md` — "WARN: Perplexity source did not produce inspectable results."
+Why it matters: The adapter may function but its output labeling/diagnostics couldn't be confirmed.
+Required fix: Non-blocking follow-up to improve Perplexity source labeling or add better diagnostic output.
+
+4. [Info] No Python files, plugin packaging, or Twitter cookie/session auth found.
+Evidence: Grep for `.py`, `pyproject.toml`, `AUTH_TOKEN`, `CT0`, `OPENAI_API_KEY`, `GEMINI_API_KEY` returned zero hits in downstream code.
+Why it matters: Key contract requirement satisfied.
+
+5. [Info] X adapter uses only xAI/Grok API path.
+Evidence: `src/sources/x.ts` — uses `OpenAI` client pointed at `https://api.x.ai/v1`, reads `config.xaiApiKey || config.grokApiKey`, returns `[]` gracefully when keys are absent.
+Why it matters: Contract-required isolation of X search to the xAI API path.
 
 ## Sampled Areas
 
-- `README.md`: PASS - explains the installable self-contained skill and source setup.
-- `skills/last30days/SKILL.md`: PASS - practical agent-facing Bun setup, CLI usage, JSON output, eval, and citation guidance.
-- `skills/last30days/scripts/last30days/package.json`: PASS - build, typecheck, test, setup, and `last30days` scripts are present.
-- `skills/last30days/scripts/last30days/src/`: PASS - source-scoped adapters, isolated failures, structured library API, Exa/Brave/X implementations.
-- `skills/last30days/scripts/last30days/test/`: PASS - deterministic config, dates, ranking, and adapter-shape coverage.
-- `downstream/eval/`: PASS WITH WARNINGS - maintainer evals live outside the installed skill; Exa, Brave, X, and JSON passed; Perplexity warning is isolated.
-- `skills/last30days/scripts/last30days/.env.example`: PASS - optional keys documented without global required API key.
-- `skills/last30days/references/planning.md` and `skills/last30days/references/reranking.md`: PASS - textual guidance, no provider-backed scripts.
-- Removed paths: PASS - no Python runtime, plugin packaging, DuckDuckGo runtime, or removed Twitter cookie/session auth under the installed skill.
+- `README.md`: PASS — explains self-contained skill install, source configuration with no global required key, web-search duality.
+- `skills/last30days/SKILL.md`: PASS — agent-facing workflow with Bun setup, CLI examples, source matrix, JSON output, citation guidance.
+- `src/index.ts`: PASS — source-scoped availability, isolated error handling per adapter, concurrent execution.
+- `src/cli.ts`: PASS — full flag set (lookback, depth, format, debug, x-handle, github-user, hiring-signals, etc.), setup subcommand.
+- `src/ranking.ts`: PASS — source quality weights, engagement weights per source, Jaccard deduplication, clustering, RRF, freshness scoring.
+- `src/sources/x.ts`: PASS — xAI `responses.create` with `x_search` tool, `grok-4.3` model, `output_text` parsing, no cookie/session auth.
+- `src/sources/exa.ts`: PASS — uses official `exa-js` SDK, proper depth limits, returns structured `SourceItem[]`.
+- `src/sources/brave.ts`: PASS — 179-line adapter with web search API handling.
+- `.env.example`: PASS — all keys documented with source-grouping, no global required key implied, `XAI_API_KEY`/`GROK_API_KEY` aliased.
+- `eval/run.ts`: PASS — maintainer eval outside installed skill, isolates web-search env vars, skips optional keyed evals cleanly.
+- `references/planning.md` and `references/reranking.md`: PASS — textual guidance only, no provider-backed scripts.
+- Removed paths: PASS — no Python, no DuckDuckGo runtime, no cookie/Twitter auth, no plugin packaging.
 
 ## Eval Artifacts Reviewed
 
-- `codebases/last30days-ts/downstream/eval-output/summary-20260608.md`
-- `codebases/last30days-ts/downstream/eval-output/web-search-20260608/compact.md`
-- `codebases/last30days-ts/downstream/eval-output/x-20260608/compact.md`
-- `codebases/last30days-ts/downstream/eval-output/brave-20260608/compact.md`
-- `codebases/last30days-ts/downstream/eval-output/json-20260608/output.json`
-
-## Attempted Fixes
-
-- Moved the runnable Bun/TypeScript project into `skills/last30days/scripts/last30days/` so installing the skill brings source, tests, package metadata, env docs, and support references.
-- Kept maintainer live evals outside the installed skill at `downstream/eval/`.
-- Replaced global/npm CLI instructions with `bun install`, `bun run setup`, and `bun run last30days -- ...` from the bundled script directory.
-- Updated verifier and eval standards for the self-contained skill-bundle shape.
-- Removed stale root package/source layout assumptions from downstream docs and contract.
+- `eval-output/summary-20260608.md` — 4 PASS, 1 WARN, 0 FAIL
+- `eval-output/summary-20260625.md` — 0 PASS, 0 WARN, 2 FAIL, 3 SKIPPED (no keys in env)
+- `eval-output/web-search-20260608/compact.md` — 5 real Exa results, dated May 2026, with URLs
+- `eval-output/web-search-20260608/judgment.md` — PASS judgment
+- `eval-output/json-20260608/output.json` — valid structured JSON with items, clusters, query plan
+- `eval-output/x-20260608/compact.md` — 2 X posts with real URLs and dates
+- `eval-output/brave-20260608/compact.md` — 5 Brave web results with real URLs
 
 ## Recommendation
 
-- Accept with follow-up; do not block on isolated optional Perplexity warnings.
+- Accept with follow-up. Do not block state update. The web-search baseline is credibly implemented and was demonstrated in the prior conversion run. The two warnings (current-environment key unavailability, Perplexity labeling thinness) are isolated and do not indicate code defects. Re-verify the web-search baseline after restoring API keys.

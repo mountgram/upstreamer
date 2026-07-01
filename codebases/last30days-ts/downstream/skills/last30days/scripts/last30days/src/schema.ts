@@ -70,6 +70,13 @@ export interface ProviderRuntime {
   x_search_backend: string;
 }
 
+export interface HiringSignalSummary {
+  themeSignals: Record<string, { count: number; examples: string[] }>;
+  strategicRoles: string[];
+  companySize: string;
+  totalJobs: number;
+}
+
 export interface Report {
   topic: string;
   range_from: string;
@@ -83,6 +90,7 @@ export interface Report {
   errors_by_source: Record<string, string>;
   warnings: string[];
   artifacts: Record<string, unknown>;
+  hiring_signals?: HiringSignalSummary;
 }
 
 export interface RunOptions {
@@ -99,6 +107,8 @@ export interface RunOptions {
   githubUser?: string;
   githubRepos?: string[];
   queryPlan?: QueryPlan;
+  hiringSignals?: boolean;
+  jobBoard?: string;
 }
 
 export interface SourceAdapter {

@@ -37,6 +37,8 @@ export function diagnose(): SourceStatus[] {
   results.push({ source: "pinterest", available: scAvail, key: scAvail ? "SCRAPECREATORS_API_KEY" : null, method: "ScrapeCreators API" });
 
   results.push({ source: "digg", available: hasDigg, key: null, method: "digg-pp-cli binary" });
+  results.push({ source: "health", available: true, key: null, method: "MedlinePlus/NIH public API" });
+  results.push({ source: "jobs", available: true, key: null, method: "public ATS APIs (Greenhouse, Lever, Ashby)" });
 
   return results;
 }

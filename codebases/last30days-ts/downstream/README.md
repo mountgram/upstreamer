@@ -2,7 +2,7 @@
 
 Last30Days is an installable agent skill with a bundled Bun/TypeScript research CLI under `scripts/last30days/`. Installing the skill brings the agent instructions, source code, source adapters, tests, config examples, and planning/reranking references together in one skill directory.
 
-It researches what people actually say about a topic in the last N days across Exa or Brave web search, Reddit, Hacker News, X/Twitter, YouTube, TikTok, GitHub, Polymarket, Digg, and other optional sources.
+It researches what people actually say about a topic in the last N days across Exa or Brave web search, Reddit, Hacker News, X/Twitter, YouTube, TikTok, GitHub, Polymarket, Digg, health sources, and other optional sources. The `--hiring-signals` flag analyzes public job postings to surface company focus shifts.
 
 ## Install The Skill
 
@@ -51,6 +51,8 @@ Public or local sources can still work when available:
 - Polymarket public API
 - Digg through optional `digg-pp-cli`
 - YouTube through optional `yt-dlp`
+- Health sources via MedlinePlus/NIH public API
+- Jobs/Hiring Signals via public ATS APIs (Greenhouse, Lever, Ashby)
 
 Optional keyed sources include Exa, Brave, Serper, Parallel, X/Grok, Perplexity through OpenRouter, ScrapeCreators social sources, Bluesky, and Truth Social. See `scripts/last30days/.env.example` inside the installed skill for the exact variables.
 

@@ -22,6 +22,8 @@ const SOURCE_QUALITY: Record<string, number> = {
   threads: 0.35,
   pinterest: 0.25,
   digg: 0.30,
+  health: 0.55,
+  jobs: 0.72,
 };
 
 // Engagement field weights per source
@@ -34,6 +36,8 @@ const ENGAGEMENT_WEIGHTS: Record<string, [string, number][]> = {
   hackernews: [["points", 0.5], ["num_comments", 0.5]],
   polymarket: [["volume", 0.5], ["liquidity", 0.5]],
   github: [["stars", 0.6], ["forks", 0.2], ["watchers", 0.2]],
+  jobs: [["total_jobs", 1.0]],
+  health: [["score", 1.0]],
 };
 
 const STOPWORDS = new Set([

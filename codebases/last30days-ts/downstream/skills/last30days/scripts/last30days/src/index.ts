@@ -72,7 +72,7 @@ export async function runResearch(options: RunOptions): Promise<Report> {
   const availableSources: string[] = [];
 
   // Always available (no-key)
-  availableSources.push("reddit", "hackernews", "polymarket", "github");
+  availableSources.push("reddit", "hackernews", "polymarket", "github", "health");
 
   // Key-based sources
   if (config.exaApiKey) availableSources.push("exa");
@@ -90,6 +90,9 @@ export async function runResearch(options: RunOptions): Promise<Report> {
 
   // YouTube always attemptable (yt-dlp)
   availableSources.push("youtube");
+
+  // Jobs (opt-in via --hiring-signals)
+  if (options.hiringSignals) availableSources.push("jobs");
 
   // Filter by includeSources if specified
   const eligibleSources = options.includeSources
@@ -205,6 +208,12 @@ export async function runResearch(options: RunOptions): Promise<Report> {
     },
   };
 
+  if (options.hiringSignals) {
+    const jobItems = itemsBySource["jobs"] ?? [];
+    const { analyzeHiring } = await import("./sources/jobs.js");
+    report.hiring_signals = analyzeHiring(jobItems);
+  }
+
   return report;
 }
 
@@ -253,6 +262,10 @@ async function searchSource(
       return (await import("./sources/perplexity.js")).searchPerplexity(options.topic, from, to, depth, config);
     case "digg":
       return (await import("./sources/digg.js")).searchDigg(options.topic, from, to, depth);
+    case "health":
+      return (await import("./sources/health.js")).searchHealth(options.topic, from, to, depth, config);
+    case "jobs":
+      return (await import("./sources/jobs.js")).searchJobs(options.topic, from, to, depth, config, options.jobBoard);
     default:
       return [];
   }
