@@ -157,6 +157,21 @@ describe("Key-based source adapters are importable", () => {
     expect(typeof mod.searchX).toBe("function");
   });
 
+  it("OpenAI web adapter is importable", async () => {
+    const mod = await import("../src/sources/openai_web.js");
+    expect(typeof mod.searchOpenAIWeb).toBe("function");
+  });
+
+  it("Gemini YouTube adapter is importable", async () => {
+    const mod = await import("../src/sources/gemini_youtube.js");
+    expect(typeof mod.searchGeminiYouTube).toBe("function");
+  });
+
+  it("Gemini Maps adapter is importable", async () => {
+    const mod = await import("../src/sources/gemini_maps.js");
+    expect(typeof mod.searchGeminiMaps).toBe("function");
+  });
+
   it("X adapter parses Responses API output_text JSON", async () => {
     const mod = await import("../src/sources/x.js");
     const posts = mod.__test__.parseXPosts(`[

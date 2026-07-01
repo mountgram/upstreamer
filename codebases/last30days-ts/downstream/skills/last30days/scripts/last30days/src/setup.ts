@@ -12,6 +12,9 @@ export function diagnose(): SourceStatus[] {
   const config = getConfig();
   const results: SourceStatus[] = [];
   const hasDigg = !spawnSync("digg-pp-cli", ["--help"], { encoding: "utf-8", timeout: 5000 }).error;
+  const hasArxiv = !spawnSync("arxiv-pp-cli", ["--help"], { encoding: "utf-8", timeout: 5000 }).error;
+  const hasTechmeme = !spawnSync("techmeme-pp-cli", ["--help"], { encoding: "utf-8", timeout: 5000 }).error;
+  const hasTrustpilot = !spawnSync("trustpilot-pp-cli", ["--help"], { encoding: "utf-8", timeout: 5000 }).error;
 
   results.push({ source: "reddit", available: true, key: null, method: "keyless JSON/RSS public access" });
   results.push({ source: "hackernews", available: true, key: null, method: "Algolia public API" });
@@ -22,9 +25,12 @@ export function diagnose(): SourceStatus[] {
   results.push({ source: "brave", available: !!config.braveApiKey, key: config.braveApiKey ? "BRAVE_API_KEY" : null, method: "alternative/fallback web search via Brave Search API" });
   results.push({ source: "serper", available: !!config.serperApiKey, key: config.serperApiKey ? "SERPER_API_KEY" : null, method: "Serper API" });
   results.push({ source: "parallel", available: !!config.parallelApiKey, key: config.parallelApiKey ? "PARALLEL_API_KEY" : null, method: "Parallel API" });
+  results.push({ source: "openai_web", available: !!config.openaiApiKey, key: config.openaiApiKey ? "OPENAI_API_KEY" : null, method: "OpenAI Responses API web search grounding (opt-in or fallback)" });
 
   results.push({ source: "x", available: !!config.xaiApiKey, key: config.xaiApiKey ? "XAI_API_KEY/GROK_API_KEY" : null, method: "xAI Grok API" });
-  results.push({ source: "perplexity", available: !!config.openrouterApiKey, key: config.openrouterApiKey ? "OPENROUTER_API_KEY" : null, method: "OpenRouter API" });
+  results.push({ source: "perplexity", available: !!config.openrouterApiKey, key: config.openrouterApiKey ? "OPENROUTER_API_KEY" : null, method: "OpenRouter Perplexity/Sonar API (expensive, opt-in)" });
+  results.push({ source: "gemini_youtube", available: !!config.geminiApiKey, key: config.geminiApiKey ? "GEMINI_API_KEY" : null, method: "Gemini video understanding over yt-dlp-discovered YouTube URLs" });
+  results.push({ source: "gemini_maps", available: !!config.geminiApiKey, key: config.geminiApiKey ? "GEMINI_API_KEY" : null, method: "Gemini Google Maps grounding for spatial/place questions" });
   results.push({ source: "youtube", available: true, key: null, method: "yt-dlp binary (optional)" });
 
   results.push({ source: "bluesky", available: !!(config.bskyHandle && config.bskyAppPassword), key: config.bskyHandle ? "BSKY_HANDLE/BSKY_APP_PASSWORD" : null, method: "AT Protocol" });
@@ -35,8 +41,12 @@ export function diagnose(): SourceStatus[] {
   results.push({ source: "instagram", available: scAvail, key: scAvail ? "SCRAPECREATORS_API_KEY" : null, method: "ScrapeCreators API" });
   results.push({ source: "threads", available: scAvail, key: scAvail ? "SCRAPECREATORS_API_KEY" : null, method: "ScrapeCreators API" });
   results.push({ source: "pinterest", available: scAvail, key: scAvail ? "SCRAPECREATORS_API_KEY" : null, method: "ScrapeCreators API" });
+  results.push({ source: "linkedin", available: scAvail, key: scAvail ? "SCRAPECREATORS_API_KEY" : null, method: "ScrapeCreators API" });
 
   results.push({ source: "digg", available: hasDigg, key: null, method: "digg-pp-cli binary" });
+  results.push({ source: "arxiv", available: hasArxiv, key: null, method: "arxiv-pp-cli binary" });
+  results.push({ source: "techmeme", available: hasTechmeme, key: null, method: "techmeme-pp-cli binary" });
+  results.push({ source: "trustpilot", available: hasTrustpilot, key: null, method: "trustpilot-pp-cli binary (auto for brand topics)" });
   results.push({ source: "health", available: true, key: null, method: "MedlinePlus/NIH public API" });
   results.push({ source: "jobs", available: true, key: null, method: "public ATS APIs (Greenhouse, Lever, Ashby)" });
 

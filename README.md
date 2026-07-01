@@ -56,18 +56,18 @@ Two generated downstreams can be installed from their paths in this repo:
 # Install every TStack skill into the current project
 npx skills add mountgram/upstreamer/codebases/tstack/downstream --skill '*'
 
-# Install the Last30Days research skill into the current project
+# Install the Last30Days internet-search SDK skill into the current project
 npx skills add mountgram/upstreamer/codebases/last30days-ts/downstream --skill last30days
 ```
 
-Use `tstack` when you want portable review, QA, design, security, shipping, and planning workflows. Use `last30days` when you want an agent to install a self-contained research skill with bundled Bun/TypeScript source.
+Use `tstack` when you want portable review, QA, design, security, shipping, and planning workflows. Use `last30days` when you want an agent to install a self-contained internet-discovery skill with bundled Bun/TypeScript search SDKs, a CLI, frontmatter-formatted references, OpenAI/Gemini grounding options, and guidance for using optional browser tools on dynamic sources like LinkedIn.
 
 ## Current Examples
 
 | Codebase | Upstream | Downstream purpose |
 | --- | --- | --- |
 | [`tstack`](codebases/tstack/upstreamer.md) | [`garrytan/gstack`](https://github.com/garrytan/gstack) | A pure-markdown agent skills collection with helper scripts, telemetry, binaries, and package infrastructure removed. |
-| [`last30days-ts`](codebases/last30days-ts/upstreamer.md) | [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill) | A self-contained Last30Days agent skill with bundled Bun/TypeScript source, DuckDuckGo removed, and Exa/Brave web search. |
+| [`last30days-ts`](codebases/last30days-ts/upstreamer.md) | [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill) | A self-contained internet-search SDK skill with bundled Bun/TypeScript source adapters, CLI/import usage, optional recency/all-time search, browser-research guidance for dynamic sources, DuckDuckGo removed, Exa/Brave/OpenAI web search, xAI X search, and Gemini YouTube/Maps grounding. |
 
 ## What Can You Rewrite?
 
@@ -118,7 +118,7 @@ The markdown body should be specific about what to keep, adapt, drop, verify, an
 - Optional `.upstreamer/eval.md` criteria for fresh-context qualitative review.
 - Final report requirements.
 
-See [`codebases/tstack/upstreamer.md`](codebases/tstack/upstreamer.md) for a markdown-only skills rewrite and [`codebases/last30days-ts/upstreamer.md`](codebases/last30days-ts/upstreamer.md) for a library/CLI rewrite.
+See [`codebases/tstack/upstreamer.md`](codebases/tstack/upstreamer.md) for a markdown-only skills rewrite and [`codebases/last30days-ts/upstreamer.md`](codebases/last30days-ts/upstreamer.md) for a source-SDK/CLI/skill-reference rewrite.
 
 ## Usage Details
 

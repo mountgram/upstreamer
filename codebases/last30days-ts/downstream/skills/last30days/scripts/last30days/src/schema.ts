@@ -97,6 +97,7 @@ export interface RunOptions {
   topic: string;
   lookbackDays?: number;
   depth?: "quick" | "medium" | "deep";
+  timeframe?: "recent" | "all";
   outputFormat?: "markdown" | "json" | "compact";
   outputDir?: string;
   debug?: boolean;

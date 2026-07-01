@@ -8,7 +8,8 @@ const SOURCE_QUALITY: Record<string, number> = {
   brave: 0.85,
   serper: 0.85,
   parallel: 0.8,
-  perplexity: 0.9,
+  openai_web: 0.86,
+  perplexity: 0.72,
   reddit: 0.6,
   x: 0.68,
   youtube: 0.55,
@@ -24,6 +25,12 @@ const SOURCE_QUALITY: Record<string, number> = {
   digg: 0.30,
   health: 0.55,
   jobs: 0.72,
+  arxiv: 0.90,
+  techmeme: 0.85,
+  trustpilot: 0.78,
+  linkedin: 0.72,
+  gemini_youtube: 0.82,
+  gemini_maps: 0.82,
 };
 
 // Engagement field weights per source

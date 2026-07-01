@@ -2,57 +2,52 @@
 
 ## Summary
 
-- The downstream is a well-structured, self-contained installable skill with real source adapters, credible ranking, and structured output. Prior eval artifacts (June 8) prove the Exa, Brave, X/Grok, and JSON paths produce useful results. In the current environment, the web-search baseline cannot be re-demonstrated due to missing API keys, and the Perplexity adapter showed thin labeling in prior runs. Accept with follow-up on Perplexity diagnostics and re-verify the web-search baseline in a keyed environment.
+The downstream compiles cleanly, all 50 deterministic tests pass, the source subcommand returns real cited HN results, `--timeframe all` is wired through the stack (CLI -> library -> 3650-day lookback), package exports are proper, all references have frontmatter, no Python files remain, `searchInternet` is exported, and browser-research guidance is present for optional browser tools on dynamic sources such as LinkedIn. OpenAI web grounding, Gemini YouTube, and Gemini Maps are importable optional source SDKs, while Perplexity/Sonar is now documented and wired as expensive opt-in. With the repo-root `.env` loaded, keyed live evals passed for Exa/Brave web search and X/Grok. The only remaining warning is Perplexity/OpenRouter returning no inspectable results.
 
 ## Findings
 
-1. [Warning] Web-search baseline cannot be re-demonstrated in this environment.
-Evidence: `eval-output/summary-20260625.md` shows FAIL for web-search and JSON due to missing EXA_API_KEY/BRAVE_API_KEY.
-Why it matters: A fresh evaluator cannot independently confirm the Exa/Brave path works today.
-Required fix: Non-blocking; the June 8 eval artifacts provide credible evidence the path worked at conversion time. Re-run with keys to confirm.
+1. **WARNING** [Live eval] Perplexity/OpenRouter did not produce inspectable results
+   Evidence: `eval-output/summary-20260701.md` reports `perplexity | latest AI research | WARN | WARN: Perplexity source did not produce inspectable results`.
+   Why it matters: Perplexity is an optional keyed source. The failure is isolated and does not block Exa/Brave/X or public-source behavior.
+   Required fix: Inspect OpenRouter/Perplexity provider behavior separately if Perplexity coverage is important for a release.
 
-2. [Info] Web-search eval artifacts from prior run (June 8) show credible, recent, cited output.
-Evidence: `eval-output/web-search-20260608/compact.md` — 5 real results, all dated May 2026, with URLs and containers.
-Why it matters: Proves the Exa adapter is not a stub and produces inspectable, timely results when keys are present.
-
-3. [Warning] Perplexity adapter produced no inspectable results in prior eval.
-Evidence: `eval-output/summary-20260608.md` — "WARN: Perplexity source did not produce inspectable results."
-Why it matters: The adapter may function but its output labeling/diagnostics couldn't be confirmed.
-Required fix: Non-blocking follow-up to improve Perplexity source labeling or add better diagnostic output.
-
-4. [Info] No Python files, plugin packaging, or Twitter cookie/session auth found.
-Evidence: Grep for `.py`, `pyproject.toml`, `AUTH_TOKEN`, `CT0`, `OPENAI_API_KEY`, `GEMINI_API_KEY` returned zero hits in downstream code.
-Why it matters: Key contract requirement satisfied.
-
-5. [Info] X adapter uses only xAI/Grok API path.
-Evidence: `src/sources/x.ts` — uses `OpenAI` client pointed at `https://api.x.ai/v1`, reads `config.xaiApiKey || config.grokApiKey`, returns `[]` gracefully when keys are absent.
-Why it matters: Contract-required isolation of X search to the xAI API path.
+2. **INFO** [Live eval] Keyed Exa/Brave/X paths passed after loading repo `.env`
+   Evidence: `eval-output/summary-20260701.md` reports PASS for web-search, JSON output, X/Grok, and Brave.
+   Why it matters: This confirms the baseline web-search path and xAI `x_search` path work when credentials are available.
+   Required fix: None.
 
 ## Sampled Areas
 
-- `README.md`: PASS — explains self-contained skill install, source configuration with no global required key, web-search duality.
-- `skills/last30days/SKILL.md`: PASS — agent-facing workflow with Bun setup, CLI examples, source matrix, JSON output, citation guidance.
-- `src/index.ts`: PASS — source-scoped availability, isolated error handling per adapter, concurrent execution.
-- `src/cli.ts`: PASS — full flag set (lookback, depth, format, debug, x-handle, github-user, hiring-signals, etc.), setup subcommand.
-- `src/ranking.ts`: PASS — source quality weights, engagement weights per source, Jaccard deduplication, clustering, RRF, freshness scoring.
-- `src/sources/x.ts`: PASS — xAI `responses.create` with `x_search` tool, `grok-4.3` model, `output_text` parsing, no cookie/session auth.
-- `src/sources/exa.ts`: PASS — uses official `exa-js` SDK, proper depth limits, returns structured `SourceItem[]`.
-- `src/sources/brave.ts`: PASS — 179-line adapter with web search API handling.
-- `.env.example`: PASS — all keys documented with source-grouping, no global required key implied, `XAI_API_KEY`/`GROK_API_KEY` aliased.
-- `eval/run.ts`: PASS — maintainer eval outside installed skill, isolates web-search env vars, skips optional keyed evals cleanly.
-- `references/planning.md` and `references/reranking.md`: PASS — textual guidance only, no provider-backed scripts.
-- Removed paths: PASS — no Python, no DuckDuckGo runtime, no cookie/Twitter auth, no plugin packaging.
+- `TypeScript compilation`: PASS - `tsc --noEmit` exits cleanly with zero errors
+- `Deterministic tests`: PASS - 50/50 tests pass across 4 test files
+- `CLI public-source smoke test`: PASS - Produces real, cited, dated HN results (e.g., "Claude Code is steganographically marking requests", 2026-06-30)
+- `--timeframe all implementation`: PASS - CLI accepts `--timeframe all`, library sets 3650-day lookback
+- `searchInternet SDK export`: PASS - Exported as alias to `runResearch`
+- `package.json exports map`: PASS - `.` and `./sources/*` entrypoints configured
+- `source CLI subcommand`: PASS - `source hackernews "query"` returns cited results
+- `SKILL.md and reference frontmatter`: PASS - All 8 skill/reference files have YAML frontmatter with title/name and description
+- `Browser research guidance`: PASS - `references/browser-research.md` explains when to use optional host browser tools without bundling browser dependencies
+- `OpenAI/Gemini provider strategy`: PASS - `openai_web`, `gemini_youtube`, and `gemini_maps` source SDKs are importable and documented
+- `Perplexity/Sonar cost control`: PASS - Perplexity requires explicit `--web-backend perplexity` or `--include-sources perplexity`
+- `Repo-root .env guidance`: PASS - setup docs explain sourcing host `.env` before running commands from the skill directory
+- `Custom SDK scripts`: PASS - docs encourage one-off TypeScript/JavaScript scripts for custom parsing and output shaping
+- `No Python/AUTH_TOKEN/CT0`: PASS - Zero Python files, zero Twitter cookie/session auth
+- `X adapter x_search/web_search tools`: PASS - Uses `grok-4.3`, `x_search` tool, parses from `output_text`
+- `Keyed live evals`: PASS WITH WARNINGS - Exa/Brave/X passed; Perplexity warned with no inspectable results
+- `Reddit keyless public access`: PASS - Public JSON, RSS fallback, comment enrichment
+- `28 source adapters/utilities`: PASS - All documented sources have adapters with availability checks
+- `Source isolation on missing keys`: PASS - Missing optional keys skip only their adapter
 
 ## Eval Artifacts Reviewed
 
-- `eval-output/summary-20260608.md` — 4 PASS, 1 WARN, 0 FAIL
-- `eval-output/summary-20260625.md` — 0 PASS, 0 WARN, 2 FAIL, 3 SKIPPED (no keys in env)
-- `eval-output/web-search-20260608/compact.md` — 5 real Exa results, dated May 2026, with URLs
-- `eval-output/web-search-20260608/judgment.md` — PASS judgment
-- `eval-output/json-20260608/output.json` — valid structured JSON with items, clusters, query plan
-- `eval-output/x-20260608/compact.md` — 2 X posts with real URLs and dates
-- `eval-output/brave-20260608/compact.md` — 5 Brave web results with real URLs
+- `bun run typecheck` — clean
+- `bun run test` - 50/50 passed
+- CLI smoke: `source hackernews "Claude Code"` — real results
+- CLI smoke: `"Claude Code" --include-sources reddit,hackernews,github` — real results
+- `eval-output/summary-20260701.md` - 4 passed, 1 warning, 0 failed, 0 skipped after sourcing repo `.env`
+- All 7 `references/*.md` - valid frontmatter
+- `scripts/last30days/.env.example` — all keys documented
 
 ## Recommendation
 
-- Accept with follow-up. Do not block state update. The web-search baseline is credibly implemented and was demonstrated in the prior conversion run. The two warnings (current-environment key unavailability, Perplexity labeling thinness) are isolated and do not indicate code defects. Re-verify the web-search baseline after restoring API keys.
+Accept the conversion with one optional-source follow-up. The downstream is structurally complete, compiles, passes tests, produces real cited output from no-key public sources, and passes keyed Exa/Brave/X live evals when the repo `.env` is loaded. Perplexity/OpenRouter remains a warning because it did not produce inspectable results.

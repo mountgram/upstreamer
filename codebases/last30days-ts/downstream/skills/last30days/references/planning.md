@@ -1,3 +1,8 @@
+---
+title: Planning
+description: How to design effective research queries and select sources for Last30Days TS
+---
+
 # Planning
 
 How to design effective research queries for Last30Days TS.

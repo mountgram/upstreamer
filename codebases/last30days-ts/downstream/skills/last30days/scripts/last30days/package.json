@@ -5,6 +5,10 @@
   "repository": "github:mountgram/upstreamer",
   "license": "MIT",
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./sources/*": "./src/sources/*.ts"
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",

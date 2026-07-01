@@ -6,7 +6,9 @@ export interface Config {
   braveApiKey?: string;
   serperApiKey?: string;
   parallelApiKey?: string;
+  openaiApiKey?: string;
   openrouterApiKey?: string;
+  geminiApiKey?: string;
   xaiApiKey?: string;
   grokApiKey?: string;
   bskyHandle?: string;
@@ -57,7 +59,9 @@ function loadConfig(): Config {
   config.braveApiKey = env.BRAVE_API_KEY;
   config.serperApiKey = env.SERPER_API_KEY;
   config.parallelApiKey = env.PARALLEL_API_KEY;
+  config.openaiApiKey = env.OPENAI_API_KEY;
   config.openrouterApiKey = env.OPENROUTER_API_KEY;
+  config.geminiApiKey = env.GEMINI_API_KEY;
   config.xaiApiKey = env.XAI_API_KEY || env.GROK_API_KEY;
   config.grokApiKey = env.GROK_API_KEY;
   config.bskyHandle = env.BSKY_HANDLE;
@@ -67,6 +71,9 @@ function loadConfig(): Config {
   config.apifyApiToken = env.APIFY_API_TOKEN;
   config.githubToken = env.GITHUB_TOKEN;
   config.last30daysDir = env.LAST30DAYS_DIR || "./output";
+  if (env.LAST30DAYS_TRUSTPILOT_NO_BROWSER) {
+    (config as Record<string, unknown>).LAST30DAYS_TRUSTPILOT_NO_BROWSER = env.LAST30DAYS_TRUSTPILOT_NO_BROWSER;
+  }
 
   return config;
 }

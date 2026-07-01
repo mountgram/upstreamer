@@ -1,17 +1,23 @@
 # Upstreamer Changelog
 
+## July 2026 Sync
+
+Upstream added arXiv (research papers), Techmeme (tech news headlines), Trustpilot (brand sentiment) as default-on CLI-gated sources, plus LinkedIn (post search + article enrichment) as a ScrapeCreators-backed social adapter. The engine also received CJK tokenization, permission preflight, and many individual source-adapter improvements.
+
+- Added **arXiv** source adapter via `arxiv-pp-cli` for research paper search with relevance sort and 365-day recency window. Accessible as `searchArxiv()` via SDK import.
+- Added **Techmeme** source adapter via `techmeme-pp-cli` for current tech news headlines with one-time-per-run cache sync.
+- Added **Trustpilot** source adapter via `trustpilot-pp-cli` for brand reputation and sentiment. Gated on brand-shaped topics (domain tokens or short capitalized proper nouns); configurable with `LAST30DAYS_TRUSTPILOT_NO_BROWSER` for headless/CI mode.
+- Added **LinkedIn** source adapter via ScrapeCreators API for public LinkedIn post search. Person topics with a matching author also enrich results with LinkedIn Pulse articles; use the new browser-research guidance as a companion step when LinkedIn identity, visible profile context, exact post text, or public page verification matters.
+- Added reference docs for `comparison-search.md`, `all-time-search.md`, `browser-research.md`, and `source-sdk-guide.md` in the installed skill references directory, making planning, comparison, all-time, optional browser verification, and SDK import guidance available as frontmatter-formatted markdown.
+- Added **OpenAI Web** source adapter for Responses API web-search grounding, preferred over Perplexity/Sonar for LLM-grounded web search when `OPENAI_API_KEY` is available.
+- Added **Gemini YouTube** and **Gemini Maps** source adapters. Gemini YouTube combines `yt-dlp` discovery with Gemini video understanding; Gemini Maps handles spatial/place questions such as "what's around London?" through Maps grounding.
+- Updated `.env.example` with Trustpilot opt-out variable, OpenAI/Gemini keys, CLI binary path notes for printing-press-library tools, and LinkedIn under ScrapeCreators. Setup docs now call out explicitly loading a repo-root `.env` before running commands from the installed skill directory.
+- Updated source quality weights in ranking to match downstream source priorities: arXiv 0.90, Techmeme 0.85, Trustpilot 0.78, LinkedIn 0.72, OpenAI Web 0.86, Gemini YouTube/Maps 0.82, and Perplexity/Sonar downweighted to 0.72 because it is expensive opt-in.
+- Expanded source count to 28 source adapters/utilities (Exa, Brave, OpenAI Web, Serper, Parallel, Reddit, Hacker News, GitHub, Polymarket, X/Grok, YouTube, Gemini YouTube, Gemini Maps, Perplexity, TikTok, Instagram, Threads, Pinterest, LinkedIn, Bluesky, Truth Social, Digg, arXiv, Techmeme, Trustpilot, Health, Jobs, and keyless web fetch support).
+
 ## June 2026 Sync
 
 Upstream introduced a major wave of features across health classification, hiring signals analysis, keyless web fetch, CJK tokenization, source health probes, and many individual source-adapter improvements alongside infrastructure-only additions (MCP Go server, plugin packaging changes, CI expansions). The TypeScript downstream preserved the portable adapter behavior and dropped infrastructure-only changes per the rewrite contract.
-
-- Added Hiring Signals analysis: the `--hiring-signals` flag with `--job-board` fetches public job postings from Greenhouse, Lever, and Ashby ATS APIs. It classifies hiring themes (enterprise readiness, go-to-market, AI/ML, infrastructure, product expansion, data/analytics), detects strategic/seniority roles, and infers company size from posting volume. Results appear in a dedicated section in both Markdown and compact output.
-- Added Health source adapter backed by the MedlinePlus/NIH public API, usable without any API key. Health results flow through the same ranking and deduplication pipeline as other sources.
-- Added keyless web fetch utility (`sources/web_fetch_keyless.ts`) that fetches URL content as markdown via the free Jina Reader API, available for adapters that need to enrich results with page content.
-- Added `jobs` source for opt-in public job board searches via the `--hiring-signals` CLI flag. Jobs bypass date-windowing (open postings are current regardless of post date) and are deduplicated by exact URL only.
-- Updated source quality weights to include Health (0.55) and Jobs (0.72) matching upstream signal quality calibration.
-- Upstream introduced keyless web search, hiring signals engine, health classification, CJK tokenization, source health probes, HTML publishing, permission preflight, MCP server, and expanded CI workflows. The TypeScript downstream preserves the portable adapter behavior (hiring signals, health, keyless web fetch utility, improved error isolation) and drops infrastructure-only additions (MCP Go server, Python plugin packaging, CI changes, HTML publish, browser-cookie auth paths, and DuckDuckGo-based keyless web search per contract).
-
-## Previous Sync
 
 - Added Hiring Signals analysis: the `--hiring-signals` flag with `--job-board` fetches public job postings from Greenhouse, Lever, and Ashby ATS APIs. It classifies hiring themes (enterprise readiness, go-to-market, AI/ML, infrastructure, product expansion, data/analytics), detects strategic/seniority roles, and infers company size from posting volume. Results appear in a dedicated section in both Markdown and compact output.
 - Added Health source adapter backed by the MedlinePlus/NIH public API, usable without any API key. Health results flow through the same ranking and deduplication pipeline as other sources.

@@ -17,6 +17,10 @@ import {
 export { renderMarkdown, renderJson, renderCompact };
 export { getConfig };
 export { getDateRange, formatDate, parseDate, daysAgo, recencyScore } from "./dates.js";
+export const searchInternet = runResearch;
+export { searchOpenAIWeb } from "./sources/openai_web.js";
+export { searchGeminiYouTube } from "./sources/gemini_youtube.js";
+export { searchGeminiMaps } from "./sources/gemini_maps.js";
 export type { Report, RunOptions, Candidate, SourceItem, Cluster, SubQuery, QueryPlan } from "./schema.js";
 
 function generateId(): string {
@@ -27,6 +31,8 @@ function inferIntent(topic: string): string {
   const text = topic.toLowerCase();
   if (/\b(vs|versus|compare|compared to|difference between)\b/.test(text)) return "comparison";
   if (/\b(odds|predict|prediction|forecast|chance|probability|will .* win)\b/.test(text)) return "prediction";
+  if (/\b(youtube|video|videos|podcast|interview|talk|lecture|demo|tutorial)\b/.test(text)) return "video";
+  if (/\b(near|nearby|around|where|map|maps|restaurant|restaurants|hotel|hotels|venue|venues|neighborhood|neighbourhood|in london|in nyc|in san francisco)\b/.test(text)) return "spatial";
   if (/\b(how to|tutorial|guide|setup|step by step|deploy|install)\b/.test(text)) return "how_to";
   if (/\b(latest|news|announced|just shipped|launched|released|update|trending|this week|right now|today)\b/.test(text)) return "breaking_news";
   if (/\b(pricing|feature|features|best .* for|top .* for)\b/.test(text)) return "product";
@@ -39,6 +45,8 @@ function defaultQueryPlan(topic: string, sources: string[], depth: string): Repo
     comparison: ["reddit", "x", "hackernews", "youtube"],
     prediction: ["polymarket", "x", "hackernews", "reddit"],
     breaking_news: ["x", "reddit", "hackernews", "youtube", "polymarket"],
+    video: ["gemini_youtube", "youtube", "exa", "brave", "reddit"],
+    spatial: ["gemini_maps", "openai_web", "exa", "brave", "reddit"],
     how_to: ["exa", "brave", "youtube", "reddit", "hackernews"],
     product: ["exa", "brave", "hackernews", "youtube", "reddit", "github", "x", "tiktok"],
     concept: ["exa", "brave", "hackernews", "youtube", "reddit"],
@@ -59,7 +67,9 @@ function defaultQueryPlan(topic: string, sources: string[], depth: string): Repo
 
 export async function runResearch(options: RunOptions): Promise<Report> {
   const config = getConfig();
-  const { from, to } = getDateRange(options.lookbackDays || 30);
+  const isAllTime = options.timeframe === "all";
+  const lookbackDays = isAllTime ? (options.lookbackDays || 3650) : (options.lookbackDays || 30);
+  const { from, to } = getDateRange(lookbackDays);
   const depth = options.depth || "medium";
 
   const depthLimits: Record<string, number> = { quick: 5, medium: 10, deep: 20 };
@@ -70,26 +80,34 @@ export async function runResearch(options: RunOptions): Promise<Report> {
 
   // Determine available sources
   const availableSources: string[] = [];
+  const wantsSource = (name: string) => options.includeSources?.includes(name) ?? false;
+  const videoTopic = isVideoTopic(options.topic);
+  const spatialTopic = isSpatialTopic(options.topic);
 
   // Always available (no-key)
   availableSources.push("reddit", "hackernews", "polymarket", "github", "health");
+
+  // CLI-based sources (require optional binaries)
+  availableSources.push("digg", "youtube", "arxiv", "techmeme");
 
   // Key-based sources
   if (config.exaApiKey) availableSources.push("exa");
   if (config.braveApiKey) availableSources.push("brave");
   if (config.serperApiKey) availableSources.push("serper");
   if (config.parallelApiKey) availableSources.push("parallel");
+  if (config.openaiApiKey && (options.webBackend === "openai" || wantsSource("openai_web") || (!config.exaApiKey && !config.braveApiKey))) {
+    availableSources.push("openai_web");
+  }
   if (config.xaiApiKey) availableSources.push("x");
-  if (config.openrouterApiKey) availableSources.push("perplexity");
+  if (config.openrouterApiKey && (options.webBackend === "perplexity" || wantsSource("perplexity"))) availableSources.push("perplexity");
+  if (config.geminiApiKey && (wantsSource("gemini_youtube") || videoTopic)) availableSources.push("gemini_youtube");
+  if (config.geminiApiKey && (wantsSource("gemini_maps") || spatialTopic)) availableSources.push("gemini_maps");
   if (config.scrapecreatorsApiKey) {
     availableSources.push("tiktok", "instagram", "threads", "pinterest");
   }
   if (config.bskyHandle && config.bskyAppPassword) availableSources.push("bluesky");
   if (config.truthsocialToken) availableSources.push("truthsocial");
-  availableSources.push("digg");
-
-  // YouTube always attemptable (yt-dlp)
-  availableSources.push("youtube");
+  if (config.scrapecreatorsApiKey) availableSources.push("linkedin");
 
   // Jobs (opt-in via --hiring-signals)
   if (options.hiringSignals) availableSources.push("jobs");
@@ -234,6 +252,8 @@ async function searchSource(
       return (await import("./sources/serper.js")).searchSerper(options.topic, from, to, depth, config);
     case "parallel":
       return (await import("./sources/parallel.js")).searchParallel(options.topic, from, to, depth, config);
+    case "openai_web":
+      return (await import("./sources/openai_web.js")).searchOpenAIWeb(options.topic, from, to, depth, config);
     case "reddit":
       return (await import("./sources/reddit.js")).searchReddit(options.topic, from, to, depth, options.subreddits);
     case "hackernews":
@@ -260,8 +280,20 @@ async function searchSource(
       return (await import("./sources/pinterest.js")).searchPinterest(options.topic, from, to, depth, config);
     case "perplexity":
       return (await import("./sources/perplexity.js")).searchPerplexity(options.topic, from, to, depth, config);
+    case "gemini_youtube":
+      return (await import("./sources/gemini_youtube.js")).searchGeminiYouTube(options.topic, from, to, depth, config);
+    case "gemini_maps":
+      return (await import("./sources/gemini_maps.js")).searchGeminiMaps(options.topic, from, to, depth, config);
     case "digg":
       return (await import("./sources/digg.js")).searchDigg(options.topic, from, to, depth);
+    case "arxiv":
+      return (await import("./sources/arxiv.js")).searchArxiv(options.topic, from, to, depth);
+    case "techmeme":
+      return (await import("./sources/techmeme.js")).searchTechmeme(options.topic, from, to, depth);
+    case "trustpilot":
+      return (await import("./sources/trustpilot.js")).searchTrustpilot(options.topic, from, to, depth, config);
+    case "linkedin":
+      return (await import("./sources/linkedin.js")).searchLinkedIn(options.topic, from, to, depth, config);
     case "health":
       return (await import("./sources/health.js")).searchHealth(options.topic, from, to, depth, config);
     case "jobs":
@@ -269,4 +301,12 @@ async function searchSource(
     default:
       return [];
   }
+}
+
+function isVideoTopic(topic: string): boolean {
+  return /\b(youtube|video|videos|podcast|interview|talk|lecture|demo|tutorial)\b/i.test(topic);
+}
+
+function isSpatialTopic(topic: string): boolean {
+  return /\b(near|nearby|around|where|map|maps|restaurant|restaurants|hotel|hotels|venue|venues|neighborhood|neighbourhood|in london|in nyc|in san francisco)\b/i.test(topic);
 }

@@ -6,6 +6,7 @@ const SOURCE_LABELS: Record<string, string> = {
   brave: "Web",
   serper: "Web",
   parallel: "Web",
+  openai_web: "OpenAI Web",
   perplexity: "Web",
   grounding: "Web",
   reddit: "Reddit",
@@ -23,6 +24,12 @@ const SOURCE_LABELS: Record<string, string> = {
   digg: "Digg",
   health: "Health",
   jobs: "Jobs",
+  arxiv: "arXiv",
+  techmeme: "Techmeme",
+  trustpilot: "Trustpilot",
+  linkedin: "LinkedIn",
+  gemini_youtube: "Gemini YouTube",
+  gemini_maps: "Gemini Maps",
 };
 
 function clusterKey(cluster: Cluster): string {
@@ -122,11 +129,13 @@ export function renderMarkdown(report: Report): string {
 
   const sourceEmojis: Record<string, string> = {
     grounding: "🌐", exa: "🌐", brave: "🌐", serper: "🌐",
-    parallel: "🌐", perplexity: "🔍",
+    parallel: "🌐", openai_web: "🌐", perplexity: "🔍",
     reddit: "🤖", x: "🐦", youtube: "▶️", tiktok: "🎵", instagram: "📷",
     hackernews: "🔶", polymarket: "📊", github: "🐙", bluesky: "🦋",
     truthsocial: "📯", threads: "🧵", pinterest: "📌", digg: "⛏️",
     health: "🏥", jobs: "💼",
+    arxiv: "📄", techmeme: "📰", trustpilot: "⭐", linkedin: "💼",
+    gemini_youtube: "▶️", gemini_maps: "🗺️",
   };
 
   const treeLines: string[] = [];
@@ -232,11 +241,13 @@ export function renderCompact(report: Report): string {
 
   const sourceEmojis: Record<string, string> = {
     exa: "🌐", brave: "🌐", serper: "🌐",
-    parallel: "🌐", perplexity: "🔍",
+    parallel: "🌐", openai_web: "🌐", perplexity: "🔍",
     reddit: "🤖", x: "🐦", youtube: "▶️", tiktok: "🎵", instagram: "📷",
     hackernews: "🔶", polymarket: "📊", github: "🐙", bluesky: "🦋",
     truthsocial: "📯", threads: "🧵", pinterest: "📌", digg: "⛏️",
     health: "🏥", jobs: "💼",
+    arxiv: "📄", techmeme: "📰", trustpilot: "⭐", linkedin: "💼",
+    gemini_youtube: "▶️", gemini_maps: "🗺️",
   };
 
   for (const [source, items] of Object.entries(report.items_by_source)) {

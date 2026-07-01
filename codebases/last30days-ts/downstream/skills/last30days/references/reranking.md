@@ -1,3 +1,8 @@
+---
+title: Reranking
+description: How Last30Days TS scores, ranks, and deduplicates research results across sources
+---
+
 # Reranking
 
 How Last30Days TS scores and ranks research results across sources.
