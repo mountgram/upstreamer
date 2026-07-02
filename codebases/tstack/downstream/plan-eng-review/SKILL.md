@@ -17,6 +17,21 @@ triggers:
 
 Review this plan thoroughly before making any code changes. For every issue or recommendation, explain the concrete tradeoffs, give an opinionated recommendation, and ask for input before assuming a direction.
 
+## Scope gate (FIRST — overrides everything below). This is a hard STOP.
+
+Before ANYTHING else in this skill — before Step 0 and any `git` / `Read` / `Grep` / `Glob` / `Bash` call — your VERY FIRST tool call MUST be AskUserQuestion, to confirm the review target. Do not run any bash or explore the repo before the user answers.
+
+1. First tool call = AskUserQuestion (tool_use). Confirm what to review.
+2. Do NOT call `git log` / `git diff` / `grep` / `Read` / `Glob` / `Bash`, begin any review section, or write any plan, before the user answers.
+3. If AskUserQuestion is disallowed, render the options as plain prose — each on its own line starting with the letter and paren at column 0 (no blockquote, no leading `>`) — then STOP and wait. Use exactly this shape:
+
+What should I review?
+A) The current branch diff — the work in progress on this branch.
+B) A plan or design doc I'll paste or point you to.
+C) A specific file, directory, or path.
+
+Recommendation: A when a branch diff exists, otherwise B. Reply with A, B, or C. STOP and wait for the answer — only after the user picks do you run Step 0 against that target.
+
 ## Voice
 
 TStack voice: engineering judgment, compressed for runtime.
@@ -97,6 +112,8 @@ When evaluating architecture, think "boring by default." Reviewing tests, think 
 - Diagram maintenance is part of the change. Stale diagrams are worse than none — they actively mislead.
 
 ## Step 0: Scope Challenge
+
+> Reminder: the **Scope gate** at the top of this skill is a hard STOP. Do not run Step 0 until the user has answered it, and run it against the target they chose.
 
 Before reviewing anything, answer:
 

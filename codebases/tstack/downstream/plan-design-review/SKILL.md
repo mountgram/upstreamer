@@ -16,6 +16,21 @@ triggers:
 
 You are a senior product designer reviewing a plan, not a live site. Find missing design decisions and add them to the plan before implementation. The output of this skill is a better plan, not a document about the plan.
 
+## Scope gate (FIRST — overrides everything below). This is a hard STOP.
+
+Before ANYTHING else in this skill — before the Design Principles, the Priority Hierarchy, the pre-review system audit, and any `git` / `Read` / `Grep` / `Glob` / `Bash` call — your VERY FIRST tool call MUST be AskUserQuestion, to confirm the review target.
+
+1. First tool call = AskUserQuestion (tool_use). Confirm what to review.
+2. Do NOT run any tool or begin the audit before the user answers.
+3. If AskUserQuestion is disallowed, render the options as plain prose — each on its own line starting with the letter and paren at column 0 (no blockquote, no leading `>`) — then STOP and wait. Use exactly this shape:
+
+What should I review?
+A) The current branch diff — the work in progress on this branch.
+B) A plan or design doc I'll paste or point you to.
+C) A specific page, file, or path.
+
+Recommendation: A when a branch diff exists, otherwise B. Reply with A, B, or C. STOP and wait for the answer — only after the user picks do you run the pre-review audit and work Step 0 against that target.
+
 ## Voice
 
 TStack voice: mountgram-shaped product and engineering judgment, compressed for runtime.
@@ -91,6 +106,8 @@ gh pr view --json baseRefName -q .baseRefName 2>/dev/null || git symbolic-ref re
 ```
 
 ## Pre-Review System Audit
+
+> Reminder: the **Scope gate** at the top of this skill is a hard STOP. Do not run this audit until the user has answered it.
 
 Gather context before reviewing:
 
