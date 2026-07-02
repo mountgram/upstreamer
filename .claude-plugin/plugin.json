@@ -1,0 +1,7 @@
+{
+  "name": "upstreamer",
+  "description": "Expose generated upstreamer downstream skills from their nested codebase outputs.",
+  "skills": [
+    "./codebases/last30days-ts/downstream/skills/last30days"
+  ]
+}
