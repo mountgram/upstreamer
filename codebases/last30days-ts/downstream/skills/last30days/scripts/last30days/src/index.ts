@@ -21,6 +21,7 @@ export const searchInternet = runResearch;
 export { searchOpenAIWeb } from "./sources/openai_web.js";
 export { searchGeminiYouTube } from "./sources/gemini_youtube.js";
 export { searchGeminiMaps } from "./sources/gemini_maps.js";
+export { searchStocktwits, isFinancialTopic } from "./sources/stocktwits.js";
 export type { Report, RunOptions, Candidate, SourceItem, Cluster, SubQuery, QueryPlan } from "./schema.js";
 
 function generateId(): string {
@@ -43,7 +44,7 @@ function defaultQueryPlan(topic: string, sources: string[], depth: string): Repo
   const intent = inferIntent(topic);
   const quickPriority: Record<string, string[]> = {
     comparison: ["reddit", "x", "hackernews", "youtube"],
-    prediction: ["polymarket", "x", "hackernews", "reddit"],
+    prediction: ["polymarket", "x", "hackernews", "reddit", "stocktwits"],
     breaking_news: ["x", "reddit", "hackernews", "youtube", "polymarket"],
     video: ["gemini_youtube", "youtube", "exa", "brave", "reddit"],
     spatial: ["gemini_maps", "openai_web", "exa", "brave", "reddit"],
@@ -108,6 +109,9 @@ export async function runResearch(options: RunOptions): Promise<Report> {
   if (config.bskyHandle && config.bskyAppPassword) availableSources.push("bluesky");
   if (config.truthsocialToken) availableSources.push("truthsocial");
   if (config.scrapecreatorsApiKey) availableSources.push("linkedin");
+
+  // StockTwits gated behind financial/crypto topic detection
+  if (isStockTwitsTopic(options.topic)) availableSources.push("stocktwits");
 
   // Jobs (opt-in via --hiring-signals)
   if (options.hiringSignals) availableSources.push("jobs");
@@ -298,6 +302,8 @@ async function searchSource(
       return (await import("./sources/health.js")).searchHealth(options.topic, from, to, depth, config);
     case "jobs":
       return (await import("./sources/jobs.js")).searchJobs(options.topic, from, to, depth, config, options.jobBoard);
+    case "stocktwits":
+      return (await import("./sources/stocktwits.js")).searchStocktwits(options.topic, from, to, depth);
     default:
       return [];
   }
@@ -309,4 +315,8 @@ function isVideoTopic(topic: string): boolean {
 
 function isSpatialTopic(topic: string): boolean {
   return /\b(near|nearby|around|where|map|maps|restaurant|restaurants|hotel|hotels|venue|venues|neighborhood|neighbourhood|in london|in nyc|in san francisco)\b/i.test(topic);
+}
+
+function isStockTwitsTopic(topic: string): boolean {
+  return /\b(stock|stocks|ticker|cashtag|equit(?:y|ies)|price target|earnings|premarket|pre-?market|after\s?hours|dividend|valuation|crypto|altcoin|defi|market cap|bullish|bearish|bitcoin|btc|ethereum|solana|dogecoin|cardano|xrp|\$[A-Za-z]{1,5})\b/i.test(topic);
 }
