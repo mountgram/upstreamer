@@ -1,6 +1,16 @@
 # Upstreamer Changelog
 
-## July 2026 Sync
+## July 2026 Sync (Incremental)
+
+Upstream added StockTwits (financial/crypto social sentiment), an enhanced Instagram Reels adapter with transcript/comment enrichment, a new four-tier health diagnostic architecture (doctor/backends/prescriptions), a hosted API client mode, and many pipeline/signals improvements including financial topic gating, Trustpilot fetch capping, and Threads/Pinterest opt-in behavior.
+
+- Added **StockTwits** source adapter for financial/crypto topics. Uses the public StockTwits API (no key required) with symbol detection, sentiment aggregation (bullish/bearish ratio), and paginated message fetching. Gated behind `isFinancialTopic()` detection so non-ticker queries never pull stock chatter. Accessible as `searchStocktwits()` via SDK import.
+- Updated **ranking** weights with StockTwits source quality (0.42) and engagement weights (likes 0.55, reshares 0.25, followers 0.20) matching upstream sentiment-weighted relevance model.
+- Added StockTwits to prediction intent priority in the query planner so ticker/crypto topics auto-include sentiment data alongside Polymarket and X results.
+- Expanded deterministic tests with StockTwits importability, financial topic gating, crypto alias resolution, and cashtag detection.
+- All upstream diagnostic infrastructure (doctor, backends, prescriptions), hosted API client mode, and Python-only pipeline changes stayed removed per contract.
+
+## July 2026 Sync (Full)
 
 Upstream added arXiv (research papers), Techmeme (tech news headlines), Trustpilot (brand sentiment) as default-on CLI-gated sources, plus LinkedIn (post search + article enrichment) as a ScrapeCreators-backed social adapter. The engine also received CJK tokenization, permission preflight, and many individual source-adapter improvements.
 

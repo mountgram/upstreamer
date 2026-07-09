@@ -134,6 +134,23 @@ describe("No-key source availability", () => {
     const mod = await import("../src/sources/digg.js");
     expect(typeof mod.searchDigg).toBe("function");
   });
+
+  it("StockTwits adapter is importable and gating works", async () => {
+    const mod = await import("../src/sources/stocktwits.js");
+    expect(typeof mod.searchStocktwits).toBe("function");
+    expect(typeof mod.isFinancialTopic).toBe("function");
+
+    const { isFinancialTopic: isFin, detectSymbolsLocal } = mod.__test__;
+
+    expect(isFin("AI news")).toBe(false);
+    expect(isFin("NVIDIA stock price")).toBe(true);
+    expect(isFin("$NOW earnings")).toBe(true);
+    expect(isFin("Bitcoin price prediction")).toBe(true);
+
+    expect(detectSymbolsLocal("Check out $AAPL")).toEqual(["AAPL"]);
+    expect(detectSymbolsLocal("bitcoin price")).toEqual(["BTC.X"]);
+    expect(detectSymbolsLocal("ethereum and solana")).toEqual(["ETH.X", "SOL.X"]);
+  });
 });
 
 describe("Key-based source adapters are importable", () => {

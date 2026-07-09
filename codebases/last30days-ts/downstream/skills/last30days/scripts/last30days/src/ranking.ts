@@ -31,6 +31,7 @@ const SOURCE_QUALITY: Record<string, number> = {
   linkedin: 0.72,
   gemini_youtube: 0.82,
   gemini_maps: 0.82,
+  stocktwits: 0.42,
 };
 
 // Engagement field weights per source
@@ -45,6 +46,7 @@ const ENGAGEMENT_WEIGHTS: Record<string, [string, number][]> = {
   github: [["stars", 0.6], ["forks", 0.2], ["watchers", 0.2]],
   jobs: [["total_jobs", 1.0]],
   health: [["score", 1.0]],
+  stocktwits: [["likes", 0.55], ["reshares", 0.25], ["followers", 0.20]],
 };
 
 const STOPWORDS = new Set([
