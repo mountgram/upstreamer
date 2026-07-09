@@ -7,7 +7,7 @@ model: deepseek/deepseek-v4-pro
 
 # Internet Search SDK Skill Rewrite Rules
 
-Last30Days TS is a **self-contained installable agent skill with a bundled Bun/TypeScript internet-discovery SDK and CLI** derived from `mvanhorn/last30days-skill`. It keeps the upstream idea - search public signals across the full upstream source set, rank them by relevance, freshness, and engagement, and produce concise cited briefs - but repackages the implementation as general-purpose TypeScript source SDKs plus clean agent-facing skill/reference markdown.
+Last30Days TS is a **self-contained installable agent skill with a bundled Bun/TypeScript world-reading source SDK** derived from `mvanhorn/last30days-skill`. It keeps the upstream insight - agents need current public signals from many places - but changes the downstream product from "ask one CLI what happened recently" into "choose the right source for the question, fetch raw evidence, then optionally process it."
 
 This conversion should produce a fresh downstream repository, not a lightly edited copy of the upstream tree. Use the upstream project as source material for behavior, source coverage, and tests, then write an idiomatic TypeScript project where every retained source can be used three ways: through a shared TypeScript import, through the orchestrated library API, and through the bundled CLI.
 
@@ -24,11 +24,13 @@ The conversion is not complete when the code merely compiles. The agent doing th
 
 ## Philosophy
 
-**Internet discovery, source SDKs, optional recency.**
+**World-reading source SDKs, raw evidence first, optional processing.**
 
 - TypeScript first: source files should be `.ts`, built with Node's current TypeScript ecosystem.
-- Sources are SDKs: each source owns its own config, availability check, search input type, result normalization, errors, and tests. A developer should be able to import and run an individual source without invoking the orchestrator or CLI.
-- Orchestration is a convenience layer: the top-level library and CLI combine source SDKs, but must not hide source-specific APIs behind one monolithic script.
+- Sources are SDKs: each source owns its own config, availability check, search input type, result normalization, errors, and tests. A developer or agent should be able to import and run an individual source without invoking the orchestrator or CLI.
+- Source choice is the core workflow: the skill should teach agents why to use each source category. Examples: use Exa/Brave/OpenAI/Serper/Parallel for web search; Ashby/Greenhouse/Lever jobs for hiring and company strategy; StockTwits/Polymarket for markets and predictions; Open-Meteo/weather for local conditions; Gemini Maps for places; YouTube/Gemini YouTube for video knowledge; browser tools for LinkedIn, Instagram, and other dynamic pages when the API path is thin.
+- Orchestration is a convenience layer: the top-level library and CLI combine source SDKs, but must not hide source-specific APIs behind one monolithic "last 30 days" script.
+- Ranking, parsing, comparison, clustering, and reranking are optional processing steps over fetched evidence. Keep them available, but document them as separate from source access so agents can request raw JSON or direct SDK results when synthesis would get in the way.
 - A global setup helper may exist, but it must be optional and should only collect environment variables for source-specific keys.
 - API keys are optional source capabilities, not prerequisites for the whole tool or the higher-level orchestration.
 - Web search must use reliable web APIs: prefer Exa via `EXA_API_KEY`, and support Brave via `BRAVE_API_KEY` as an alternative/fallback. Do not include DuckDuckGo; its unofficial scraping path is too unreliable for this downstream.
@@ -37,7 +39,7 @@ The conversion is not complete when the code merely compiles. The agent doing th
 - Keep the data model and output understandable enough for downstream users to extend.
 - Prefer real, maintained SDKs for external services when they reduce protocol guessing or make the adapter more faithful. Hand-rolled `fetch` is acceptable for simple public JSON endpoints, but not as a shortcut around well-supported provider clients.
 - Date filtering must be explicit and optional. Default to a useful recent search window when the user asks for recent/current research, but support all-time searches through `--timeframe all`, `timeframe: "all"`, or equivalent SDK options.
-- Skill and reference markdown are product surfaces. `SKILL.md` and every file under `skills/last30days/references/` must have clear YAML frontmatter, concise descriptions, and focused workflows such as comparison search, all-time search, source selection, planning, reranking, and install/setup.
+- Skill and reference markdown are product surfaces. `SKILL.md` and every file under `skills/last30days/references/` must have clear YAML frontmatter, concise descriptions, and focused workflows such as source selection, raw source access, comparison search, all-time search, planning, optional reranking, and install/setup.
 - Browser-capable research is part of the skill's judgment layer, not a bundled dependency. The downstream should teach agents when to use an available browser automation skill/tool such as agent-browser, Rotunda, or the host agent's native browser for dynamic or login-sensitive sites like LinkedIn, without installing or requiring those tools.
 - Setup docs must warn that commands usually run from inside the installed skill directory. If the host project's keys live in a repo-root `.env`, agents should explicitly source/export those variables before `cd scripts/last30days`, or copy only the needed keys into the skill package `.env`. Do not print secret values.
 
@@ -61,7 +63,8 @@ Keep these concepts, rewritten in TypeScript:
 - A source SDK contract shared by every retained source: typed search options, typed normalized results, a source-specific availability/status helper, isolated error reporting, deterministic tests, and runnable examples through both import and CLI paths.
 - A normalized evidence item shape with source, title, URL, body/snippet, author/container, published date, engagement, and relevance metadata.
 - A query plan shape with one or more subqueries and per-source selection.
-- Planning, usage, comparison-search, all-time-search, source-selection, browser-research, and reranking guidance from upstream, rewritten as textual skill/reference instructions rather than executable planner/reranker scripts.
+- A source map in the agent-facing docs that explains which source to use for common real-world needs: web/news, social/community, jobs/company strategy, stocks/markets/predictions, weather/local conditions, places/maps, health, academic/research, code/developer signals, video, and dynamic browser-only pages.
+- Planning, usage, comparison-search, all-time-search, source-selection, browser-research, raw source access, and reranking guidance from upstream, rewritten as textual skill/reference instructions rather than executable planner/reranker scripts.
 - An installable primary skill at `skills/last30days/SKILL.md` that teaches agents how to install dependencies with Bun and use the bundled CLI/library from the installed skill directory.
 - Date-window handling for recent research, plus explicit all-time search. The CLI and SDK must support both bounded lookbacks such as 7/30/90 days and unbounded search via `--timeframe all` or `timeframe: "all"`.
 - Engagement-aware ranking and source-aware deduplication.
@@ -94,6 +97,7 @@ Create TypeScript source adapters for these upstream concepts where the upstream
 - `youtube` - required adapter using the same `yt-dlp` binary approach as upstream Last30Days for YouTube search/transcripts. If `yt-dlp` is missing, skip YouTube with a clear optional-dependency warning rather than failing the whole run.
 - `gemini_youtube` - optional Gemini enrichment source enabled by `GEMINI_API_KEY`. It should combine `yt-dlp` discovery with Gemini video understanding so agents can ask questions and pull knowledge from YouTube videos, not only list video metadata. Run it for video-shaped topics or explicit source selection, not for every query.
 - `gemini_maps` - optional Gemini Google Maps grounding source enabled by `GEMINI_API_KEY`. It should handle spatial/place questions such as "what's around London?", neighborhoods, venues, restaurants, hotels, and local context. Run it for spatial-shaped topics or explicit source selection, not for every query.
+- `weather` - keyless weather/local conditions source backed by a maintained public API such as Open-Meteo. It should handle weather-shaped queries, location extraction, current conditions, short forecasts, and direct CLI/SDK use without any API key.
 - `openai_web` - optional OpenAI Responses API web-search-grounded source enabled by `OPENAI_API_KEY`. Prefer this over Perplexity/Sonar for model-grounded web search when the user has OpenAI configured.
 - `x` - optional X/Twitter source backed only by the xAI/Grok API using `XAI_API_KEY` or `GROK_API_KEY`. Use the modern xAI model `grok-4.3` for this adapter unless the user explicitly selects a newer model. Implement X and web grounding through xAI inference tools, not the older interface: call `client.responses.create(...)` with `tools` that include `{ type: "x_search" }` for X posts and `{ type: "web_search" }` when the query needs broader web grounding. Do not invent or pass legacy `search_parameters`, do not look for top-level `tool_results`, and do not use chat-completions-era tool plumbing. Request strict JSON in the prompt, parse posts and web evidence from final `output_text`, and use `usage.server_side_tool_usage_details.x_search_calls` and `web_search_calls` only as diagnostics when present. The transformed downstream output must not include logged-in Twitter, browser cookies, session auth, cookie extraction, `AUTH_TOKEN`, or `CT0` in code, docs, `.env.example`, tests, evals, or user-facing reports.
 - `tiktok`, `instagram`, `threads`, `pinterest`, `bluesky`, `truthsocial`, `xiaohongshu`, and `digg` - preserve as optional adapters when the upstream source has a clear API or command dependency.
@@ -110,6 +114,7 @@ Create TypeScript source adapters for these upstream concepts where the upstream
 - The same run must be able to mix Exa-backed web search with no-key public sources such as Reddit, Hacker News, GitHub, Polymarket, YouTube, and Digg.
 - If an internal source allowlist is needed for tests or debugging, keep it an internal/config-level mechanism rather than the main CLI contract.
 - The source SDKs should work for general internet discovery, not only for "what happened in the last 30 days" briefs.
+- Direct source access must be documented as a first-class path. The CLI may keep `source <name> <query>` for debugging, but the docs should present it as useful raw source access, not only as a maintainer diagnostic.
 
 ## API Key and Setup Simplification
 
@@ -222,7 +227,7 @@ Adapt these upstream behaviors, not necessarily their exact implementations:
 - Ranking into deterministic TypeScript functions that combine freshness, engagement, source quality, and text relevance.
 - Upstream planning and reranking prompt logic into textual references inside the installed skill directory. At minimum include `skills/last30days/references/INSTALL.md`, `planning.md`, `reranking.md`, `comparison-search.md`, `all-time-search.md`, `browser-research.md`, and `source-sdk-guide.md`. These files should instruct an agent or developer how to form subqueries, choose useful source emphasis, search all-time versus recent windows, run comparison searches, decide when browser automation is appropriate, import individual source SDKs, judge relevance, and resolve ties. They should not call model APIs, require provider keys, or be implemented as scripts.
 - Browser research guidance into `skills/last30days/references/browser-research.md`. This must explain that browser automation is optional and external, useful for pages that are dynamic, rate-limited, personalized, require visible UI context, or need exact source verification. It should name examples such as LinkedIn profiles/posts, X pages that need visual verification, public company pages, review sites, and search-result pages where APIs are insufficient. It must explicitly say not to install agent-browser, Rotunda, Playwright, or other browser stacks as part of this skill; use them only when the host environment already provides them or the user asks for that workflow.
-- The upstream user-facing Last30Days behavior into `skills/last30days/SKILL.md`. This skill must be useful after installing it into another project: it should explain triggers, Bun setup, bundled CLI invocation, source availability, `.env.example`, eval commands, output interpretation, and when to cite/run the tool before answering.
+- The upstream user-facing Last30Days behavior into `skills/last30days/SKILL.md`, but adapt it around source access rather than a single recent-brief workflow. This skill must be useful after installing it into another project: it should explain triggers, Bun setup, bundled CLI invocation, direct source commands, source availability, `.env.example`, eval commands, output interpretation, browser companions, optional processing/reranking, and when to cite/run the tool before answering.
 - `SKILL.md` and `references/INSTALL.md` must explicitly mention repo-root `.env` handling because installed skill commands may execute from `.agents/skills/last30days/scripts/last30days/` instead of the host repo root. Include a safe `set -a; source .env; set +a` example and warn not to print secrets.
 - `SKILL.md`, `references/INSTALL.md`, and `references/source-sdk-guide.md` should encourage writing small one-off TypeScript/JavaScript scripts for custom parsing, source joins, output shaping, source manifests, and bespoke research workflows. These scripts should import the bundled SDK and run with Bun from `scripts/last30days/`; generated scratch outputs should stay out of commits unless intentionally retained.
 - Markdown rendering into a compact, citation-preserving output. Avoid the upstream's very large prompt-law contract.
@@ -313,6 +318,7 @@ The downstream README must include:
 - CLI examples using `bun run last30days -- ...`, including Exa-backed web search usage, a run that mixes Exa with available public/social adapters, an all-time search example, and a comparison-search example.
 - Import examples using the public SDK, including one orchestrated `searchInternet()` example and one direct source SDK example such as `searchExa()` or `searchHackerNews()`.
 - A source matrix showing which sources need keys.
+- A source-purpose guide showing why an agent would choose each source group, including weather, jobs, stocks/markets, web search, social/community, health, places, video, academic, and browser-only/dynamic sources.
 - The exact supported environment variables.
 - A `.env.example` section explaining how to copy the installed skill's env example to `.env` for local evals without making any key globally required.
 - A setup section explaining both direct environment-variable configuration and the optional setup helper.
@@ -338,6 +344,7 @@ Before finishing a conversion run, verify:
 - There is at least one TypeScript file under `skills/last30days/scripts/last30days/src/`.
 - Exa is documented and implemented as the preferred reliable web search source.
 - Brave is documented and implemented as an alternative/fallback reliable web search source.
+- Weather is documented and implemented as a keyless current/weather forecast source.
 - `EXA_API_KEY` controls only the Exa web search source.
 - DuckDuckGo is not present in runtime code, README, skills, tests, or package dependencies.
 - The README does not present any required primary API key.
@@ -346,7 +353,7 @@ Before finishing a conversion run, verify:
 - The public TypeScript SDK exports `searchInternet()` and direct source search APIs or documented equivalent source entrypoints.
 - YouTube is implemented through `yt-dlp` as an optional local binary dependency for that source.
 - The setup helper is optional and environment-variable based.
-- Planning, comparison search, all-time search, browser research, source SDK guidance, and reranking are represented as textual files inside `skills/last30days/`, not scripts or model-provider API calls.
+- Planning, comparison search, all-time search, browser research, source SDK guidance, raw source access guidance, and reranking are represented as textual files inside `skills/last30days/`, not scripts or model-provider API calls.
 - Browser research guidance is present and clearly states when to use available browser automation for sources such as LinkedIn without bundling browser dependencies into the skill.
 - `skills/last30days/SKILL.md` exists, is agent-facing, references `references/INSTALL.md`, and gives practical instructions for running `bun install`, `bun run setup`, and `bun run last30days -- ...` from `scripts/last30days/`.
 - `upstreamer-changelog.md` exists and describes user-facing downstream changes without commit hashes, `.upstreamer/state.yaml`, verifier internals, or sync bookkeeping.

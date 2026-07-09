@@ -21,7 +21,9 @@ export const searchInternet = runResearch;
 export { searchOpenAIWeb } from "./sources/openai_web.js";
 export { searchGeminiYouTube } from "./sources/gemini_youtube.js";
 export { searchGeminiMaps } from "./sources/gemini_maps.js";
+export { searchWeather } from "./sources/weather.js";
 export { searchStocktwits, isFinancialTopic } from "./sources/stocktwits.js";
+export { searchXiaohongshu } from "./sources/xiaohongshu.js";
 export type { Report, RunOptions, Candidate, SourceItem, Cluster, SubQuery, QueryPlan } from "./schema.js";
 
 function generateId(): string {
@@ -31,6 +33,7 @@ function generateId(): string {
 function inferIntent(topic: string): string {
   const text = topic.toLowerCase();
   if (/\b(vs|versus|compare|compared to|difference between)\b/.test(text)) return "comparison";
+  if (/\b(weather|temperature|forecast|rain|snow|wind|humidity|air quality|conditions)\b/.test(text)) return "weather";
   if (/\b(odds|predict|prediction|forecast|chance|probability|will .* win)\b/.test(text)) return "prediction";
   if (/\b(youtube|video|videos|podcast|interview|talk|lecture|demo|tutorial)\b/.test(text)) return "video";
   if (/\b(near|nearby|around|where|map|maps|restaurant|restaurants|hotel|hotels|venue|venues|neighborhood|neighbourhood|in london|in nyc|in san francisco)\b/.test(text)) return "spatial";
@@ -46,14 +49,17 @@ function defaultQueryPlan(topic: string, sources: string[], depth: string): Repo
     comparison: ["reddit", "x", "hackernews", "youtube"],
     prediction: ["polymarket", "x", "hackernews", "reddit", "stocktwits"],
     breaking_news: ["x", "reddit", "hackernews", "youtube", "polymarket"],
+    weather: ["weather", "gemini_maps", "openai_web", "exa", "brave"],
     video: ["gemini_youtube", "youtube", "exa", "brave", "reddit"],
     spatial: ["gemini_maps", "openai_web", "exa", "brave", "reddit"],
     how_to: ["exa", "brave", "youtube", "reddit", "hackernews"],
     product: ["exa", "brave", "hackernews", "youtube", "reddit", "github", "x", "tiktok"],
     concept: ["exa", "brave", "hackernews", "youtube", "reddit"],
   };
-  const selected = depth === "quick"
-    ? (quickPriority[intent] || quickPriority.concept).filter((source) => sources.includes(source)).slice(0, 3)
+  const priority = quickPriority[intent] || quickPriority.concept;
+  const shouldUseFocusedSources = depth === "quick" || intent === "weather";
+  const selected = shouldUseFocusedSources
+    ? priority.filter((source) => sources.includes(source)).slice(0, depth === "deep" ? priority.length : 3)
     : sources;
   const runSources = selected.length ? selected : sources;
   return {
@@ -84,9 +90,10 @@ export async function runResearch(options: RunOptions): Promise<Report> {
   const wantsSource = (name: string) => options.includeSources?.includes(name) ?? false;
   const videoTopic = isVideoTopic(options.topic);
   const spatialTopic = isSpatialTopic(options.topic);
+  const weatherTopic = isWeatherTopic(options.topic);
 
   // Always available (no-key)
-  availableSources.push("reddit", "hackernews", "polymarket", "github", "health");
+  availableSources.push("reddit", "hackernews", "polymarket", "github", "health", "weather");
 
   // CLI-based sources (require optional binaries)
   availableSources.push("digg", "youtube", "arxiv", "techmeme");
@@ -102,7 +109,7 @@ export async function runResearch(options: RunOptions): Promise<Report> {
   if (config.xaiApiKey) availableSources.push("x");
   if (config.openrouterApiKey && (options.webBackend === "perplexity" || wantsSource("perplexity"))) availableSources.push("perplexity");
   if (config.geminiApiKey && (wantsSource("gemini_youtube") || videoTopic)) availableSources.push("gemini_youtube");
-  if (config.geminiApiKey && (wantsSource("gemini_maps") || spatialTopic)) availableSources.push("gemini_maps");
+  if (config.geminiApiKey && (wantsSource("gemini_maps") || spatialTopic || weatherTopic)) availableSources.push("gemini_maps");
   if (config.scrapecreatorsApiKey) {
     availableSources.push("tiktok", "instagram", "threads", "pinterest");
   }
@@ -110,11 +117,14 @@ export async function runResearch(options: RunOptions): Promise<Report> {
   if (config.truthsocialToken) availableSources.push("truthsocial");
   if (config.scrapecreatorsApiKey) availableSources.push("linkedin");
 
+  // Xiaohongshu (requires XIAOHONGSHU_API_URL or APIFY_API_TOKEN)
+  if (config.apifyApiToken || process.env.XIAOHONGSHU_API_URL) availableSources.push("xiaohongshu");
+
   // StockTwits gated behind financial/crypto topic detection
   if (isStockTwitsTopic(options.topic)) availableSources.push("stocktwits");
 
   // Jobs (opt-in via --hiring-signals)
-  if (options.hiringSignals) availableSources.push("jobs");
+  if (options.hiringSignals || wantsSource("jobs")) availableSources.push("jobs");
 
   // Filter by includeSources if specified
   const eligibleSources = options.includeSources
@@ -300,10 +310,14 @@ async function searchSource(
       return (await import("./sources/linkedin.js")).searchLinkedIn(options.topic, from, to, depth, config);
     case "health":
       return (await import("./sources/health.js")).searchHealth(options.topic, from, to, depth, config);
+    case "weather":
+      return (await import("./sources/weather.js")).searchWeather(options.topic, from, to, depth);
     case "jobs":
       return (await import("./sources/jobs.js")).searchJobs(options.topic, from, to, depth, config, options.jobBoard);
     case "stocktwits":
       return (await import("./sources/stocktwits.js")).searchStocktwits(options.topic, from, to, depth);
+    case "xiaohongshu":
+      return (await import("./sources/xiaohongshu.js")).searchXiaohongshu(options.topic, from, to, depth, config);
     default:
       return [];
   }
@@ -315,6 +329,10 @@ function isVideoTopic(topic: string): boolean {
 
 function isSpatialTopic(topic: string): boolean {
   return /\b(near|nearby|around|where|map|maps|restaurant|restaurants|hotel|hotels|venue|venues|neighborhood|neighbourhood|in london|in nyc|in san francisco)\b/i.test(topic);
+}
+
+function isWeatherTopic(topic: string): boolean {
+  return /\b(weather|temperature|forecast|rain|snow|wind|humidity|air quality|conditions)\b/i.test(topic);
 }
 
 function isStockTwitsTopic(topic: string): boolean {

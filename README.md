@@ -60,14 +60,14 @@ npx skills add mountgram/upstreamer/codebases/tstack/downstream --skill '*'
 npx skills add mountgram/upstreamer/codebases/last30days-ts/downstream --skill last30days
 ```
 
-Use `tstack` when you want portable review, QA, design, security, shipping, and planning workflows. Use `last30days` when you want an agent to install a self-contained internet-discovery skill with bundled Bun/TypeScript search SDKs, a CLI, frontmatter-formatted references, OpenAI/Gemini grounding options, and guidance for using optional browser tools on dynamic sources like LinkedIn.
+Use `tstack` when you want portable review, QA, design, security, shipping, and planning workflows. Use `last30days` when you want an agent to install a self-contained current-world source skill with bundled Bun/TypeScript source SDKs, direct source CLI access, frontmatter-formatted references, web/news/jobs/markets/weather/maps/video guidance, OpenAI/Gemini grounding options, and guidance for using optional browser tools on dynamic sources like LinkedIn or Instagram.
 
 ## Current Examples
 
 | Codebase | Upstream | Downstream purpose |
 | --- | --- | --- |
 | [`tstack`](codebases/tstack/upstreamer.md) | [`garrytan/gstack`](https://github.com/garrytan/gstack) | A pure-markdown agent skills collection with helper scripts, telemetry, binaries, and package infrastructure removed. |
-| [`last30days-ts`](codebases/last30days-ts/upstreamer.md) | [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill) | A self-contained internet-search SDK skill with bundled Bun/TypeScript source adapters, CLI/import usage, optional recency/all-time search, browser-research guidance for dynamic sources, DuckDuckGo removed, Exa/Brave/OpenAI web search, xAI X search, and Gemini YouTube/Maps grounding. |
+| [`last30days-ts`](codebases/last30days-ts/upstreamer.md) | [`mvanhorn/last30days-skill`](https://github.com/mvanhorn/last30days-skill) | A self-contained current-world source SDK skill with bundled Bun/TypeScript source adapters, direct source CLI/import usage, optional recency/all-time search, browser-research guidance for dynamic sources, DuckDuckGo removed, Exa/Brave/OpenAI web search, xAI X search, Open-Meteo weather, jobs/markets guidance, and Gemini YouTube/Maps grounding. |
 
 ## What Can You Rewrite?
 

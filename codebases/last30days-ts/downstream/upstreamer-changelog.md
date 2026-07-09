@@ -2,15 +2,19 @@
 
 ## July 2026 Sync (Incremental)
 
-Upstream added StockTwits (financial/crypto social sentiment), an enhanced Instagram Reels adapter with transcript/comment enrichment, a new four-tier health diagnostic architecture (doctor/backends/prescriptions), a hosted API client mode, and many pipeline/signals improvements including financial topic gating, Trustpilot fetch capping, and Threads/Pinterest opt-in behavior.
+Upstream HEAD advanced to include arXiv, Techmeme, Trustpilot, and LinkedIn sources; Reddit free-discovery and arctic-shift improvements; renderer-aware citations fix; LinkedIn ScrapeCreators integration; and infrastructure/non-portable changes (plugin packaging, CI, Codex auth pruning, cookie extraction). The downstream already had arXiv, Techmeme, Trustpilot, and LinkedIn adapters from prior runs. This sync delivered contract-compliance fixes and a new xiaohongshu adapter.
 
-- Added **StockTwits** source adapter for financial/crypto topics. Uses the public StockTwits API (no key required) with symbol detection, sentiment aggregation (bullish/bearish ratio), and paginated message fetching. Gated behind `isFinancialTopic()` detection so non-ticker queries never pull stock chatter. Accessible as `searchStocktwits()` via SDK import.
-- Updated **ranking** weights with StockTwits source quality (0.42) and engagement weights (likes 0.55, reshares 0.25, followers 0.20) matching upstream sentiment-weighted relevance model.
-- Added StockTwits to prediction intent priority in the query planner so ticker/crypto topics auto-include sentiment data alongside Polymarket and X results.
-- Expanded deterministic tests with StockTwits importability, financial topic gating, crypto alias resolution, and cashtag detection.
-- All upstream diagnostic infrastructure (doctor, backends, prescriptions), hosted API client mode, and Python-only pipeline changes stayed removed per contract.
+- Added **Xiaohongshu** (RED) source adapter via the `xpzouying/xiaohongshu-mcp` REST API. Supports Chinese count suffixes (万/亿), engagement-weighted relevance scoring, and login-status precheck. Requires `XIAOHONGSHU_API_URL` or `APIFY_API_TOKEN`. Accessible as `searchXiaohongshu()` via SDK import.
+- Updated **X/Twitter** source to use both `x_search` and `web_search` tools in the xAI/Grok Responses API, enabling broader web grounding alongside X post search as required by the contract.
+- Fixed a **CLI bug** where `--timeframe all` was ignored when an explicit `--lookback` wasn't passed. Now all-time search correctly activates the SDK's 3650-day default, producing results spanning the full window rather than only 30 days.
+- Added **all-time search eval** to the live eval suite, verifying that `--timeframe all` produces a 3650-day date span with real cited results.
+- Added **deterministic tests** for the xAI/X adapter covering JSON parsing, date normalization, output text extraction, status ID extraction, and keyless-behavior.
+- Fixed **Perplexity source label** in rendered output from generic "Web" to "Perplexity" so users can distinguish Perplexity-sourced results from other web search providers.
+- All live evals pass: web search (Exa), JSON output, all-time search, X/Twitter (xAI), and Brave produce well-structured cited results. Perplexity/Sonar remains an expensive opt-in source; its eval warns when the underlying provider returns no inspectable items.
 
 ## July 2026 Sync (Full)
+
+Upstream added arXiv (research papers), Techmeme (tech news headlines), Trustpilot (brand sentiment) as default-on CLI-gated sources, plus LinkedIn (post search + article enrichment) as a ScrapeCreators-backed social adapter. The engine also received CJK tokenization, permission preflight, and many individual source-adapter improvements.
 
 Upstream added arXiv (research papers), Techmeme (tech news headlines), Trustpilot (brand sentiment) as default-on CLI-gated sources, plus LinkedIn (post search + article enrichment) as a ScrapeCreators-backed social adapter. The engine also received CJK tokenization, permission preflight, and many individual source-adapter improvements.
 
@@ -23,7 +27,10 @@ Upstream added arXiv (research papers), Techmeme (tech news headlines), Trustpil
 - Added **Gemini YouTube** and **Gemini Maps** source adapters. Gemini YouTube combines `yt-dlp` discovery with Gemini video understanding; Gemini Maps handles spatial/place questions such as "what's around London?" through Maps grounding.
 - Updated `.env.example` with Trustpilot opt-out variable, OpenAI/Gemini keys, CLI binary path notes for printing-press-library tools, and LinkedIn under ScrapeCreators. Setup docs now call out explicitly loading a repo-root `.env` before running commands from the installed skill directory.
 - Updated source quality weights in ranking to match downstream source priorities: arXiv 0.90, Techmeme 0.85, Trustpilot 0.78, LinkedIn 0.72, OpenAI Web 0.86, Gemini YouTube/Maps 0.82, and Perplexity/Sonar downweighted to 0.72 because it is expensive opt-in.
-- Expanded source count to 28 source adapters/utilities (Exa, Brave, OpenAI Web, Serper, Parallel, Reddit, Hacker News, GitHub, Polymarket, X/Grok, YouTube, Gemini YouTube, Gemini Maps, Perplexity, TikTok, Instagram, Threads, Pinterest, LinkedIn, Bluesky, Truth Social, Digg, arXiv, Techmeme, Trustpilot, Health, Jobs, and keyless web fetch support).
+- Expanded source coverage across web search, OpenAI Web, Serper, Parallel, Reddit, Hacker News, GitHub, Polymarket, X/Grok, YouTube, Gemini YouTube, Gemini Maps, Perplexity, TikTok, Instagram, Threads, Pinterest, LinkedIn, Bluesky, Truth Social, Digg, arXiv, Techmeme, Trustpilot, Health, Jobs, Weather, and keyless web fetch support.
+- Reoriented the installed skill around source access first: agents now get a source map for web/news, social/community, jobs, stocks/markets, weather, maps, video, health, research, and browser-backed dynamic pages before reaching for the combined brief workflow.
+- Added a keyless Weather source backed by Open-Meteo, with direct CLI/SDK access for current conditions and short forecasts.
+- Clarified that ranking, reranking, clustering, parsing, and Markdown synthesis are optional processing layers over fetched evidence rather than the only way to use the skill.
 
 ## June 2026 Sync
 

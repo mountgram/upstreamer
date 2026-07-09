@@ -134,6 +134,11 @@ describe("No-key source availability", () => {
     expect(typeof mod.searchYouTube).toBe("function");
   });
 
+  it("Weather adapter is importable", async () => {
+    const mod = await import("../src/sources/weather.js");
+    expect(typeof mod.searchWeather).toBe("function");
+  });
+
   it("Digg adapter is importable", async () => {
     const mod = await import("../src/sources/digg.js");
     expect(typeof mod.searchDigg).toBe("function");

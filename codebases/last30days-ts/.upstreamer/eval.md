@@ -4,7 +4,7 @@ Run this eval after mechanical verification passes. Use a fresh review context o
 
 ## Goal
 
-Judge whether the generated Last30Days TS downstream is a useful TypeScript internet-search SDK and CLI that preserves the upstream promise: public-signal research across multiple optional sources, source-aware ranking, citations, and concise briefs without all-or-nothing setup. The downstream may default to recent research, but it must also support all-time searches and direct source SDK imports.
+Judge whether the generated Last30Days TS downstream is a useful TypeScript world-reading source SDK and CLI that preserves the upstream promise: public-signal research across multiple optional sources, source-aware ranking, citations, and concise briefs without all-or-nothing setup. The downstream may default to recent research, but it must also support all-time searches, direct source SDK imports, direct source CLI access, and source-purpose guidance for agents that need raw current-world evidence.
 
 This is not a shell-script check. It is a product and behavior eval for a busy engineer deciding whether the conversion is good enough to ship.
 
@@ -35,6 +35,9 @@ The downstream should satisfy these product-level requirements:
 - Source coverage reflects the upstream surface where practical, with explicit deferrals where a source cannot be reasonably ported.
 - The TypeScript library API is usable without shelling out and exposes structured results.
 - Every retained source is presented as a usable TypeScript source SDK with typed options/results, source availability/status behavior, tests, and either public exports or documented import paths.
+- The installable skill teaches agents how to choose sources by need: web search, news/community, jobs/company strategy, stocks/markets/predictions, weather/local conditions, places/maps, video, health, academic/research, code/developer signals, and dynamic browser-only pages.
+- Weather is implemented and documented as a keyless source for current conditions and short forecasts, not treated as a generic web search query.
+- Ranking, reranking, clustering, parsing, and Markdown brief generation are presented as optional processing over fetched evidence. Direct source access remains first-class for raw evidence.
 - The CLI and SDK support `timeframe: "all"` or `--timeframe all` and do not claim all results are from the last 30 days when all-time search is selected.
 - The CLI output is concise, cited, recent, and readable.
 - All-time output is concise, cited, timeframe-accurate, and readable.
@@ -44,6 +47,7 @@ The downstream should satisfy these product-level requirements:
 - `SKILL.md` and every `references/*.md` file has YAML frontmatter with a useful description. References include practical docs for install/setup, planning, reranking, comparison search, all-time search, and source SDK usage.
 - Browser research guidance is present as frontmatter-formatted markdown. It explains when to use available browser automation for dynamic or identity-sensitive sources such as LinkedIn, X pages, company pages, review sites, and source verification, while making clear that browser tools are optional companions and not bundled dependencies.
 - OpenAI web grounding and Gemini YouTube/Maps grounding are documented as optional source SDKs. Perplexity/Sonar is documented and implemented as expensive opt-in, not a default source merely because `OPENROUTER_API_KEY` exists.
+- Direct source commands such as `source exa`, `source hackernews`, `source weather`, and source-specific TypeScript imports are documented as useful user workflows, not only maintainer debugging paths.
 - Setup docs explain repo-root `.env` handling for installed skill commands, and the SDK docs encourage one-off TypeScript/JavaScript scripts for custom parsing and output shaping.
 - Python runtime, plugin packaging, logged-in Twitter/session-cookie auth, and provider upsell flows stay removed.
 - Live eval outputs are inspected for actual usefulness, not treated as passing just because a command exited successfully.
@@ -56,6 +60,7 @@ Return `FAIL` if any of these are true:
 - A missing optional key or local tool can fail the whole pipeline instead of skipping its adapter.
 - The README or skill implies a global required API key.
 - The package is only a CLI script and does not expose usable SDK imports for orchestration and retained sources.
+- The package makes the single orchestrated CLI the only practical interface and fails to document direct source access for agents.
 - All-time search is absent, ignored, or still described as "last 30 days" in outputs.
 - Source adapters are stubs that return placeholders rather than real or testable source items.
 - `SKILL.md` or reference markdown lacks frontmatter, or expected references such as comparison search, all-time search, and source SDK guidance are missing.
@@ -83,10 +88,11 @@ Review these closely:
 
 - `skills/last30days/scripts/last30days/package.json`, `src/index.ts`, and `src/cli.ts`: package exports, orchestration, source availability, failure isolation, timeframe/all-time handling, JSON/Markdown output, and library API shape.
 - `skills/last30days/scripts/last30days/src/sources/`: adapters should be independently importable optional source SDKs and should not contain placeholder-only behavior for claimed support.
+- `skills/last30days/scripts/last30days/src/sources/weather.ts`: weather should be a real keyless source backed by a public weather API such as Open-Meteo.
 - `skills/last30days/scripts/last30days/src/sources/x.ts`: X/Twitter support must use xAI/Grok-style API keys only, must use `x_search` and `web_search` as Responses API tools where appropriate, and must not mention or depend on logged-in Twitter cookies, `AUTH_TOKEN`, or `CT0`.
 - `skills/last30days/scripts/last30days/src/sources/openai_web.ts`, `gemini_youtube.ts`, `gemini_maps.ts`, and `perplexity.ts`: OpenAI/Gemini should be optional source SDKs; Perplexity/Sonar should be opt-in only and clearly documented as expensive.
 - `skills/last30days/scripts/last30days/src/sources/reddit.ts`, `github.ts`, `digg.ts`, `youtube.ts`, and web-search adapters: these should preserve meaningful upstream source behavior where practical.
-- `skills/last30days/SKILL.md`: should teach another agent when to use the tool, run `bun install`, run bundled command examples, understand source warnings, run eval commands, and cite output.
+- `skills/last30days/SKILL.md`: should teach another agent when to use the tool, how to choose source groups by need, run `bun install`, run bundled direct-source and orchestrated command examples, understand source warnings, run eval commands, and cite output.
 - `skills/last30days/references/*.md`: should have YAML frontmatter and practical references for install/setup, planning, reranking, comparison search, all-time search, browser research, and source SDK usage.
 - `README.md` and `skills/last30days/.env.example`: should make Exa/Brave web search setup obvious and keep other keys optional and source-scoped.
 - `eval/run.ts` and root `eval-output/`: should prove the tool produces recent and all-time cited, source-diverse, non-placeholder output without bundling eval code or artifacts into the installed skill.

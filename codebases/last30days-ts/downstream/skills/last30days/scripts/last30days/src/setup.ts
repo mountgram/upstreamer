@@ -48,6 +48,7 @@ export function diagnose(): SourceStatus[] {
   results.push({ source: "techmeme", available: hasTechmeme, key: null, method: "techmeme-pp-cli binary" });
   results.push({ source: "trustpilot", available: hasTrustpilot, key: null, method: "trustpilot-pp-cli binary (auto for brand topics)" });
   results.push({ source: "health", available: true, key: null, method: "MedlinePlus/NIH public API" });
+  results.push({ source: "weather", available: true, key: null, method: "Open-Meteo geocoding and forecast APIs" });
   results.push({ source: "jobs", available: true, key: null, method: "public ATS APIs (Greenhouse, Lever, Ashby)" });
 
   return results;

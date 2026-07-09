@@ -58,7 +58,7 @@ export async function searchX(
       model: "grok-4.3",
       input: q,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tools: [{ type: "x_search" } as any],
+      tools: [{ type: "x_search" } as any, { type: "web_search" } as any],
       max_output_tokens: 1800,
     });
 

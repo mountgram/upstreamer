@@ -5,7 +5,21 @@ description: How to import and use individual source SDKs from Last30Days TS wit
 
 # Source SDK Guide
 
-Every retained source in Last30Days TS is importable as a standalone TypeScript SDK. You can use individual sources directly in your own TypeScript code without running the orchestrator or CLI.
+Every retained source in Last30Days TS is importable as a standalone TypeScript SDK. Use individual sources directly when an agent needs raw current-world evidence instead of a combined brief.
+
+## Pick Sources By Job
+
+| Job | Useful Sources |
+|-----|----------------|
+| General web/news | `exa`, `brave`, `serper`, `openai_web`, `parallel`, `techmeme`, `digg` |
+| Social/community reaction | `reddit`, `hackernews`, `x`, `bluesky`, `threads`, `tiktok`, `instagram`, `linkedin` |
+| Jobs and company direction | `jobs` for Greenhouse, Lever, and Ashby boards |
+| Stocks, crypto, predictions | `stocktwits`, `polymarket`, plus web search for context |
+| Weather and local conditions | `weather` |
+| Places and local discovery | `gemini_maps`, browser verification for exact venue pages |
+| Video content | `youtube`, `gemini_youtube` |
+| Health, research, code | `health`, `arxiv`, `github`, `hackernews` |
+| Dynamic pages | Use a browser companion for LinkedIn, Instagram, X, public company pages, and reviews when exact visible evidence matters |
 
 ## Importing Individual Source SDKs
 
@@ -15,6 +29,7 @@ Each source adapter lives under `sources/<name>.ts` and exports a search functio
 import { searchExa } from "last30days-skill/sources/exa";
 import { searchHackerNews } from "last30days-skill/sources/hackernews";
 import { searchReddit } from "last30days-skill/sources/reddit";
+import { searchWeather } from "last30days-skill/sources/weather";
 ```
 
 ## Public SDK Exports
@@ -171,6 +186,20 @@ for (const item of items) {
 }
 ```
 
+### Weather (keyless Open-Meteo)
+
+Use this for current conditions and short forecasts. It is not a social/news source and does not require an API key.
+
+```typescript
+import { searchWeather } from "last30days-skill/sources/weather";
+
+const items = await searchWeather("weather in Copenhagen tomorrow", "", "", "quick");
+
+for (const item of items) {
+  console.log(`${item.title}: ${item.snippet}`);
+}
+```
+
 ### Polymarket (public API)
 
 ```typescript
@@ -194,7 +223,7 @@ const config = getConfig();
 const available: string[] = [];
 
 // Always available
-available.push("reddit", "hackernews", "polymarket", "github", "health");
+available.push("reddit", "hackernews", "polymarket", "github", "health", "weather");
 
 // Key-based
 if (config.exaApiKey) available.push("exa");
@@ -207,15 +236,16 @@ console.log("Available sources:", available.join(", "));
 
 ## Direct Source CLI
 
-Each source can also be run via the CLI for debugging:
+Each source can also be run via the CLI for raw evidence or quick checks:
 
 ```bash
 bun run src/cli.ts -- source exa "React Server Components"
 bun run src/cli.ts -- source hackernews "Claude Code"
 bun run src/cli.ts -- source reddit "OpenAI"
+bun run src/cli.ts -- source weather "weather in Tokyo tomorrow"
 ```
 
-This calls the source SDK directly without the orchestrator, useful for testing a single adapter.
+This restricts the run to one source. It still normalizes into the shared evidence shape, but it avoids the broad multi-source plan.
 
 ## One-Off Analysis Scripts
 

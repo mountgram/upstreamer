@@ -23,7 +23,7 @@ Then use a browser to verify or deepen the specific leads that matter.
 ## Use a Browser When
 
 - A page is dynamic, lazy-loaded, or requires client-side navigation.
-- The source requires visible UI context, such as a LinkedIn profile, company page, or post thread.
+- The source requires visible UI context, such as a LinkedIn profile, Instagram post, TikTok page, company page, or post thread.
 - You need exact quoted text, screenshots, visible author identity, timestamps, reactions, or page layout.
 - The API result has only a title/snippet but the final answer depends on details from the page.
 - Search results need manual filtering, sorting, pagination, or disambiguation.
@@ -32,6 +32,7 @@ Then use a browser to verify or deepen the specific leads that matter.
 ## Good Browser Targets
 
 - LinkedIn profiles, posts, company pages, and job pages.
+- Instagram profiles/posts, TikTok creator pages, and other social surfaces where API snippets miss visible context.
 - X posts or threads when exact post text, visual context, or screenshots matter.
 - Company pricing pages, docs, changelogs, status pages, and launch pages.
 - Review sites and marketplaces where sorting, filters, and pagination shape the evidence.
@@ -60,6 +61,15 @@ For LinkedIn-heavy research:
 2. If results are thin, stale, or identity-sensitive, use an available browser tool to inspect the public profile/post/company page.
 3. Prefer public, visible facts: headline, company, role, post text, date, link, and visible engagement.
 4. Do not claim private profile details, hidden comments, or logged-in-only information unless the user explicitly provided access and asked for that review.
+
+## Instagram/TikTok Pattern
+
+For creator, brand, or post research where the API path is incomplete:
+
+1. Use ScrapeCreators-backed adapters when `SCRAPECREATORS_API_KEY` is available.
+2. If the result depends on visuals, visible captions, story-like context, comments, or profile identity, use an available browser tool.
+3. Record only visible public facts unless the user explicitly authorized a logged-in review.
+4. Keep screenshots or visual observations separate from structured SDK evidence.
 
 ## Output Format
 

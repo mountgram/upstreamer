@@ -24,6 +24,7 @@ const SOURCE_QUALITY: Record<string, number> = {
   pinterest: 0.25,
   digg: 0.30,
   health: 0.55,
+  weather: 0.76,
   jobs: 0.72,
   arxiv: 0.90,
   techmeme: 0.85,

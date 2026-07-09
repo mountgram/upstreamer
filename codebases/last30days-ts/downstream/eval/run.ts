@@ -207,6 +207,61 @@ async function runEvals(): Promise<void> {
     artifacts: [join(jsonDir, "output.json"), join(jsonDir, "judgment.md")],
   });
 
+  // --- All-time search eval ---
+  console.log("\n=== All-Time Search Eval ===\n");
+  const allTimeTopic = "Einstein relativity";
+  const cliAllTime = baselineSource
+    ? runCli([allTimeTopic, "--timeframe", "all", "--format", "json", "--depth", "quick", "--include-sources", baselineSource], webSearchEnv)
+    : { stdout: "", stderr: "Missing EXA_API_KEY or BRAVE_API_KEY", exitCode: 1 };
+
+  const allTimeDir = join(EVAL_OUTPUT_DIR, `all-time-${timestamp}`);
+  ensureDir(allTimeDir);
+  writeFileSync(join(allTimeDir, "output.json"), cliAllTime.stdout);
+  writeFileSync(join(allTimeDir, "stderr.txt"), cliAllTime.stderr);
+
+  let allTimePassed = false;
+  let allTimeWarnings: string[] = [];
+  let allTimeJudgment = "FAIL: No output produced";
+  if (cliAllTime.stdout.trim()) {
+    try {
+      const parsed = JSON.parse(cliAllTime.stdout) as { range_from?: string; range_to?: string };
+      const fromDate = parsed.range_from ? new Date(parsed.range_from) : null;
+      const toDate = parsed.range_to ? new Date(parsed.range_to) : null;
+      if (fromDate && toDate) {
+        const spanDays = (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24);
+        if (spanDays > 365) {
+          allTimePassed = true;
+          allTimeJudgment = `PASS: All-time search span is ${Math.round(spanDays)} days (range: ${parsed.range_from} to ${parsed.range_to})`;
+        } else {
+          allTimeWarnings.push(`All-time search only covered ${Math.round(spanDays)} days — expected >365`);
+          allTimeJudgment = `FAIL: All-time search span too narrow (${Math.round(spanDays)} days)`;
+        }
+      } else {
+        allTimeWarnings.push("Could not parse range_from/range_to from JSON output");
+        allTimeJudgment = "WARN: Could not verify all-time date range";
+        allTimePassed = true;
+      }
+    } catch {
+      allTimeWarnings.push("Output is not valid JSON");
+      allTimeJudgment = "FAIL: JSON output could not be parsed";
+    }
+  }
+  writeFileSync(join(allTimeDir, "judgment.md"), `# Eval Judgment: All-Time Search\n\n**Topic:** ${allTimeTopic}\n**Passed:** ${allTimePassed}\n\n## Judgment\n${allTimeJudgment}\n\n## Command\n\`bun run last30days -- "${allTimeTopic}" --timeframe all --format json --depth quick --include-sources ${baselineSource || "exa"}\`\n`);
+
+  results.push({
+    name: "all-time-search",
+    topic: allTimeTopic,
+    passed: allTimePassed,
+    skipped: false,
+    exitCode: cliAllTime.exitCode,
+    warnings: allTimeWarnings,
+    outputSnippet: cliAllTime.stdout.slice(0, 500),
+    judgment: allTimeJudgment,
+    artifacts: [join(allTimeDir, "output.json"), join(allTimeDir, "judgment.md")],
+  });
+
+  console.log(`  All-time search eval: ${allTimePassed ? "PASS" : "FAIL"}`);
+
   // --- Keyed evals (skip if credentials missing) ---
   if (!isOffline) {
     // X eval

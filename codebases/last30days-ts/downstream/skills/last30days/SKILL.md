@@ -1,30 +1,34 @@
 ---
 name: last30days
-description: Research what people say about any topic across Reddit, HN, X, YouTube, TikTok, GitHub, Polymarket, Digg, arXiv, Techmeme, Trustpilot, LinkedIn, and the web. Includes a bundled Bun/TypeScript CLI with per-source SDK imports.
+description: Reach out to current-world sources from an agent: web search, news/community signals, jobs, stocks/markets, weather, maps, video, health, academic papers, and dynamic pages. Includes a bundled Bun/TypeScript CLI with direct per-source SDK imports.
 triggers:
   - /last30days
   - research last 30 days
   - what are people saying about
   - recent discussion on
   - search social media for
+  - get current weather
+  - find current world sources
 ---
 
 # Last30Days TS
 
-Research any topic across social media, developer communities, prediction markets, web news, academic papers, brand sentiment, professional posts, YouTube videos, maps/place context, and web search, all from recent or all-time windows. This skill includes its own Bun/TypeScript CLI, source SDKs, tests, planning/reranking references, and a `.env.example`.
+Use this skill as an agent-facing source directory for the current world. It can search web/news, social/community discussion, developer signals, jobs, markets, stocks, weather, health, academic papers, YouTube/video, maps/place context, reviews, and dynamic sources that may need a browser.
+
+The bundled CLI can still create a processed research brief, but the primary model is source access: choose the source that matches the question, fetch inspectable evidence, then optionally parse, rank, compare, cluster, or synthesize it.
 
 Do not assume a global `last30days` package is installed. Use the bundled code that came with this skill.
 
 ## When to Use
 
-- Before a meeting: research a person, company, or product
-- When something drops: get the community reaction
-- To compare tools: see what real users are saying across platforms
-- To learn fast: get the latest community knowledge on a topic
-- Before a trip or purchase: check recent reviews, brand sentiment, and news
-- Hiring research: analyze company focus shifts from public job postings
-- Academic research: find recent arXiv papers on a topic
-- Source verification: use an available browser tool for dynamic pages, LinkedIn profiles/posts, or exact quote/source validation when APIs return thin metadata
+- Web/news: use Exa, Brave, Serper, OpenAI Web, Parallel, Techmeme, or general web adapters.
+- Social/community: use Reddit, Hacker News, X/Grok, Bluesky, Threads, TikTok, Instagram, LinkedIn, Trustpilot, Digg, and browser verification when API results are thin.
+- Jobs/company strategy: use the Jobs source for Greenhouse, Lever, and Ashby job boards.
+- Stocks/markets/predictions: use StockTwits for public stock/crypto discussion and Polymarket for prediction markets.
+- Weather/local conditions: use the Weather source for keyless current conditions and short forecasts.
+- Places/maps/travel: use Gemini Maps for place questions and browser verification for exact venue pages.
+- Video: use YouTube for discovery and Gemini YouTube when the answer depends on what is said or shown.
+- Health/research/code: use Health, arXiv, GitHub, Hacker News, and source-specific web search.
 
 ## First-Time Setup
 
@@ -49,6 +53,25 @@ cd .agents/skills/last30days/scripts/last30days
 bun run setup
 ```
 
+## Source Map
+
+Choose sources by what the user needs, not by the skill name:
+
+| Need | Start With | Why |
+|------|------------|-----|
+| Search the web | Exa, Brave, Serper, OpenAI Web, Parallel | Current pages, articles, docs, launches, and broad discovery |
+| News and tech headlines | Techmeme, Digg, Exa, Brave | Fast current-event and tech-news context |
+| Social/community discussion | Reddit, Hacker News, X/Grok, Bluesky, Threads, TikTok, Instagram | What people are saying, sentiment, reactions, usage patterns |
+| Professional/company research | LinkedIn, Jobs, GitHub, browser | People, company pages, hiring plans, repos, and visible profile/post verification |
+| Jobs and hiring signals | Jobs | Greenhouse, Lever, and Ashby public postings |
+| Stocks/markets/predictions | StockTwits, Polymarket, Exa | Ticker discussion, crypto sentiment, market odds, prediction-market context |
+| Weather/local conditions | Weather | Keyless Open-Meteo current conditions and short forecasts |
+| Places and maps | Gemini Maps, browser | Local context, venues, neighborhoods, exact page verification |
+| Video knowledge | YouTube, Gemini YouTube | Discover videos and inspect video content when configured |
+| Health and research | Health, arXiv, Exa | Public medical topics, papers, and research context |
+
+Use `bun run last30days -- source <name> <query>` or direct TypeScript imports when you want raw source evidence. Use the normal CLI only when a combined processed brief is useful.
+
 ### Sources That Work Immediately (No Key)
 
 | Source | Access |
@@ -58,6 +81,7 @@ bun run setup
 | Polymarket | Public prediction market API |
 | GitHub | Unauthenticated API (60 req/hr) |
 | Health | MedlinePlus/NIH public API |
+| Weather | Open-Meteo geocoding and forecast APIs |
 | YouTube | Requires `yt-dlp` binary (brew install yt-dlp) |
 | Digg | Requires `digg-pp-cli` binary |
 | arXiv | Requires `arxiv-pp-cli` binary |
@@ -108,9 +132,11 @@ bun run last30days -- "Company" --hiring-signals --job-board companyname
 # Comparison search
 bun run last30days -- "Cursor IDE vs Codex" --depth deep
 
-# Direct source debugging
+# Direct source access for raw evidence from one source
 bun run last30days -- source exa "query"
 bun run last30days -- source hackernews "query"
+bun run last30days -- source weather "weather in London tomorrow"
+bun run last30days -- source jobs "openai"
 ```
 
 ## Source Availability
@@ -143,6 +169,7 @@ bun run last30days -- source hackernews "query"
 | Techmeme | None (techmeme-pp-cli binary) | Tech news headlines |
 | Trustpilot | None (trustpilot-pp-cli binary) | Auto-gated on brand topics |
 | Health | None | MedlinePlus/NIH public API |
+| Weather | None | Open-Meteo geocoding and forecast APIs |
 | Jobs | None (opt-in via --hiring-signals) | Greenhouse, Lever, Ashby ATS APIs |
 
 ## SDK Import
@@ -150,7 +177,8 @@ bun run last30days -- source hackernews "query"
 Import source SDKs directly without running the CLI:
 
 ```typescript
-import { runResearch, searchExa, searchHackerNews, searchReddit } from "last30days-skill";
+import { runResearch, searchWeather } from "last30days-skill";
+import { searchHackerNews } from "last30days-skill/sources/hackernews";
 
 const report = await runResearch({
   topic: "React Server Components",
@@ -159,11 +187,19 @@ const report = await runResearch({
 });
 
 const hnItems = await searchHackerNews("Claude Code", "2026-06-01", "2026-07-01", "medium");
+const weather = await searchWeather("weather in Lisbon tomorrow", "", "", "quick");
 ```
 
 See `references/source-sdk-guide.md` for full import examples for every source.
 
 For non-trivial research, it is great to write a small TypeScript or JavaScript file that imports the bundled SDK, runs tailored source searches, custom-parses the JSON, and emits exactly the table/source-manifest/synthesis shape you need. Run scratch scripts with Bun from `scripts/last30days/`, and do not commit throwaway outputs unless they are intentional project artifacts.
+
+## Sources Versus Processing
+
+- Direct sources return inspectable evidence. Prefer this when the user needs raw facts, source manifests, current weather, job lists, stock chatter, or a focused source pull.
+- The orchestrated CLI runs a source plan and applies local ranking, deduplication, clustering, and Markdown rendering. Use it when the user wants a brief, comparison, or synthesis.
+- `references/reranking.md` is guidance for optional scoring and tie-breaking. It is not required for source access.
+- For bespoke work, write a small Bun script that imports only the needed source SDKs and outputs the exact table or JSON shape you need.
 
 ## Grounded Provider Strategy
 
@@ -181,6 +217,7 @@ Good browser candidates:
 
 - LinkedIn profiles, company pages, and posts where API metadata is too thin.
 - X posts or threads that need visual confirmation, screenshots, or exact quoted text.
+- Instagram profiles/posts, TikTok pages, and LinkedIn pages where the visible UI matters more than API metadata.
 - Company websites, pricing pages, docs, and changelogs where current page structure matters.
 - Review or marketplace pages where sorting/filtering, pagination, or lazy-loaded content changes the evidence.
 
@@ -188,14 +225,14 @@ Do not install a browser stack as part of this skill. If the host project alread
 
 ## Output Interpretation
 
-The tool outputs Markdown by default:
+The normal CLI outputs processed Markdown by default:
 
 1. **Badge line** -- version and date
 2. **What I learned** -- prose synthesis from sources
 3. **KEY PATTERNS** -- numbered list of top findings
 4. **Footer** -- emoji tree showing source counts
 
-Use `--format json` for programmatic access. Use `--format compact` for agent-consumable evidence clusters.
+Use `--format json` for programmatic access. Use `--format compact` for agent-consumable evidence clusters. Use `source <name> <query>` or direct SDK imports when you want the least processed source evidence.
 
 ## Planning, Reranking, and Reference Docs
 
@@ -220,6 +257,6 @@ The installed skill directory includes:
 - `SKILL.md`: this agent-facing workflow
 - `references/`: planning, reranking, comparison, all-time, browser research, source SDK, and install docs
 - `scripts/last30days/package.json`: Bun scripts and dependencies
-- `scripts/last30days/src/`: TypeScript CLI, library, source adapters (28 source SDKs and utilities), ranking, rendering, and config
+- `scripts/last30days/src/`: TypeScript CLI, library, source adapters, ranking, rendering, and config
 - `scripts/last30days/test/`: deterministic tests
 - `scripts/last30days/.env.example`: source-specific optional keys

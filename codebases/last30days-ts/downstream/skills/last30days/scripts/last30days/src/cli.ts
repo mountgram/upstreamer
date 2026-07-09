@@ -148,13 +148,13 @@ async function main(): Promise<void> {
   if (args.debug) {
     console.error("Configuration loaded");
     console.error(`  Topic: ${args.topic}`);
-    console.error(`  Lookback: ${args.lookback || 30} days`);
+    console.error(`  Lookback: ${args.timeframe === "all" && !args.lookback ? "∞ (all-time)" : `${args.lookback || 30} days`}`);
     console.error(`  Depth: ${args.depth || "medium"}`);
   }
 
   const report = await runResearch({
     topic: args.topic,
-    lookbackDays: args.lookback || 30,
+    lookbackDays: args.timeframe === "all" ? (args.lookback ?? undefined) : (args.lookback || 30),
     depth: args.depth || "medium",
     timeframe: args.timeframe,
     debug: args.debug,
