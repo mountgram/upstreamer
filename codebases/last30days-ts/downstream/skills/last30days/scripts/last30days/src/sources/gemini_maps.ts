@@ -10,6 +10,8 @@ interface GeminiPlaceResult {
   why_it_matters?: string;
 }
 
+type GeminiGroundingTool = "googleMaps" | "googleSearch";
+
 export async function searchGeminiMaps(
   query: string,
   _fromDate: string,
@@ -21,7 +23,13 @@ export async function searchGeminiMaps(
 
   const limit = depth === "deep" ? 10 : depth === "quick" ? 4 : 7;
   try {
-    const results = await askGeminiMaps(config.geminiApiKey, query, limit);
+    const mapsResults = await askGeminiMaps(config.geminiApiKey, query, limit, "googleMaps");
+    let grounding = "google_maps";
+    let results = mapsResults;
+    if (results.length === 0) {
+      grounding = "google_search_maps_fallback";
+      results = await askGeminiMaps(config.geminiApiKey, query, limit, "googleSearch");
+    }
     return results.slice(0, limit).flatMap((result, index) => {
       const title = String(result.title || result.place_name || "").trim();
       if (!title) return [];
@@ -40,7 +48,7 @@ export async function searchGeminiMaps(
         engagement: {},
         score: 0,
         snippet: body.slice(0, 300),
-        metadata: { provider: "gemini", grounding: "google_maps", address: result.address },
+        metadata: { provider: "gemini", grounding, address: result.address },
       } satisfies SourceItem];
     });
   } catch {
@@ -48,30 +56,37 @@ export async function searchGeminiMaps(
   }
 }
 
-async function askGeminiMaps(apiKey: string, query: string, limit: number): Promise<GeminiPlaceResult[]> {
-  const model = "gemini-2.0-flash";
+async function askGeminiMaps(apiKey: string, query: string, limit: number, tool: GeminiGroundingTool): Promise<GeminiPlaceResult[]> {
+  const model = "gemini-2.5-flash";
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const response = await fetch(endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{
-        role: "user",
-        parts: [{
-          text: [
-            `Answer this spatial/place research question using Google Maps grounding where available: ${query}`,
-            `Return only a strict JSON array of up to ${limit} places or area facts.`,
-            `Each object must have title, place_name, address when known, summary, why_it_matters, and url when known.`,
-          ].join("\n"),
-        }],
-      }],
-      tools: [{ googleMaps: {} }],
-      generationConfig: { temperature: 0.2, maxOutputTokens: 1800 },
-    }),
+    body: JSON.stringify(buildGeminiMapsRequestBody(query, limit, tool)),
   });
   if (!response.ok) return [];
   const data = await response.json() as GeminiResponse;
   return parseGeminiJsonArray(extractGeminiText(data));
+}
+
+function buildGeminiMapsRequestBody(query: string, limit: number, tool: GeminiGroundingTool): Record<string, unknown> {
+  const groundingLabel = tool === "googleMaps" ? "Google Maps grounding" : "Google Search grounding for maps/place evidence";
+  const toolConfig = tool === "googleMaps" ? { googleMaps: {} } : { googleSearch: {} };
+
+  return {
+    contents: [{
+      role: "user",
+      parts: [{
+        text: [
+          `Answer this spatial/place research question using ${groundingLabel} where available: ${query}`,
+          `Return only a strict JSON array of up to ${limit} places or area facts.`,
+          `Each object must have title, place_name, address when known, summary, why_it_matters, and url when known.`,
+        ].join("\n"),
+      }],
+    }],
+    tools: [toolConfig],
+    generationConfig: { temperature: 0.2, maxOutputTokens: 1800 },
+  };
 }
 
 interface GeminiResponse {
@@ -108,4 +123,4 @@ function extractJsonArray(text: string): string | null {
   return candidate.slice(start, end + 1);
 }
 
-export const __test__ = { extractGeminiText, parseGeminiJsonArray };
+export const __test__ = { extractGeminiText, parseGeminiJsonArray, buildGeminiMapsRequestBody };

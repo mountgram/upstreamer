@@ -65,7 +65,7 @@ export async function searchGeminiYouTube(
 }
 
 async function askGeminiAboutVideos(apiKey: string, query: string, videos: SourceItem[]): Promise<GeminiVideoResult[]> {
-  const model = "gemini-2.0-flash";
+  const model = "gemini-2.5-flash";
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const parts: Array<Record<string, unknown>> = [{
     text: [

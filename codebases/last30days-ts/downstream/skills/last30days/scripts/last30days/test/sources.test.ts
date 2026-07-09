@@ -1,5 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import type { SourceItem } from "../src/schema.js";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 // Test that source adapters produce correctly shaped output
 describe("Source adapter shapes", () => {
@@ -187,6 +191,45 @@ describe("Key-based source adapters are importable", () => {
   it("Gemini Maps adapter is importable", async () => {
     const mod = await import("../src/sources/gemini_maps.js");
     expect(typeof mod.searchGeminiMaps).toBe("function");
+  });
+
+  it("Gemini Maps adapter builds Maps and Search grounding request bodies", async () => {
+    const mod = await import("../src/sources/gemini_maps.js");
+    const mapsBody = mod.__test__.buildGeminiMapsRequestBody("restaurants in Lisbon", 4, "googleMaps");
+    const searchBody = mod.__test__.buildGeminiMapsRequestBody("restaurants in Lisbon", 4, "googleSearch");
+
+    expect(mapsBody.tools).toEqual([{ googleMaps: {} }]);
+    expect(searchBody.tools).toEqual([{ googleSearch: {} }]);
+    expect(JSON.stringify(mapsBody)).toContain("Google Maps grounding");
+    expect(JSON.stringify(searchBody)).toContain("Google Search grounding");
+  });
+
+  it("Gemini Maps adapter parses fenced JSON arrays", async () => {
+    const mod = await import("../src/sources/gemini_maps.js");
+    const results = mod.__test__.parseGeminiJsonArray("```json\n[{\"title\":\"Lisbon\",\"summary\":\"Capital city\"}]\n```");
+
+    expect(results).toHaveLength(1);
+    expect(results[0].title).toBe("Lisbon");
+  });
+
+  it("Gemini Maps adapter falls back to Search grounding when Maps fails", async () => {
+    const mod = await import("../src/sources/gemini_maps.js");
+    const requests: Record<string, unknown>[] = [];
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, init?: RequestInit) => {
+      requests.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+      if (requests.length === 1) return new Response("bad request", { status: 400 });
+      return new Response(JSON.stringify({
+        candidates: [{ content: { parts: [{ text: '[{"title":"Fallback Cafe","summary":"Found via search"}]' }] } }],
+      }), { status: 200, headers: { "Content-Type": "application/json" } });
+    }));
+
+    const results = await mod.searchGeminiMaps("coffee near Lisbon", "", "", "quick", { geminiApiKey: "test-key" });
+
+    expect(requests).toHaveLength(2);
+    expect(requests[0].tools).toEqual([{ googleMaps: {} }]);
+    expect(requests[1].tools).toEqual([{ googleSearch: {} }]);
+    expect(results).toHaveLength(1);
+    expect(results[0].metadata.grounding).toBe("google_search_maps_fallback");
   });
 
   it("X adapter parses Responses API output_text JSON", async () => {
