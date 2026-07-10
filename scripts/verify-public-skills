@@ -7,7 +7,7 @@ check_source() {
   local label="$1"
   local source="$2"
   local skill_root="$3"
-  local expected_count output discovered_count
+  local expected_count output plain_output discovered_count
 
   expected_count=$(find "$skill_root" -type f -name SKILL.md | wc -l | tr -d ' ')
   if [ "$expected_count" -eq 0 ]; then
@@ -16,7 +16,8 @@ check_source() {
   fi
 
   output=$(npx --yes skills add "$source" --list 2>&1)
-  if [[ "$output" =~ Found[[:space:]]+([0-9]+)[[:space:]]+skills? ]]; then
+  plain_output=$(printf '%s\n' "$output" | perl -pe 's/\e\[[0-9;?]*[ -\/]*[@-~]//g')
+  if [[ "$plain_output" =~ Found[[:space:]]+([0-9]+)[[:space:]]+skills? ]]; then
     discovered_count="${BASH_REMATCH[1]}"
   else
     echo "FAIL: $label was not discoverable by the skills CLI" >&2
