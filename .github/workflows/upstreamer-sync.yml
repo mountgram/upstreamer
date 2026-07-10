@@ -41,6 +41,9 @@ jobs:
           ./scripts/upstream last30days-ts || status=$?
           exit "$status"
 
+      - name: Verify public skill discovery
+        run: ./scripts/verify-public-skills
+
       - name: Create pull request
         uses: peter-evans/create-pull-request@v6
         with:

@@ -1,6 +1,7 @@
 ---
 name: last30days
-description: Reach out to current-world sources from an agent: web search, news/community signals, jobs, stocks/markets, weather, maps, video, health, academic papers, and dynamic pages. Includes a bundled Bun/TypeScript CLI with direct per-source SDK imports.
+description: |
+  Reach out to current-world sources from an agent: web search, news/community signals, jobs, stocks/markets, weather, maps, video, health, academic papers, and dynamic pages. Includes a bundled Bun/TypeScript CLI with direct per-source SDK imports.
 triggers:
   - /last30days
   - research last 30 days

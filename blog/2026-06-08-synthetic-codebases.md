@@ -154,13 +154,13 @@ And a longer explanation of the pattern:
 Install the TStack skill collection:
 
 ```bash
-npx skills add mountgram/upstreamer/codebases/tstack/downstream --skill '*'
+npx skills add https://github.com/mountgram/upstreamer/tree/main/codebases/tstack/downstream --skill '*'
 ```
 
 Install the Last30Days skill:
 
 ```bash
-npx skills add mountgram/upstreamer/codebases/last30days-ts/downstream --skill last30days
+npx skills add https://github.com/mountgram/upstreamer/tree/main/codebases/last30days-ts/downstream/skills/last30days --skill last30days
 ```
 
 Then read the contracts. The contracts are where the interesting product decisions live.

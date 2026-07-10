@@ -1,0 +1,33 @@
+name: Public Skills
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/public-skills.yml"
+      - "scripts/verify-public-skills"
+      - "codebases/*/downstream/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/public-skills.yml"
+      - "scripts/verify-public-skills"
+      - "codebases/*/downstream/**"
+  workflow_dispatch:
+
+jobs:
+  discovery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify public skill discovery
+        run: ./scripts/verify-public-skills

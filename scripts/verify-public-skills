@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+
+check_source() {
+  local label="$1"
+  local source="$2"
+  local skill_root="$3"
+  local expected_count output discovered_count
+
+  expected_count=$(find "$skill_root" -type f -name SKILL.md | wc -l | tr -d ' ')
+  if [ "$expected_count" -eq 0 ]; then
+    echo "FAIL: $label has no SKILL.md files" >&2
+    return 1
+  fi
+
+  output=$(npx --yes skills add "$source" --list 2>&1)
+  if [[ "$output" =~ Found[[:space:]]+([0-9]+)[[:space:]]+skills? ]]; then
+    discovered_count="${BASH_REMATCH[1]}"
+  else
+    echo "FAIL: $label was not discoverable by the skills CLI" >&2
+    printf '%s\n' "$output" >&2
+    return 1
+  fi
+
+  if [ "$discovered_count" -ne "$expected_count" ]; then
+    echo "FAIL: $label exposed $discovered_count of $expected_count skills" >&2
+    printf '%s\n' "$output" >&2
+    return 1
+  fi
+
+  echo "PASS: $label exposes all $expected_count skills"
+}
+
+check_source \
+  "TStack" \
+  "$repo_root/codebases/tstack/downstream" \
+  "$repo_root/codebases/tstack/downstream"
+
+check_source \
+  "Last30Days" \
+  "$repo_root/codebases/last30days-ts/downstream/skills/last30days" \
+  "$repo_root/codebases/last30days-ts/downstream/skills/last30days"

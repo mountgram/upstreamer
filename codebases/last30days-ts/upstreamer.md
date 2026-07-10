@@ -18,7 +18,7 @@ The conversion is not complete when the code merely compiles. The agent doing th
 - Local codebase name: `last30days-ts`.
 - Downstream repo identity: `mountgram/last30days-ts`.
 - The downstream is a Node.js TypeScript SDK package, not a Python package and not a Claude/OpenClaw plugin bundle.
-- The downstream must be installable as a skill with `npx skills add mountgram/upstreamer/codebases/last30days-ts/downstream --skill last30days`. Installing the skill must bring the agent instructions, TypeScript source, package metadata, tests, `.env.example`, install reference, and planning/reranking references together in `skills/last30days/`. Live evals must stay outside the installed skill at `downstream/eval/`. Do not require a separate global npm package.
+- The downstream must be installable as a skill with `npx skills add https://github.com/mountgram/upstreamer/tree/main/codebases/last30days-ts/downstream/skills/last30days --skill last30days`. Use this documented direct GitHub skill path rather than repository shorthand with a nested path. Installing the skill must bring the agent instructions, TypeScript source, package metadata, tests, `.env.example`, install reference, and planning/reranking references together in `skills/last30days/`. Live evals must stay outside the installed skill at `downstream/eval/`. Do not require a separate global npm package.
 - The downstream should preserve the upstream source surface where practical, but each source must be independently optional at runtime.
 - The `last30days` name may remain for install compatibility, but the generated product must not be limited to a 30-day window. Recency is an option, not the identity of the SDK.
 
@@ -39,7 +39,7 @@ The conversion is not complete when the code merely compiles. The agent doing th
 - Keep the data model and output understandable enough for downstream users to extend.
 - Prefer real, maintained SDKs for external services when they reduce protocol guessing or make the adapter more faithful. Hand-rolled `fetch` is acceptable for simple public JSON endpoints, but not as a shortcut around well-supported provider clients.
 - Date filtering must be explicit and optional. Default to a useful recent search window when the user asks for recent/current research, but support all-time searches through `--timeframe all`, `timeframe: "all"`, or equivalent SDK options.
-- Skill and reference markdown are product surfaces. `SKILL.md` and every file under `skills/last30days/references/` must have clear YAML frontmatter, concise descriptions, and focused workflows such as source selection, raw source access, comparison search, all-time search, planning, optional reranking, and install/setup.
+- Skill and reference markdown are product surfaces. `SKILL.md` and every file under `skills/last30days/references/` must have valid, parseable YAML frontmatter, concise descriptions, and focused workflows such as source selection, raw source access, comparison search, all-time search, planning, optional reranking, and install/setup. Required values must be YAML strings; use a block scalar or quotes when a description contains punctuation such as `: ` that would invalidate a plain scalar.
 - Browser-capable research is part of the skill's judgment layer, not a bundled dependency. The downstream should teach agents when to use an available browser automation skill/tool such as agent-browser, Rotunda, or the host agent's native browser for dynamic or login-sensitive sites like LinkedIn, without installing or requiring those tools.
 - Setup docs must warn that commands usually run from inside the installed skill directory. If the host project's keys live in a repo-root `.env`, agents should explicitly source/export those variables before `cd scripts/last30days`, or copy only the needed keys into the skill package `.env`. Do not print secret values.
 
@@ -312,7 +312,7 @@ If the answer is no, improve the implementation and rerun the eval before claimi
 The downstream README must include:
 
 - What Last30Days TS does in one paragraph: a TypeScript internet-search SDK and CLI with a default recent-research workflow, not a tool limited to exactly 30 days.
-- `npx skills add mountgram/upstreamer/codebases/last30days-ts/downstream --skill last30days` install command.
+- `npx skills add https://github.com/mountgram/upstreamer/tree/main/codebases/last30days-ts/downstream/skills/last30days --skill last30days` install command.
 - A clear statement that installing the skill brings the Bun/TypeScript source SDKs, tests, package metadata, install reference, and docs with it, while maintainer live evals live outside the installed skill.
 - Bun setup and usage commands from inside the installed skill directory.
 - CLI examples using `bun run last30days -- ...`, including Exa-backed web search usage, a run that mixes Exa with available public/social adapters, an all-time search example, and a comparison-search example.
@@ -335,7 +335,7 @@ Before finishing a conversion run, verify:
 - The downstream output has `README.md`, `LICENSE`, `upstreamer-changelog.md`, and `skills/last30days/`.
 - `skills/last30days/` has `SKILL.md`, `references/INSTALL.md`, `references/planning.md`, `references/reranking.md`, `references/comparison-search.md`, `references/all-time-search.md`, `references/browser-research.md`, `references/source-sdk-guide.md`, and `scripts/last30days/`.
 - `skills/last30days/scripts/last30days/` has `package.json`, `bun.lock`, `tsconfig.json`, `.env.example`, `.gitignore`, `src/`, and `test/`.
-- `skills/last30days/SKILL.md` and every `skills/last30days/references/*.md` file begins with YAML frontmatter containing at least `title` or `name`, plus `description`.
+- `skills/last30days/SKILL.md` and every `skills/last30days/references/*.md` file begins with valid, parseable YAML frontmatter containing at least `title` or `name`, plus a string `description`. The verifier must reject metadata that merely contains these keys but cannot be parsed by skill installers.
 - `downstream/eval/run.ts` exists and is not inside `skills/last30days/`.
 - The installed skill's `.env.example` documents all supported optional keys without real secrets.
 - The downstream root `.gitignore` ignores root `eval-output/`. The installed skill script package `.gitignore` ignores `node_modules/`, `dist/`, `output/`, and `.env`.
@@ -369,6 +369,7 @@ Run the bundled verifier against the downstream output directory:
 
 ```bash
 codebases/last30days-ts/.upstreamer/scripts/verify-last30days-ts.sh codebases/last30days-ts/downstream
+scripts/verify-public-skills
 ```
 
 If running checks manually, use these macOS-compatible commands:

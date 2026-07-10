@@ -7,7 +7,7 @@ It gives agents practical access to current-world sources: Exa or Brave web sear
 ## Install The Skill
 
 ```bash
-npx skills add mountgram/upstreamer/codebases/last30days-ts/downstream --skill last30days
+npx skills add https://github.com/mountgram/upstreamer/tree/main/codebases/last30days-ts/downstream/skills/last30days --skill last30days
 ```
 
 The installed `last30days` skill directory contains the runnable Bun project. After installing, open that skill directory and run:

@@ -54,10 +54,10 @@ Two generated downstreams can be installed from their paths in this repo:
 
 ```bash
 # Install every TStack skill into the current project
-npx skills add mountgram/upstreamer/codebases/tstack/downstream --skill '*'
+npx skills add https://github.com/mountgram/upstreamer/tree/main/codebases/tstack/downstream --skill '*'
 
 # Install the Last30Days internet-search SDK skill into the current project
-npx skills add mountgram/upstreamer/codebases/last30days-ts/downstream --skill last30days
+npx skills add https://github.com/mountgram/upstreamer/tree/main/codebases/last30days-ts/downstream/skills/last30days --skill last30days
 ```
 
 Use `tstack` when you want portable review, QA, design, security, shipping, and planning workflows. Use `last30days` when you want an agent to install a self-contained current-world source skill with bundled Bun/TypeScript source SDKs, direct source CLI access, frontmatter-formatted references, web/news/jobs/markets/weather/maps/video guidance, OpenAI/Gemini grounding options, and guidance for using optional browser tools on dynamic sources like LinkedIn or Instagram.
