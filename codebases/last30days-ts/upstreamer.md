@@ -83,7 +83,7 @@ Port the upstream source surface into TypeScript adapters. The orchestrator shou
 
 ### Required Source SDKs
 
-- `exa` - preferred reliable web search enabled by `EXA_API_KEY`. Must be importable as a standalone TypeScript search SDK.
+- `exa` - preferred reliable web search enabled by `EXA_API_KEY`. Must be importable as a standalone TypeScript search SDK. Cap every Exa search at 10 results, including local `deep` mode, so requests stay within Exa's included-result pricing tier.
 - `brave` - alternative/fallback web search enabled by `BRAVE_API_KEY`. Must be importable as a standalone TypeScript search SDK.
 
 ### Upstream Sources to Preserve
@@ -343,6 +343,7 @@ Before finishing a conversion run, verify:
 - There are no Python source or packaging files.
 - There is at least one TypeScript file under `skills/last30days/scripts/last30days/src/`.
 - Exa is documented and implemented as the preferred reliable web search source.
+- Every Exa search requests at most 10 results, including local `deep` mode.
 - Brave is documented and implemented as an alternative/fallback reliable web search source.
 - Weather is documented and implemented as a keyless current/weather forecast source.
 - `EXA_API_KEY` controls only the Exa web search source.

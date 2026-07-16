@@ -5,7 +5,7 @@ import type { Config } from "../config.js";
 const DEPTH_LIMITS: Record<string, number> = {
   quick: 5,
   medium: 10,
-  deep: 20,
+  deep: 10,
 };
 
 function hostname(url: string): string {
