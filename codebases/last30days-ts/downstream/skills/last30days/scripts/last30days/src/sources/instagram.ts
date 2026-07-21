@@ -7,7 +7,14 @@ const DEPTH_LIMITS: Record<string, number> = {
   deep: 20,
 };
 
+const COMMENT_DEPTH_LIMITS: Record<string, number> = {
+  quick: 3,
+  medium: 5,
+  deep: 8,
+};
+
 const BASE_URL = "https://api.scrapecreators.com/v1/instagram/search";
+const MEDIA_INFO_URL = "https://api.scrapecreators.com/v1/instagram/media";
 
 function engagementFromResponse(r: Record<string, unknown>): Record<string, number> {
   const e: Record<string, number> = {};
@@ -18,6 +25,55 @@ function engagementFromResponse(r: Record<string, unknown>): Record<string, numb
   if (likeCount > 0) e.likes = likeCount;
   if (commentCount > 0) e.comments = commentCount;
   return e;
+}
+
+function totalEngagement(item: SourceItem): number {
+  const e = item.engagement;
+  return (e.views ?? 0) * 0.45 + (e.likes ?? 0) * 0.27 + (e.comments ?? 0) * 0.18;
+}
+
+async function fetchMediaComments(itemId: string, config: Config): Promise<{ author: string; text: string; likes: number }[]> {
+  if (!config.scrapecreatorsApiKey) return [];
+
+  try {
+    const url = new URL(`${MEDIA_INFO_URL}/${itemId}`);
+    const response = await fetch(url.toString(), {
+      headers: { "x-api-key": config.scrapecreatorsApiKey },
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json() as Record<string, unknown>;
+    const comments = data.comments as Array<Record<string, unknown>> | undefined;
+    if (!Array.isArray(comments)) return [];
+
+    return comments.slice(0, 5).map((c) => ({
+      author: String(c.owner_username ?? c.username ?? "anonymous"),
+      text: String(c.text ?? ""),
+      likes: Number(c.like_count ?? c.likes) || 0,
+    })).filter((c) => c.text.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+async function enrichWithComments(items: SourceItem[], depth: string, config: Config): Promise<SourceItem[]> {
+  const maxVideos = COMMENT_DEPTH_LIMITS[depth] ?? COMMENT_DEPTH_LIMITS.medium;
+
+  const ranked = [...items]
+    .sort((a, b) => totalEngagement(b) - totalEngagement(a))
+    .slice(0, maxVideos);
+
+  for (const item of ranked) {
+    const itemId = item.item_id;
+    const comments = await fetchMediaComments(itemId, config);
+    if (comments.length > 0) {
+      item.metadata = item.metadata ?? {};
+      (item.metadata as Record<string, unknown>).top_comments = comments;
+    }
+  }
+
+  return items;
 }
 
 export async function searchInstagram(
@@ -83,5 +139,6 @@ export async function searchInstagram(
     });
   }
 
-  return items;
+  const enriched = await enrichWithComments(items, depth, config);
+  return enriched;
 }
