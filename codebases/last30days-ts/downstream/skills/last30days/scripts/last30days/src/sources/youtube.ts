@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execSync, execFileSync } from "node:child_process";
 import type { SourceItem } from "../schema.js";
 import { getDateConfidence } from "../dates.js";
 
@@ -7,6 +7,10 @@ const DEPTH_LIMITS: Record<string, number> = {
   medium: 10,
   deep: 20,
 };
+
+const COMMENT_TIMEOUT = 20_000;
+const MAX_COMMENT_VIDEOS = 5;
+const MAX_COMMENTS_PER_VIDEO = 5;
 
 interface YtDlpEntry {
   id?: string;
@@ -19,6 +23,13 @@ interface YtDlpEntry {
   view_count?: number;
   like_count?: number;
   comment_count?: number;
+}
+
+interface YtDlpComment {
+  text?: string;
+  author?: string;
+  like_count?: number;
+  timestamp?: number;
 }
 
 function ytDlpAvailable(): boolean {
@@ -36,6 +47,65 @@ function formatUploadDate(dateStr: string | undefined): string {
   const m = dateStr.slice(4, 6);
   const d = dateStr.slice(6, 8);
   return `${y}-${m}-${d}T00:00:00.000Z`;
+}
+
+function totalEngagement(item: SourceItem): number {
+  const e = item.engagement;
+  return (e.views ?? 0) + (e.likes ?? 0) + (e.comments ?? 0);
+}
+
+async function fetchCommentsYtDlp(videoId: string): Promise<{ author: string; text: string; likes: number }[]> {
+  const cmdArgs = [
+    "yt-dlp",
+    "--ignore-config",
+    "--no-cookies-from-browser",
+    "--write-comments",
+    "--extractor-args",
+    `youtube:comment_sort=top;max_comments=${MAX_COMMENTS_PER_VIDEO},all,${MAX_COMMENTS_PER_VIDEO}`,
+    "--skip-download",
+    "--no-warnings",
+    "-j",
+    `https://www.youtube.com/watch?v=${videoId}`,
+  ];
+
+  try {
+    const raw = execFileSync(cmdArgs[0], cmdArgs.slice(1), {
+      encoding: "utf-8",
+      maxBuffer: 10 * 1024 * 1024,
+      timeout: COMMENT_TIMEOUT,
+    });
+
+    if (!raw.trim()) return [];
+
+    const data = JSON.parse(raw);
+    const comments: Array<YtDlpComment> = data.comments ?? [];
+    return comments.slice(0, MAX_COMMENTS_PER_VIDEO).map((c) => ({
+      author: c.author || "anonymous",
+      text: c.text || "",
+      likes: c.like_count ?? 0,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+async function enrichWithComments(items: SourceItem[]): Promise<SourceItem[]> {
+  if (!ytDlpAvailable()) return items;
+
+  const ranked = [...items]
+    .sort((a, b) => totalEngagement(b) - totalEngagement(a))
+    .slice(0, MAX_COMMENT_VIDEOS);
+
+  for (const item of ranked) {
+    const videoId = item.item_id;
+    const comments = await fetchCommentsYtDlp(videoId);
+    if (comments.length > 0) {
+      item.metadata = item.metadata ?? {};
+      (item.metadata as Record<string, unknown>).top_comments = comments;
+    }
+  }
+
+  return items;
 }
 
 export async function searchYouTube(
@@ -110,7 +180,8 @@ export async function searchYouTube(
       if (items.length >= limit) break;
     }
 
-    return items;
+    const enriched = await enrichWithComments(items);
+    return enriched;
   } catch (err) {
     console.error("[youtube] yt-dlp error:", err instanceof Error ? err.message : String(err));
     return [];

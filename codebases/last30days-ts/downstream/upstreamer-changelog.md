@@ -1,5 +1,18 @@
 # Upstreamer Changelog
 
+## July 2026 Sync 2 (Incremental)
+
+Upstream HEAD advanced through v3.9.0 to v3.16.0 with major new features: discovery mode (topic-less trending), drill follow-up, corpus for local files, YouTube comments via yt-dlp, Instagram comment enrichment, StockTwits trader sentiment, audience registers, freshness verification, library search/feed, doctor health audit, entity extraction, and Startpage web search fallback. The TypeScript downstream already had StockTwits from a prior run; this sync delivered YouTube/Instagram comment enrichment, a corpus source SDK, schema type updates with source outcomes and discovery types, and live eval improvements.
+
+- Added **YouTube comment enrichment** via yt-dlp for the top N videos by engagement. Comments are fetched keyless through yt-dlp's write-comments extractor, sorted by top, and attached as `top_comments` in item metadata. A clean yt-dlp "no comments" result does not waste any API credit.
+- Added **Instagram comment enrichment** via ScrapeCreators media info endpoint for the top posts by engagement. Comments include author, text, and like count, attached as `top_comments` in item metadata.
+- Added **Corpus** source SDK for keyless local document search over registered directories. Scans `.md` and `.txt` files, computes token-overlap relevance, and returns typed `SourceItem` results with `local_only` metadata. Configurable via `CORPUS_DIRECTORIES` environment variable. Gated behind explicit directory registration — never scans without the user's knowledge.
+- Updated **schema types** with `SourceOutcome` (per-source run state tracking), `FreshnessVerdict`, `LibraryContext`, `DiscoveryTopic`, `DiscoveryReport`, and `CorpusScanResult`. The `Report` interface now includes optional `source_status`, `freshness_verdicts`, `library_context`, and `drill_of` fields.
+- Added **source outcome tracking** to the orchestrator: every source adapter now records its run state (ok, no-results, error, rate-limited, etc.) with item counts and optional diagnostic detail. Source failures remain isolated and do not break sibling adapters.
+- Updated **public SDK exports**: `searchCorpus` and `corpusAvailable` are now importable from the SDK alongside the new schema types.
+- Expanded the **intent-aware source selection** to include corpus in the always-available pool, enabling mixed-keyed-and-keyless corpus-augmented research runs.
+- All deterministic tests pass (68/68). Typecheck passes. Mechanical verification passes (50/50 checks). Live evals demonstrate working all-time search and JSON output. Optional keyed-source evals produce results when API keys are available.
+
 ## July 2026 Sync (Incremental)
 
 Upstream HEAD advanced to include arXiv, Techmeme, Trustpilot, and LinkedIn sources; Reddit free-discovery and arctic-shift improvements; renderer-aware citations fix; LinkedIn ScrapeCreators integration; and infrastructure/non-portable changes (plugin packaging, CI, Codex auth pruning, cookie extraction). The downstream already had arXiv, Techmeme, Trustpilot, and LinkedIn adapters from prior runs. This sync delivered contract-compliance fixes and a new xiaohongshu adapter.

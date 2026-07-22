@@ -1,4 +1,4 @@
-import type { Report, RunOptions, Candidate, SourceItem } from "./schema.js";
+import type { Report, RunOptions, Candidate, SourceItem, SourceOutcome } from "./schema.js";
 import { getConfig } from "./config.js";
 import { getDateRange, formatDate } from "./dates.js";
 import { renderMarkdown, renderJson, renderCompact } from "./render.js";
@@ -24,7 +24,8 @@ export { searchGeminiMaps } from "./sources/gemini_maps.js";
 export { searchWeather } from "./sources/weather.js";
 export { searchStocktwits, isFinancialTopic } from "./sources/stocktwits.js";
 export { searchXiaohongshu } from "./sources/xiaohongshu.js";
-export type { Report, RunOptions, Candidate, SourceItem, Cluster, SubQuery, QueryPlan } from "./schema.js";
+export { searchCorpus, corpusAvailable } from "./sources/corpus.js";
+export type { Report, RunOptions, Candidate, SourceItem, Cluster, SubQuery, QueryPlan, SourceOutcome, LibraryContext, FreshnessVerdict, DiscoveryTopic, DiscoveryReport, CorpusScanResult } from "./schema.js";
 
 function generateId(): string {
   return `c_${Math.random().toString(36).slice(2, 10)}`;
@@ -84,6 +85,7 @@ export async function runResearch(options: RunOptions): Promise<Report> {
 
   const itemsBySource: Record<string, SourceItem[]> = {};
   const errorsBySource: Record<string, string> = {};
+  const sourceStatus: Record<string, SourceOutcome> = {};
 
   // Determine available sources
   const availableSources: string[] = [];
@@ -93,7 +95,7 @@ export async function runResearch(options: RunOptions): Promise<Report> {
   const weatherTopic = isWeatherTopic(options.topic);
 
   // Always available (no-key)
-  availableSources.push("reddit", "hackernews", "polymarket", "github", "health", "weather");
+  availableSources.push("reddit", "hackernews", "polymarket", "github", "health", "weather", "corpus");
 
   // CLI-based sources (require optional binaries)
   availableSources.push("digg", "youtube", "arxiv", "techmeme");
@@ -140,8 +142,12 @@ export async function runResearch(options: RunOptions): Promise<Report> {
   const sourcePromises = queryPlan.subqueries.flatMap((subquery) => {
     const subquerySources = subquery.sources.filter((source) => eligibleSources.includes(source));
     return subquerySources.map(async (source) => {
+      sourceStatus[source] = { source, state: "error", items_returned: 0, attempted: true, at: new Date().toISOString() };
       try {
         const items = await searchSource(source, { ...options, topic: subquery.search_query }, config, from, to, depth);
+        const existing = sourceStatus[source]!;
+        existing.items_returned = items.length;
+        existing.state = items.length > 0 ? "ok" : items.length === 0 ? "no-results" : "partial";
         if (items.length > 0) {
           const annotated = items.map((item) => ({
             ...item,
@@ -151,6 +157,7 @@ export async function runResearch(options: RunOptions): Promise<Report> {
         }
       } catch (err) {
         errorsBySource[source] = err instanceof Error ? err.message : String(err);
+        sourceStatus[source] = { ...sourceStatus[source]!, state: "error", detail: errorsBySource[source] };
         if (options.debug) {
           console.error(`[${source}] Error: ${err}`);
         }
@@ -234,6 +241,7 @@ export async function runResearch(options: RunOptions): Promise<Report> {
     items_by_source: itemsBySource,
     errors_by_source: errorsBySource,
     warnings,
+    source_status: sourceStatus,
     artifacts: {
       sources_attempted: sourcesToRun.length,
       sources_succeeded: Object.keys(itemsBySource).length,
@@ -318,6 +326,19 @@ async function searchSource(
       return (await import("./sources/stocktwits.js")).searchStocktwits(options.topic, from, to, depth);
     case "xiaohongshu":
       return (await import("./sources/xiaohongshu.js")).searchXiaohongshu(options.topic, from, to, depth, config);
+    case "corpus": {
+      const dirs = process.env.CORPUS_DIRECTORIES?.split(":").filter(Boolean) ?? [];
+      if (dirs.length === 0) return [];
+      const { searchCorpus } = await import("./sources/corpus.js");
+      const corpusLimit: Record<string, number> = { quick: 5, medium: 10, deep: 20 };
+      const result = searchCorpus(options.topic, dirs, {
+        fromDate: from,
+        toDate: to,
+        allTime: options.timeframe === "all",
+        limit: corpusLimit[depth] ?? 10,
+      });
+      return result.items;
+    }
     default:
       return [];
   }
