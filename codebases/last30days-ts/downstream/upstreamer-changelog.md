@@ -1,5 +1,17 @@
 # Upstreamer Changelog
 
+## July 2026 Sync 3 (Incremental)
+
+Upstream advanced from v3.16.0 to v3.18.0 with a redesigned discovery protocol: host-judged three-command discovery replaces the engine's LLM-based topic judging with a workflow where the agent model names topics, filters junk, scores worthiness, and writes content angles. The engine now runs deterministic heuristics only, with no LLM calls for topic naming or angle generation. Also added same-story deduplication in discovery results, a new `discovery_handoff` module for protocol state management between legs, and a configurable deep-tier enrichment budget. A new shared log module was added for engine diagnostic output.
+
+The TypeScript downstream is unaffected by the discovery protocol changes — these are Python-engine orchestration features and the downstream's source SDKs and adapters remain stable. No source adapter behavior changed upstream in this window.
+
+- No downstream source adapter changes needed; upstream source adapters were unchanged.
+- All deterministic tests pass (68/68). Typecheck passes. Mechanical verification passes.
+- Live evals skipped in CI due to missing API credentials; eval runner correctly reports missing keys.
+- Qualitative eval returned PASS WITH WARNINGS due to credential-constrained CI environment.
+- Upstream version bumped to 3.18.0.
+
 ## July 2026 Sync 2 (Incremental)
 
 Upstream HEAD advanced through v3.9.0 to v3.16.0 with major new features: discovery mode (topic-less trending), drill follow-up, corpus for local files, YouTube comments via yt-dlp, Instagram comment enrichment, StockTwits trader sentiment, audience registers, freshness verification, library search/feed, doctor health audit, entity extraction, and Startpage web search fallback. The TypeScript downstream already had StockTwits from a prior run; this sync delivered YouTube/Instagram comment enrichment, a corpus source SDK, schema type updates with source outcomes and discovery types, and live eval improvements.
