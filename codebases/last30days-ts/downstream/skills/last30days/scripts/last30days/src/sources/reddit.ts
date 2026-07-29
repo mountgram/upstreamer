@@ -132,12 +132,38 @@ function normalizeLoose(input: {
   };
 }
 
-async function fetchJsonSearch(query: string, limit: number, subreddit?: string): Promise<SourceItem[]> {
+function daysToRedditBucket(days: number): string {
+  const covered = days + 1;
+  if (covered <= 1) return "day";
+  if (covered <= 7) return "week";
+  if (covered <= 31) return "month";
+  if (covered <= 366) return "year";
+  return "all";
+}
+
+function windowToTimeFilter(fromDate: string, toDate: string): string {
+  try {
+    const start = new Date(fromDate);
+    const end = new Date(toDate);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return "month";
+    const spanDays = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 86400000));
+    const ageDays = Math.max(0, Math.floor((Date.now() - start.getTime()) / 86400000));
+    return daysToRedditBucket(Math.max(spanDays, ageDays));
+  } catch {
+    return "month";
+  }
+}
+
+function buildRedditSearchUrl(query: string, limit: number, subreddit: string | undefined, timeFilter: string): string {
   const encodedQuery = encodeURIComponent(query);
   const sub = subreddit?.replace(/^r\//, "").trim();
-  const searchUrl = sub
-    ? `https://www.reddit.com/r/${encodeURIComponent(sub)}/search.json?q=${encodedQuery}&restrict_sr=on&sort=relevance&t=month&limit=${limit}&raw_json=1`
-    : `https://www.reddit.com/search.json?q=${encodedQuery}&sort=relevance&t=month&limit=${limit}&raw_json=1`;
+  return sub
+    ? `https://www.reddit.com/r/${encodeURIComponent(sub)}/search.json?q=${encodedQuery}&restrict_sr=on&sort=relevance&t=${timeFilter}&limit=${limit}&raw_json=1`
+    : `https://www.reddit.com/search.json?q=${encodedQuery}&sort=relevance&t=${timeFilter}&limit=${limit}&raw_json=1`;
+}
+
+async function fetchJsonSearch(query: string, limit: number, timeFilter: string, subreddit?: string): Promise<SourceItem[]> {
+  const searchUrl = buildRedditSearchUrl(query, limit, subreddit, timeFilter);
   const json = await fetchPage(searchUrl);
   return json.data.children
     .filter((child) => child.kind === "t3" && child.data)
@@ -145,12 +171,12 @@ async function fetchJsonSearch(query: string, limit: number, subreddit?: string)
     .slice(0, limit);
 }
 
-async function fetchRssSearch(query: string, limit: number, subreddit?: string): Promise<SourceItem[]> {
+async function fetchRssSearch(query: string, limit: number, timeFilter: string, subreddit?: string): Promise<SourceItem[]> {
   const encodedQuery = encodeURIComponent(query);
   const sub = subreddit?.replace(/^r\//, "").trim();
   const url = sub
-    ? `https://www.reddit.com/r/${encodeURIComponent(sub)}/search.rss?q=${encodedQuery}&restrict_sr=on&sort=relevance&t=month`
-    : `https://www.reddit.com/search.rss?q=${encodedQuery}&sort=relevance&t=month`;
+    ? `https://www.reddit.com/r/${encodeURIComponent(sub)}/search.rss?q=${encodedQuery}&restrict_sr=on&sort=relevance&t=${timeFilter}`
+    : `https://www.reddit.com/search.rss?q=${encodedQuery}&sort=relevance&t=${timeFilter}`;
   const resp = await fetch(url, {
     headers: { "User-Agent": "last30days-ts/0.1 (+https://github.com/mountgram/last30days-ts)", Accept: "application/rss+xml,application/atom+xml,text/xml" },
   });
@@ -218,19 +244,20 @@ export async function searchReddit(
   const limit = depthLimits[depth] || 10;
   const fromTs = toUnix(fromDate);
   const toTs = toUnix(toDate) + 86400;
+  const timeFilter = windowToTimeFilter(fromDate, toDate);
 
   try {
     const targets = subreddits?.length ? subreddits : [undefined];
     let items: SourceItem[] = [];
     for (const subreddit of targets) {
       try {
-        const jsonItems = await fetchJsonSearch(query, limit, subreddit);
+        const jsonItems = await fetchJsonSearch(query, limit, timeFilter, subreddit);
         items.push(...jsonItems);
       } catch {
         // Reddit's legacy JSON path is increasingly blocked; RSS is the load-bearing fallback.
       }
       if (!items.length || subreddit) {
-        items.push(...await fetchRssSearch(query, limit, subreddit));
+        items.push(...await fetchRssSearch(query, limit, timeFilter, subreddit));
       }
     }
 
