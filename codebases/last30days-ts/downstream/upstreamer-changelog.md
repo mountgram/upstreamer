@@ -1,5 +1,15 @@
 # Upstreamer Changelog
 
+## July 2026 Sync 4 (Incremental)
+
+Upstream advanced with CI/dependency maintenance (dependabot bumps for GitHub Actions), changelog workflow tooling, and several source-adapter improvements: Reddit now maps requested date windows to smarter time buckets; Polymarket improved market matching with domain-word handling; YouTube added concurrency gating and search caching; and the pipeline received entity-miss pruning in ranking. Most upstream changes were internal engine/infrastructure work dropped per contract.
+
+- **Reddit**: Updated search URLs to use date-window-aware time buckets (day/week/month/year/all) instead of always requesting `t=month`. This improves result relevance for narrow date windows without changing the adapter's public API.
+- All other source adapters (Exa, Brave, X, YouTube, Polymarket, etc.) remain stable; upstream source-adapter behavior changes were engine-level optimizations that don't affect the TypeScript SDK's contract-required behavior.
+- All deterministic tests pass (68/68). Typecheck passes. Mechanical verification passes (0 failures).
+- Live evals skipped in CI due to missing API credentials; eval runner correctly reports missing keys.
+- Qualitative eval returned PASS WITH WARNINGS due to credential-constrained CI environment.
+
 ## July 2026 Sync 3 (Incremental)
 
 Upstream advanced from v3.16.0 to v3.18.0 with a redesigned discovery protocol: host-judged three-command discovery replaces the engine's LLM-based topic judging with a workflow where the agent model names topics, filters junk, scores worthiness, and writes content angles. The engine now runs deterministic heuristics only, with no LLM calls for topic naming or angle generation. Also added same-story deduplication in discovery results, a new `discovery_handoff` module for protocol state management between legs, and a configurable deep-tier enrichment budget. A new shared log module was added for engine diagnostic output.
