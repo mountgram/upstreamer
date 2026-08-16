@@ -8,6 +8,7 @@ import {
   reciprocalRankFusion,
   computeFinalScores,
   fallbackRank,
+  candidateOutOfWindow,
 } from "../src/ranking.js";
 import type { SourceItem, Candidate } from "../src/schema.js";
 
@@ -134,6 +135,41 @@ describe("reciprocalRankFusion", () => {
     // Verify scores were assigned (may be 0 for lowest-ranked single-appearance items)
     expect(typeof candA.rrf_score).toBe("number");
     expect(typeof candC.rrf_score).toBe("number");
+  });
+});
+
+describe("candidateOutOfWindow", () => {
+  it("returns true when all dated items fall outside the window", () => {
+    const cand = makeCandidate({
+      metadata: { range_from: "2026-07-01", range_to: "2026-07-31" },
+      source_items: [makeItem({ published_at: "2025-10-01T00:00:00.000Z" })],
+    });
+    expect(candidateOutOfWindow(cand)).toBe(true);
+  });
+
+  it("returns false when any dated item is inside the window", () => {
+    const cand = makeCandidate({
+      metadata: { range_from: "2026-07-01", range_to: "2026-07-31" },
+      source_items: [makeItem({ published_at: "2026-07-15T00:00:00.000Z" })],
+    });
+    expect(candidateOutOfWindow(cand)).toBe(false);
+  });
+
+  it("returns false when there are no dated items", () => {
+    const cand = makeCandidate({
+      metadata: { range_from: "2026-07-01", range_to: "2026-07-31" },
+      source_items: [makeItem({ published_at: "" })],
+    });
+    expect(candidateOutOfWindow(cand)).toBe(false);
+  });
+
+  it("demotes out-of-window candidates in final scoring", () => {
+    const inWindow = makeCandidate({ candidate_id: "in", rerank_score: 80, rrf_score: 80, freshness: 80, engagement: 100, metadata: { range_from: "2026-07-01", range_to: "2026-07-31" }, source_items: [makeItem({ published_at: "2026-07-10T00:00:00.000Z" })] });
+    const outWindow = makeCandidate({ candidate_id: "out", rerank_score: 80, rrf_score: 80, freshness: 80, engagement: 100, metadata: { range_from: "2026-07-01", range_to: "2026-07-31" }, source_items: [makeItem({ published_at: "2025-01-01T00:00:00.000Z" })] });
+
+    const ranked = computeFinalScores([inWindow, outWindow]);
+    expect(ranked[0].candidate_id).toBe("in");
+    expect(ranked[0].final_score).toBeGreaterThan(ranked[1].final_score);
   });
 });
 

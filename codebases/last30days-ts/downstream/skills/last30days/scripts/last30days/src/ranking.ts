@@ -293,15 +293,50 @@ export function reciprocalRankFusion(
   }
 }
 
+// Multiplier applied to a candidate whose every dated item falls outside the
+// run's window. The tool's promise is the window, so a stale item must not lead
+// the ranked clusters however relevant it reads. Scaling (not subtracting)
+// preserves the ordering among older items while keeping in-window evidence on
+// top.
+const OUT_OF_WINDOW_FINAL_MULTIPLIER = 0.35;
+
+export function candidateOutOfWindow(candidate: Candidate): boolean {
+  const dated = candidate.source_items.filter((item) => item.published_at);
+  if (dated.length === 0) return false;
+
+  const rangeFrom = candidate.metadata?.range_from as string | undefined;
+  const rangeTo = candidate.metadata?.range_to as string | undefined;
+  if (rangeFrom && rangeTo) {
+    try {
+      const start = new Date(rangeFrom).getTime();
+      const end = new Date(rangeTo).getTime();
+      for (const item of dated) {
+        const itemDate = new Date(item.published_at.slice(0, 10)).getTime();
+        if (!Number.isNaN(itemDate) && itemDate >= start && itemDate <= end) {
+          return false;
+        }
+      }
+      return true;
+    } catch {
+      // fall through to confidence-based fallback
+    }
+  }
+
+  return dated.every((item) => item.date_confidence !== "high");
+}
+
 export function computeFinalScores(candidates: Candidate[]): Candidate[] {
   for (const c of candidates) {
-    c.final_score = Math.round((
+    let score =
       c.rerank_score * 0.60 +
       c.rrf_score * 0.20 +
       c.freshness * 0.10 +
       c.source_quality * 0.05 +
-      c.engagement * 0.05
-    ) * 100) / 100;
+      c.engagement * 0.05;
+    if (candidateOutOfWindow(c)) {
+      score *= OUT_OF_WINDOW_FINAL_MULTIPLIER;
+    }
+    c.final_score = Math.round(score * 100) / 100;
   }
   return [...candidates].sort((a, b) => b.final_score - a.final_score);
 }

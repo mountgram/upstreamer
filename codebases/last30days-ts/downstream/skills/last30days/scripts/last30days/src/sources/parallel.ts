@@ -27,6 +27,7 @@ export async function searchParallel(
       Authorization: `Bearer ${config.parallelApiKey}`,
     },
     body: JSON.stringify({ query, count: limit }),
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (!response.ok) {

@@ -29,7 +29,7 @@ export function isFinancialTopic(topic: string): boolean {
 async function getJson(url: string, signal?: AbortSignal): Promise<Record<string, unknown>> {
   const resp = await fetch(url, {
     headers: { "User-Agent": UA },
-    signal,
+    signal: signal ?? AbortSignal.timeout(15_000),
   });
   if (!resp.ok) throw new Error(`StockTwits API returned ${resp.status}`);
   return (await resp.json()) as Record<string, unknown>;

@@ -198,7 +198,7 @@ export async function runResearch(options: RunOptions): Promise<Report> {
         fun_score: 0,
         cluster_id: "",
         native_ranks: { [source]: 1 },
-        metadata: item.metadata,
+        metadata: { ...item.metadata, range_from: from, range_to: to },
         explanation: `From ${source}`,
       };
       candidates.push(candidate);

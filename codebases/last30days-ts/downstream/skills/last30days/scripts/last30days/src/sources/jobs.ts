@@ -80,6 +80,7 @@ async function fetchGreenhouse(board: string, limit: number): Promise<SourceItem
     const url = `https://boards-api.greenhouse.io/v1/boards/${encodeURIComponent(board)}/jobs?content=true`;
     const resp = await fetch(url, {
       headers: { "User-Agent": "last30days-ts/0.1" },
+      signal: AbortSignal.timeout(20_000),
     });
     if (!resp.ok) return [];
 
@@ -123,6 +124,7 @@ async function fetchLever(board: string, limit: number): Promise<SourceItem[]> {
     const url = `https://api.lever.co/v0/postings/${encodeURIComponent(board)}?mode=json`;
     const resp = await fetch(url, {
       headers: { "User-Agent": "last30days-ts/0.1" },
+      signal: AbortSignal.timeout(20_000),
     });
     if (!resp.ok) return [];
 
@@ -165,6 +167,7 @@ async function fetchAshby(board: string, limit: number): Promise<SourceItem[]> {
     const url = `https://api.ashbyhq.com/posting-api/job-board/${encodeURIComponent(board)}`;
     const resp = await fetch(url, {
       headers: { "User-Agent": "last30days-ts/0.1" },
+      signal: AbortSignal.timeout(20_000),
     });
     if (!resp.ok) return [];
 

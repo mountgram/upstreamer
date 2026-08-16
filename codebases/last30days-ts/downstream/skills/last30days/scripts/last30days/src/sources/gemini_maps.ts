@@ -63,6 +63,7 @@ async function askGeminiMaps(apiKey: string, query: string, limit: number, tool:
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(buildGeminiMapsRequestBody(query, limit, tool)),
+    signal: AbortSignal.timeout(60_000),
   });
   if (!response.ok) return [];
   const data = await response.json() as GeminiResponse;

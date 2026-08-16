@@ -77,7 +77,7 @@ export async function searchHackerNews(
   const url = `https://hn.algolia.com/api/v1/search?query=${encodedQuery}&tags=story&numericFilters=created_at_i>${fromTs},created_at_i<${toTs}&hitsPerPage=${limit}`;
 
   try {
-    const resp = await fetch(url);
+    const resp = await fetch(url, { signal: AbortSignal.timeout(15_000) });
     if (!resp.ok) return [];
 
     const json = (await resp.json()) as HNSearchResponse;

@@ -1,5 +1,16 @@
 # Upstreamer Changelog
 
+## August 2026 Sync (Incremental)
+
+Upstream reworked X/Twitter search around the BIRD browser path with Grok CLI demoted to an opt-in backup, added retrieve-judge-retry and first-party-evidence fixes for X, added an Amazon buyer-signal source via the Bright Data CLI, hardened GitHub search qualifier handling and authenticated partition honesty, and added an out-of-window ranking guard so stale evidence no longer leads ranked output.
+
+- **GitHub**: Stripped planner-injected search qualifiers (e.g. `stars:>1000`) from topic queries before they collide with the adapter's own `created:>` filter, and partitioned authenticated issue/PR searches into `is:issue` + `is:pull-request` with a merge so authed queries keep full corpus coverage.
+- **Ranking**: Added an out-of-window multiplier so candidates whose every dated item falls outside the requested window can no longer lead the ranked clusters, even when they read as relevant.
+- **X/Twitter**: Unchanged. Upstream's BIRD-browser-first and Grok CLI paths are exactly the logged-in/browser/session mechanisms the contract forbids; the TypeScript adapter keeps the xAI/Grok API (`grok-4.3` with `x_search`/`web_search`) as the only X path.
+- **Amazon buyer-signal**: Intentionally deferred. It depends on the paid, login-gated `brightdata` CLI, which is outside the contract's source surface; documented in the README rather than stubbed.
+- All deterministic tests pass (77/77), including new coverage for GitHub qualifier stripping and out-of-window ranking. Typecheck passes. Mechanical verification passes (0 failures).
+- Live evals run and correctly report missing `EXA_API_KEY`/`BRAVE_API_KEY`; keyed provider evals skipped for absent credentials.
+
 ## July 2026 Sync 4 (Incremental)
 
 Upstream advanced with CI/dependency maintenance (dependabot bumps for GitHub Actions), changelog workflow tooling, and several source-adapter improvements: Reddit now maps requested date windows to smarter time buckets; Polymarket improved market matching with domain-word handling; YouTube added concurrency gating and search caching; and the pipeline received entity-miss pruning in ranking. Most upstream changes were internal engine/infrastructure work dropped per contract.

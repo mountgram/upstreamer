@@ -100,6 +100,7 @@ export async function searchSerper(
         num: Math.min(limit, 25),
         tbs: `cdr:1,cd_min:${fromDate},cd_max:${toDate}`,
       }),
+      signal: AbortSignal.timeout(20_000),
     });
 
     if (!response.ok) return;
@@ -144,6 +145,7 @@ export async function searchSerper(
         num: Math.min(limit - items.length, 25),
         tbs: `cdr:1,cd_min:${fromDate},cd_max:${toDate}`,
       }),
+      signal: AbortSignal.timeout(20_000),
     });
 
     if (!response.ok) return;

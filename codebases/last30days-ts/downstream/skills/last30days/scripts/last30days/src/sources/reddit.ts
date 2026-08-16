@@ -70,6 +70,7 @@ async function fetchPage(url: string): Promise<RedditResponse> {
       "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
       "Accept": "application/json,text/xml,text/html;q=0.9,*/*;q=0.8",
     },
+    signal: AbortSignal.timeout(15_000),
   });
   if (!resp.ok) {
     throw new Error(`Reddit API returned ${resp.status}: ${resp.statusText}`);
@@ -179,6 +180,7 @@ async function fetchRssSearch(query: string, limit: number, timeFilter: string, 
     : `https://www.reddit.com/search.rss?q=${encodedQuery}&sort=relevance&t=${timeFilter}`;
   const resp = await fetch(url, {
     headers: { "User-Agent": "last30days-ts/0.1 (+https://github.com/mountgram/last30days-ts)", Accept: "application/rss+xml,application/atom+xml,text/xml" },
+    signal: AbortSignal.timeout(15_000),
   });
   if (!resp.ok) return [];
   const xml = await resp.text();
@@ -213,6 +215,7 @@ async function enrichComments(items: SourceItem[], depth: string): Promise<Sourc
     try {
       const resp = await fetch(`${item.url.replace(/\/$/, "")}.json?limit=5&raw_json=1`, {
         headers: { "User-Agent": "last30days-ts/0.1" },
+        signal: AbortSignal.timeout(15_000),
       });
       if (!resp.ok) return item;
       const json = await resp.json() as Array<{ data?: { children?: Array<{ data?: { body?: string; author?: string; score?: number } }> } }>;
