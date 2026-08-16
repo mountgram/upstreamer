@@ -44,6 +44,7 @@ export async function searchTruthSocial(
 
   const response = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${config.truthsocialToken}` },
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (!response.ok) {

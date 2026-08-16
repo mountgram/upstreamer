@@ -124,7 +124,7 @@ async function fetchMarkets(
   const encodedQuery = encodeURIComponent(query);
   const url = `https://gamma-api.polymarket.com/markets?tag=${encodedQuery}&limit=${limit}&closed=false`;
 
-  const resp = await fetch(url);
+  const resp = await fetch(url, { signal: AbortSignal.timeout(15_000) });
   if (!resp.ok) return [];
 
   const data = (await resp.json()) as PolymarketMarket[];
@@ -140,7 +140,7 @@ async function fetchEvents(
   const encodedQuery = encodeURIComponent(query);
   const url = `https://gamma-api.polymarket.com/events?tag=${encodedQuery}&limit=${limit}`;
 
-  const resp = await fetch(url);
+  const resp = await fetch(url, { signal: AbortSignal.timeout(15_000) });
   if (!resp.ok) return [];
 
   const data = (await resp.json()) as PolymarketEvent[];

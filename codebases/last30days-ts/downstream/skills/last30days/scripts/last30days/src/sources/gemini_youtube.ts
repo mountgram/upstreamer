@@ -87,6 +87,7 @@ async function askGeminiAboutVideos(apiKey: string, query: string, videos: Sourc
       contents: [{ role: "user", parts }],
       generationConfig: { temperature: 0.2, maxOutputTokens: 2200 },
     }),
+    signal: AbortSignal.timeout(60_000),
   });
   if (!response.ok) return [];
   const data = await response.json() as GeminiResponse;

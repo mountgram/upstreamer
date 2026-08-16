@@ -53,6 +53,7 @@ async function createSession(config: Config): Promise<BlueskySession | null> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ identifier: handle, password }),
+      signal: AbortSignal.timeout(20_000),
     });
 
     if (!resp.ok) {

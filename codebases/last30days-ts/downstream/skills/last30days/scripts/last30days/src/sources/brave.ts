@@ -100,7 +100,7 @@ export async function searchBrave(
     });
     params.set("freshness", `${fromDate}to${toDate}`);
 
-    const response = await fetch(`${BRAVE_API_BASE}?${params.toString()}`, { headers });
+    const response = await fetch(`${BRAVE_API_BASE}?${params.toString()}`, { headers, signal: AbortSignal.timeout(20_000) });
     if (!response.ok) return;
 
     const data = (await response.json()) as BraveWebResponse;
@@ -142,7 +142,7 @@ export async function searchBrave(
     });
     params.set("freshness", `${fromDate}to${toDate}`);
 
-    const response = await fetch(`${BRAVE_NEWS_API_BASE}?${params.toString()}`, { headers });
+    const response = await fetch(`${BRAVE_NEWS_API_BASE}?${params.toString()}`, { headers, signal: AbortSignal.timeout(20_000) });
     if (!response.ok) return;
 
     const data = (await response.json()) as BraveNewsResponse;

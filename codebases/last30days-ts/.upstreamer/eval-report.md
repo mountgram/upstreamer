@@ -2,57 +2,57 @@
 
 ## Summary
 
-- The conversion is structurally complete and contract-compliant. Exa and Brave web search adapters are credibly implemented using real SDKs with proper date filtering and result caps. Source isolation is robust. Weather is a real keyless source. X/Twitter uses only xAI/Grok API with zero cookie/session auth. Perplexity/Sonar is strictly opt-in with cost warnings. All-time search is supported. SKILL.md and all 7 reference docs have valid YAML frontmatter. The installed skill is self-contained. 68 tests pass, typecheck passes, mechanical verifier passes (0 failures). Live evals all fail in CI due to missing EXA_API_KEY/BRAVE_API_KEY -- the eval runner correctly reports missing credentials.
+- The conversion is a genuine, self-contained TypeScript world-reading source SDK and CLI that preserves the upstream promise (public-signal research across many optional sources) and correctly reorients it around source access first. Typecheck passes clean, all 77 deterministic tests pass, mechanical verifier passes with 0 failures, and live keyless runs produce real cited output (weather via Open-Meteo, Hacker News via Algolia) including a verified 3650-day all-time window. The only thing not demonstrable in this CI environment is a live Exa/Brave web-search baseline, because no `EXA_API_KEY` or `BRAVE_API_KEY` is configured — the eval runner honestly reports the missing keys and skips keyed evals rather than faking a pass.
 
 ## Findings
 
-1. **WARNING** [live-evals] Exa/Brave web search, JSON output, and all-time search evals all fail in CI because neither EXA_API_KEY nor BRAVE_API_KEY is configured. The eval runner correctly identifies missing keys and writes proper diagnostics rather than crashing or falsely claiming success.
-   Evidence: `eval-output/summary-20260729.md` shows 0 passed, 3 failed, 3 skipped. Each `stderr.txt` reads `Missing EXA_API_KEY or BRAVE_API_KEY`.
-   Why it matters: The contract requires demonstrating a useful Exa or Brave web search run. The code is correct but cannot be demonstrated live in this environment.
-   Required fix: Run evals with a valid EXA_API_KEY or BRAVE_API_KEY. No code changes needed.
+1. **WARNING** [live eval] The Exa-backed or Brave-backed web-search baseline could not be demonstrated live in this environment.
+   Evidence: `downstream/eval-output/summary-20260816.md` shows web-search/json/all-time `FAIL` with "EXA_API_KEY or BRAVE_API_KEY is required"; keyed evals (x, perplexity, brave) are correctly `SKIPPED`.
+   Why it matters: The eval standard's top Required Quality (Exa/Brave web search "credibly demonstrated") cannot be satisfied without credentials, but the failure is isolated, honestly reported, and the adapter code is present and correct (`src/sources/exa.ts` uses the `exa-js` SDK with `numResults` capped at 10; `src/sources/brave.ts` uses the Search API with a date window).
+   Required fix: None for the code. Run `bunx tsx ../../../../eval/run.ts` with `EXA_API_KEY` (or `BRAVE_API_KEY`) set to produce a real baseline artifact and flip this to PASS.
 
-2. **PASS** [source-isolation] Missing optional keys correctly skip only their adapters. Each adapter returns [] on missing key or API error.
+2. **PASS** [source isolation] Missing optional keys skip only their adapter and never break the run. `src/index.ts` gates each keyed source behind its env var; per-source errors are caught and recorded in `errors_by_source`/`source_status`.
 
-3. **PASS** [exa-implementation] Exa adapter uses exa-js SDK, caps all depths at 10 results including deep mode, and passes date range parameters.
+3. **PASS** [xai/X contract] The X adapter uses only the xAI/Grok API (`grok-4.3` with `x_search` + `web_search` tools, strict-JSON parsing from `output_text`). `AUTH_TOKEN`, `CT0`, logged-in/browser/cookie Twitter auth are absent from all downstream code, docs, env examples, tests, and reports.
 
-4. **PASS** [weather-keyless] Weather adapter uses Open-Meteo geocoding and forecast APIs with no API key.
+4. **PASS** [provider strategy] OpenAI web grounding (`web_search_preview`, gpt-4.1-mini) is the preferred LLM-grounded web path; Gemini YouTube/Maps grounding are optional source SDKs; Perplexity/Sonar is expensive opt-in only via `--web-backend perplexity`/`--include-sources perplexity`.
 
-5. **PASS** [x-grok-only] X/Twitter uses OpenAI SDK at api.x.ai/v1, model grok-4.3, x_search + web_search tools, parses JSON from output_text. No AUTH_TOKEN, CT0, or cookie/session auth.
+5. **PASS** [all-time search] `--timeframe all` produces a ~3650-day span (`range_from: 2016-08-18`), verified live via JSON output. Markdown output never hard-codes "last 30 days".
 
-6. **PASS** [perplexity-opt-in] Perplexity adapter is only activated when explicitly requested. Cost warnings appear in .env.example, README, and SKILL.md.
+6. **PASS** [SDK shape] `package.json` exports `.` and `./sources/*`; `src/index.ts` exports `searchInternet`/`runResearch` plus per-source search functions; direct `source <name> <query>` CLI path and `references/source-sdk-guide.md` document source access as first-class.
 
-7. **PASS** [frontmatter] All SKILL.md and references/*.md files have valid YAML frontmatter with title/name and description.
+7. **PASS** [frontmatter + references] `SKILL.md` and all 7 `references/*.md` files have valid YAML frontmatter with `title`/`name` and `description`; install, planning, reranking, comparison, all-time, browser-research, and source-SDK guidance are all present.
 
-8. **PASS** [browser-research] Browser research guidance correctly explains optional browser tools without requiring dependencies.
+8. **PASS** [no-key baseline] No-key sources (Reddit, Hacker News, GitHub, Polymarket, Weather, Health) return real cited output, not placeholders.
 
-9. **PASS** [repo-root-env] INSTALL.md and SKILL.md both explain repo-root .env handling.
+9. **PASS** [Amazon/Bright Data deferral] Amazon buyer-signal is intentionally deferred (paid, login-gated `brightdata` CLI outside the contract surface) and documented in the README rather than stubbed.
 
-10. **PASS** [no-disqualifying-artifacts] Zero Python files, AUTH_TOKEN, CT0, or DuckDuckGo in runtime code.
+10. **PASS** [robustness follow-up] After the initial review flagged bare `fetch` calls without timeouts, every raw-HTTP adapter now applies an `AbortSignal.timeout` (15–60s by source), so a hung upstream connection degrades to a caught error/empty result instead of stalling the `Promise.all` orchestration.
 
 ## Sampled Areas
 
-- `exa.ts`: PASS - Uses exa-js SDK, caps at 10 results, date-aware
-- `brave.ts`: PASS - Uses Brave search + news APIs, date filtering
-- `weather.ts`: PASS - Real keyless Open-Meteo implementation
-- `x.ts`: PASS - xAI/Grok only, no cookie auth
-- `perplexity.ts`: PASS - Opt-in only via OpenRouter
-- `index.ts`: PASS - Source isolation, all-time support, SDK exports
-- `SKILL.md`: PASS - Valid frontmatter, source map, repo-root .env guidance
-- `references/*.md` (7 files): PASS - All have valid YAML frontmatter
-- `browser-research.md`: PASS - Optional companions, no required dependency
-- `INSTALL.md`: PASS - Repo-root .env handling
-- `.env.example`: PASS - All supported keys, grouped by source area
-- `eval/run.ts`: PASS - Correctly skips on missing credentials
-- Mechanical verifier: PASS (0 failures)
-- Tests: PASS (68/68), Typecheck: PASS
+- `package.json`: PASS - exports map, scripts, maintained deps (`exa-js`, `openai`, `zod`).
+- `src/index.ts`: PASS - `searchInternet`/`runResearch`, per-source exports, failure isolation, all-time handling.
+- `src/cli.ts`: PASS - `--timeframe all`, `--format json`, `source <name>`, `--hiring-signals`, `--web-backend`.
+- `src/sources/weather.ts`: PASS - real keyless Open-Meteo current conditions + forecast.
+- `src/sources/x.ts`: PASS - xAI `responses.create` with `x_search`/`web_search`, no cookie/session auth.
+- `src/sources/exa.ts` / `brave.ts`: PASS - real SDK/API, Exa capped ≤10, date window applied.
+- `src/sources/github.ts`: PASS - qualifier stripping + authenticated `is:issue`/`is:pull-request` partition.
+- `src/ranking.ts`: PASS - out-of-window candidates demoted in final scoring.
+- `skills/last30days/SKILL.md` + `references/*.md` (7 files): PASS - valid frontmatter, source map, install/repo-root `.env` guidance.
+- `README.md` + `.env.example` + `references/INSTALL.md`: PASS - no global required key, repo-root `.env` handling, one-off SDK scripts encouraged.
+- `eval/run.ts` + root `eval-output/`: PASS (with WARNING) - runs outside the skill, skips keyed evals cleanly, honestly reports missing credentials.
 
 ## Eval Artifacts Reviewed
 
-- `eval-output/summary-20260729.md` - 0 pass, 3 fail (credential-constrained), 3 skip
-- `eval-output/web-search-20260729/judgment.md` - FAIL: missing EXA_API_KEY
-- `eval-output/json-20260729/judgment.md` - FAIL: missing EXA_API_KEY
-- `eval-output/all-time-20260729/judgment.md` - FAIL: missing EXA_API_KEY
+- `bun run typecheck` → exit 0.
+- `bun run test` → 6 files passed, 77 tests passed.
+- `bun run last30days -- "weather in Lisbon tomorrow" --format json --depth quick --include-sources weather` → real Open-Meteo current conditions.
+- `bun run last30days -- "TypeScript" --format markdown --depth quick --include-sources hackernews` → real cited HN results + footer.
+- `bun run last30days -- "Einstein relativity" --timeframe all --format json --include-sources weather` → `range_from: 2016-08-18`.
+- `downstream/eval-output/{summary,web-search,json,all-time}-20260816/` → honest missing-credential failures and keyed-eval SKIPPEDs.
+- Mechanical verifier `verify-last30days-ts.sh` → PASSED (0 failures); `scripts/verify-public-skills` → PASS.
 
 ## Recommendation
 
-- Accept the conversion with follow-up: the downstream is ready to ship. When an EXA_API_KEY or BRAVE_API_KEY is available, re-run live evals to produce passing web-search, JSON, and all-time artifacts. The code itself needs no changes.
+- Accept the conversion with follow-up. Mechanical verification and deterministic tests pass, and the qualitative eval passes with warnings. Update sync state. The single follow-up is to run the live Exa/Brave baseline eval in an environment with `EXA_API_KEY` (or `BRAVE_API_KEY`) set to produce the missing web-search artifact; no code changes are required for that.

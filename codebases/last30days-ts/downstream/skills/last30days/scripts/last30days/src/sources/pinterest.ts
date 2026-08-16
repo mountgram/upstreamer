@@ -35,6 +35,7 @@ export async function searchPinterest(
 
   const response = await fetch(url.toString(), {
     headers: { "x-api-key": config.scrapecreatorsApiKey },
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (!response.ok) {

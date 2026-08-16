@@ -39,6 +39,7 @@ async function fetchMediaComments(itemId: string, config: Config): Promise<{ aut
     const url = new URL(`${MEDIA_INFO_URL}/${itemId}`);
     const response = await fetch(url.toString(), {
       headers: { "x-api-key": config.scrapecreatorsApiKey },
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (!response.ok) return [];
@@ -93,6 +94,7 @@ export async function searchInstagram(
 
   const response = await fetch(url.toString(), {
     headers: { "x-api-key": config.scrapecreatorsApiKey },
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (!response.ok) {

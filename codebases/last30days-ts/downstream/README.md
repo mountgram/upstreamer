@@ -112,6 +112,7 @@ bunx tsx ../../../../eval/run.ts
 - Techmeme adapter uses `techmeme-pp-cli` for current tech news headlines.
 - LinkedIn adapter uses ScrapeCreators with article enrichment for person topics.
 - Browser tools are optional companions, not dependencies. Use an available browser skill/tool for dynamic or identity-sensitive pages such as LinkedIn profiles/posts, Instagram pages, public company pages, and review sites when API results need verification. See `references/browser-research.md`.
+- Amazon buyer-signal reviews are intentionally deferred: upstream reads them through the paid `brightdata` CLI (login-gated, credit-metered), which the rewrite contract does not require. Use Exa/Brave web search or the browser-research guidance to cover consumer-review questions instead.
 - Planning guidance lives in `references/planning.md`; reranking in `references/reranking.md`; comparison search in `references/comparison-search.md`; all-time search in `references/all-time-search.md`; browser guidance in `references/browser-research.md`; SDK import guide in `references/source-sdk-guide.md`.
 - This downstream is derived from `mvanhorn/last30days-skill` and rewritten as a self-contained TypeScript skill bundle.
 

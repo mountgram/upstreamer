@@ -71,6 +71,12 @@ Read CLAUDE.md, TODOS.md, and any plan file. Assess scope:
 
 Read each review skill file from disk to understand methodology. You will follow each skill's review sections at full depth.
 
+When following a loaded skill file, SKIP these sections — they are already handled by autoplan:
+- Scope gate (autoplan's intake already determined the review target)
+- AskUserQuestion Format (autoplan auto-decides via the 6 principles)
+
+If a loaded skill spawns a subagent (e.g. a Codex second voice), pass `run_in_background: false` explicitly — subagents may run in the background by default, and all review voices must complete before the consensus summary.
+
 ## Phase 1: CEO Review (Strategy and Scope)
 
 Review dimensions:

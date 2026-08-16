@@ -36,6 +36,7 @@ async function fetchMedlinePlus(query: string, limit: number): Promise<SourceIte
   try {
     const resp = await fetch(url, {
       headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(15_000),
     });
     if (!resp.ok) return [];
 

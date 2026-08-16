@@ -92,7 +92,7 @@ export async function searchWeather(query: string, _fromDate: string, _toDate: s
 
   try {
     const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`;
-    const geoResp = await fetch(geoUrl, { headers: { "User-Agent": "last30days-ts/0.1" } });
+    const geoResp = await fetch(geoUrl, { headers: { "User-Agent": "last30days-ts/0.1" }, signal: AbortSignal.timeout(15_000) });
     if (!geoResp.ok) return [];
     const geo = (await geoResp.json()) as GeocodingResponse;
     const place = geo.results?.[0];
@@ -106,7 +106,7 @@ export async function searchWeather(query: string, _fromDate: string, _toDate: s
     forecastUrl.searchParams.set("timezone", "auto");
     forecastUrl.searchParams.set("forecast_days", String(Math.max(limit, 1)));
 
-    const forecastResp = await fetch(forecastUrl, { headers: { "User-Agent": "last30days-ts/0.1" } });
+    const forecastResp = await fetch(forecastUrl, { headers: { "User-Agent": "last30days-ts/0.1" }, signal: AbortSignal.timeout(15_000) });
     if (!forecastResp.ok) return [];
     const forecast = (await forecastResp.json()) as ForecastResponse;
     const current = forecast.current;

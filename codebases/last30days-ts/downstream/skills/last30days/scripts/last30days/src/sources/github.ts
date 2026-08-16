@@ -3,6 +3,29 @@ import type { RunOptions } from "../schema.js";
 import type { SourceItem } from "../schema.js";
 import { spawnSync } from "node:child_process";
 
+// GitHub search qualifiers a planner may write straight into the topic string
+// (e.g. "open source AI stars:>1000 created:>2025-03-20"). They must not reach
+// the query builder: it appends its own `created:>{from_date}`, and when two
+// `created:` qualifiers collide GitHub honours the first and silently ignores
+// ours, returning out-of-window items that the date filter then drops wholesale.
+const QUALIFIER_KEYS = new Set([
+  "archived", "assignee", "author", "base", "closed", "comments", "commenter",
+  "created", "fork", "forks", "head", "in", "interactions", "involves", "is",
+  "label", "language", "license", "linked", "mentions", "merged", "milestone",
+  "no", "org", "project", "pushed", "reactions", "repo", "review",
+  "review-requested", "reviewed-by", "size", "sort", "stars", "state", "team",
+  "topic", "topics", "type", "updated", "user",
+]);
+
+const QUALIFIER_RE = new RegExp(
+  `(?:(?<=\\s)|(?<=,)|(?<=;)|^)(?:${[...QUALIFIER_KEYS].sort().join("|")}):(?:[<>]=?)?(?:"[^"]*"|[^\\s,;()[\\]]+)[,;]?`,
+  "gi",
+);
+
+export function stripSearchQualifiers(text: string): string {
+  return text.replace(QUALIFIER_RE, " ").replace(/\s+/g, " ").trim();
+}
+
 interface GitHubRepo {
   id: number;
   full_name: string;
@@ -148,7 +171,7 @@ async function fetchRepos(
   const url = `https://api.github.com/search/repositories?q=${encodedQuery}&sort=stars&order=desc&per_page=${limit}`;
   const headers = githubHeaders(token);
 
-  const resp = await fetch(url, { headers });
+  const resp = await fetch(url, { headers, signal: AbortSignal.timeout(20_000) });
   if (!resp.ok) return [];
 
   const json = (await resp.json()) as GitHubRepoSearchResponse;
@@ -165,23 +188,55 @@ async function fetchRepos(
     .map(normalizeRepo);
 }
 
+async function searchIssuesQuery(
+  query: string,
+  fromDate: string,
+  limit: number,
+  token: string | undefined,
+  qualifier?: string
+): Promise<GitHubIssue[]> {
+  const base = `${query} created:>${fromDate}`;
+  const q = qualifier ? `${base} ${qualifier}` : base;
+  const url = `https://api.github.com/search/issues?q=${encodeURIComponent(q)}&sort=updated&order=desc&per_page=${limit}`;
+  const headers = githubHeaders(token);
+
+  const resp = await fetch(url, { headers, signal: AbortSignal.timeout(20_000) });
+  if (!resp.ok) return [];
+
+  const json = (await resp.json()) as GitHubIssueSearchResponse;
+  if (!json.items || !Array.isArray(json.items)) return [];
+  return json.items;
+}
+
 async function fetchIssues(
   query: string,
   fromDate: string,
   limit: number,
   token?: string
 ): Promise<SourceItem[]> {
-  const encodedQuery = encodeURIComponent(`${query} created:>${fromDate}`);
-  const url = `https://api.github.com/search/issues?q=${encodedQuery}&sort=updated&order=desc&per_page=${limit}`;
-  const headers = githubHeaders(token);
+  if (token) {
+    // GitHub rejects authenticated /search/issues queries that carry neither
+    // `is:issue` nor `is:pull-request` (HTTP 422); anonymous queries are still
+    // grandfathered. Appending one qualifier alone silently halves the corpus,
+    // so query both and merge.
+    const merged: GitHubIssue[] = [];
+    const seen = new Set<number>();
+    for (const qualifier of ["is:issue", "is:pull-request"]) {
+      const items = await searchIssuesQuery(query, fromDate, limit, token, qualifier);
+      for (const item of items) {
+        if (seen.has(item.id)) continue;
+        seen.add(item.id);
+        merged.push(item);
+      }
+    }
+    // Both sub-queries are updated-sorted; re-sort by engagement before
+    // truncating so the merge keeps the highest-signal items.
+    merged.sort((a, b) => (b.reactions?.total_count || 0) - (a.reactions?.total_count || 0));
+    return merged.slice(0, limit).map(normalizeIssue);
+  }
 
-  const resp = await fetch(url, { headers });
-  if (!resp.ok) return [];
-
-  const json = (await resp.json()) as GitHubIssueSearchResponse;
-  if (!json.items || !Array.isArray(json.items)) return [];
-
-  return json.items.slice(0, limit).map(normalizeIssue);
+  const items = await searchIssuesQuery(query, fromDate, limit, token);
+  return items.slice(0, limit).map(normalizeIssue);
 }
 
 async function fetchPersonActivity(
@@ -198,8 +253,8 @@ async function fetchPersonActivity(
   const reposUrl = `https://api.github.com/users/${encodeURIComponent(clean)}/repos?sort=pushed&per_page=${Math.min(limit, 10)}`;
 
   const [prsResp, reposResp] = await Promise.all([
-    fetch(prUrl, { headers }),
-    fetch(reposUrl, { headers }),
+    fetch(prUrl, { headers, signal: AbortSignal.timeout(20_000) }),
+    fetch(reposUrl, { headers, signal: AbortSignal.timeout(20_000) }),
   ]);
 
   const items: SourceItem[] = [];
@@ -268,10 +323,16 @@ export async function searchGitHub(
   const limit = depthLimits[depth] || 10;
   const token = resolveToken(config);
 
+  const plainQuery = stripSearchQualifiers(query);
+  if (!plainQuery) {
+    // A qualifier-only (or empty) topic leaves nothing to search on.
+    return [];
+  }
+
   try {
     const tasks: Array<Promise<SourceItem[]>> = [
-      fetchRepos(query, fromDate, limit, token),
-      fetchIssues(query, fromDate, limit, token),
+      fetchRepos(plainQuery, fromDate, limit, token),
+      fetchIssues(plainQuery, fromDate, limit, token),
     ];
     if (options?.githubUser) tasks.push(fetchPersonActivity(options.githubUser, fromDate, limit, token));
     if (options?.githubRepos?.length) tasks.push(fetchRepoActivity(options.githubRepos, fromDate, limit, token));

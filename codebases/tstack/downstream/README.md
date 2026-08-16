@@ -27,7 +27,7 @@ Bash code blocks are instructional only and use ordinary commands such as `git`,
 - **health** — Check codebase health with available tests, type checks, lint, and dependency signals.
 - **investigate** — Debug from symptoms to root cause with evidence.
 - **ios-clean**, **ios-design-review**, **ios-fix**, **ios-qa** — Run portable iOS cleanup, review, fix, and QA workflows.
-- **land-and-deploy**, **setup-deploy**, **ship** — Prepare, land, deploy, and verify releases.
+- **land-and-deploy**, **setup-deploy**, **ship** — Prepare, land, deploy, and verify releases, including App Store release via fastlane.
 - **office-hours** — Pressure-test product ideas with founder-style questions.
 - **plan-ceo-review**, **plan-design-review**, **plan-devex-review**, **plan-eng-review** — Review plans from strategy, design, developer experience, and engineering perspectives.
 - **qa**, **qa-only** — Exercise changes and report defects with reproduction detail.
