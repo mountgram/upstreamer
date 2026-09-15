@@ -13,7 +13,7 @@ Bash code blocks are instructional only and use ordinary commands such as `git`,
 - **autoplan** — Coordinate multiple review passes before implementation.
 - **canary** — Validate a deployed change with targeted smoke checks.
 - **careful** — Slow down around destructive or irreversible actions.
-- **codex** — Ask for an optional second-pass critique from another coding agent or CLI.
+- **codex**, **claude-code** — Ask for an optional second-pass critique from another coding agent or CLI (Codex or Claude Code).
 - **cso** — Run a security audit across product, code, data, and supply chain risk.
 - **design-consultation** — Turn design feedback into an actionable product/design plan.
 - **design-html** — Build static HTML/CSS design explorations for review.
@@ -23,7 +23,7 @@ Bash code blocks are instructional only and use ordinary commands such as `git`,
 - **document-generate** — Create task-focused documentation using a clear docs taxonomy.
 - **document-release** — Update release-facing docs after shipping.
 - **freeze**, **unfreeze**, **careful**, **guard** — Manage local edit boundaries and safety posture.
-- **hackernews-frontpage** — Summarize Hacker News front-page patterns from accessible page content.
+- **hackernews-frontpage** — Retrieve structured Hacker News top-story data (rank, title, link, points, comments) as JSON, with an optional theme summary.
 - **health** — Check codebase health with available tests, type checks, lint, and dependency signals.
 - **investigate** — Debug from symptoms to root cause with evidence.
 - **ios-clean**, **ios-design-review**, **ios-fix**, **ios-qa** — Run portable iOS cleanup, review, fix, and QA workflows.

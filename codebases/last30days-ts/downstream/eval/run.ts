@@ -154,7 +154,7 @@ async function runEvals(): Promise<void> {
 
   let zeroKeyJudgment = baselineSource
     ? judgeOutput(topic0, cli0.stdout)
-    : { passed: false, warnings: ["Missing EXA_API_KEY or BRAVE_API_KEY"], judgment: "FAIL: EXA_API_KEY or BRAVE_API_KEY is required for web-search eval" };
+    : { passed: false, warnings: ["Missing EXA_API_KEY or BRAVE_API_KEY"], judgment: "SKIPPED: EXA_API_KEY or BRAVE_API_KEY is required for web-search eval" };
   if (zeroKeyJudgment.passed && !hasSource(cli0.stdout, "Web")) {
     zeroKeyJudgment = { passed: false, warnings: [`${baselineSource} produced no web results`], judgment: "FAIL: Web search did not produce inspectable results" };
   }
@@ -164,11 +164,12 @@ async function runEvals(): Promise<void> {
     name: "web-search",
     topic: topic0,
     passed: zeroKeyJudgment.passed,
-    skipped: false,
+    skipped: !baselineSource,
+    skipReason: baselineSource ? undefined : "EXA_API_KEY or BRAVE_API_KEY not configured",
     exitCode: cli0.exitCode,
     warnings: zeroKeyJudgment.warnings,
     outputSnippet: cli0.stdout.slice(0, 500),
-    judgment: zeroKeyJudgment.judgment,
+    judgment: baselineSource ? zeroKeyJudgment.judgment : "SKIPPED: EXA_API_KEY or BRAVE_API_KEY not configured",
     artifacts: [join(zeroKeyDir, "compact.md"), join(zeroKeyDir, "judgment.md")],
   });
 
@@ -199,11 +200,12 @@ async function runEvals(): Promise<void> {
     name: "json-output",
     topic: topic0,
     passed: jsonValid,
-    skipped: false,
+    skipped: !baselineSource,
+    skipReason: baselineSource ? undefined : "EXA_API_KEY or BRAVE_API_KEY not configured",
     exitCode: cliJson.exitCode,
     warnings: jsonValid ? [] : ["Output is not valid JSON"],
     outputSnippet: cliJson.stdout.slice(0, 500),
-    judgment: jsonValid ? "PASS: Valid JSON output" : "FAIL: Output is not valid JSON",
+    judgment: baselineSource ? (jsonValid ? "PASS: Valid JSON output" : "FAIL: Output is not valid JSON") : "SKIPPED: EXA_API_KEY or BRAVE_API_KEY not configured",
     artifacts: [join(jsonDir, "output.json"), join(jsonDir, "judgment.md")],
   });
 
@@ -252,11 +254,12 @@ async function runEvals(): Promise<void> {
     name: "all-time-search",
     topic: allTimeTopic,
     passed: allTimePassed,
-    skipped: false,
+    skipped: !baselineSource,
+    skipReason: baselineSource ? undefined : "EXA_API_KEY or BRAVE_API_KEY not configured",
     exitCode: cliAllTime.exitCode,
     warnings: allTimeWarnings,
     outputSnippet: cliAllTime.stdout.slice(0, 500),
-    judgment: allTimeJudgment,
+    judgment: baselineSource ? allTimeJudgment : "SKIPPED: EXA_API_KEY or BRAVE_API_KEY not configured",
     artifacts: [join(allTimeDir, "output.json"), join(allTimeDir, "judgment.md")],
   });
 

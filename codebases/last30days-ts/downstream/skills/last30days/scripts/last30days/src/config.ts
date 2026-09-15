@@ -17,6 +17,8 @@ export interface Config {
   scrapecreatorsApiKey?: string;
   apifyApiToken?: string;
   githubToken?: string;
+  brightdataApiKey?: string;
+  telegramSources?: string;
   last30daysDir?: string;
 }
 
@@ -70,6 +72,8 @@ function loadConfig(): Config {
   config.scrapecreatorsApiKey = env.SCRAPECREATORS_API_KEY;
   config.apifyApiToken = env.APIFY_API_TOKEN;
   config.githubToken = env.GITHUB_TOKEN;
+  config.brightdataApiKey = env.BRIGHTDATA_API_KEY;
+  config.telegramSources = env.TELEGRAM_SOURCES;
   config.last30daysDir = env.LAST30DAYS_DIR || "./output";
   if (env.LAST30DAYS_TRUSTPILOT_NO_BROWSER) {
     (config as Record<string, unknown>).LAST30DAYS_TRUSTPILOT_NO_BROWSER = env.LAST30DAYS_TRUSTPILOT_NO_BROWSER;

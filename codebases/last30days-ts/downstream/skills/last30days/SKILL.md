@@ -23,13 +23,15 @@ Do not assume a global `last30days` package is installed. Use the bundled code t
 ## When to Use
 
 - Web/news: use Exa, Brave, Serper, OpenAI Web, Parallel, Techmeme, or general web adapters.
-- Social/community: use Reddit, Hacker News, X/Grok, Bluesky, Threads, TikTok, Instagram, LinkedIn, Trustpilot, Digg, and browser verification when API results are thin.
+- Social/community: use Reddit, Hacker News, X/Grok, Bluesky, Threads, TikTok, Instagram, LinkedIn, Trustpilot, Digg, Telegram, and browser verification when API results are thin.
 - Jobs/company strategy: use the Jobs source for Greenhouse, Lever, and Ashby job boards.
-- Stocks/markets/predictions: use StockTwits for public stock/crypto discussion and Polymarket for prediction markets.
+- Stocks/markets/predictions: use StockTwits for public stock/crypto discussion, Polymarket for prediction markets, and DripStack for premium analyst/newsletter coverage.
 - Weather/local conditions: use the Weather source for keyless current conditions and short forecasts.
 - Places/maps/travel: use Gemini Maps for place questions and browser verification for exact venue pages.
 - Video: use YouTube for discovery and Gemini YouTube when the answer depends on what is said or shown.
 - Health/research/code: use Health, arXiv, GitHub, Hacker News, and source-specific web search.
+- Brands/paid creative: use Meta Ads for a brand's live ad creatives, promo codes, and placements.
+- Product/buyer signals: use Amazon for live ratings, rating counts, and recent review drift.
 
 ## First-Time Setup
 
@@ -65,11 +67,13 @@ Choose sources by what the user needs, not by the skill name:
 | Social/community discussion | Reddit, Hacker News, X/Grok, Bluesky, Threads, TikTok, Instagram | What people are saying, sentiment, reactions, usage patterns |
 | Professional/company research | LinkedIn, Jobs, GitHub, browser | People, company pages, hiring plans, repos, and visible profile/post verification |
 | Jobs and hiring signals | Jobs | Greenhouse, Lever, and Ashby public postings |
-| Stocks/markets/predictions | StockTwits, Polymarket, Exa | Ticker discussion, crypto sentiment, market odds, prediction-market context |
+| Stocks/markets/predictions | StockTwits, Polymarket, DripStack, Exa | Ticker discussion, crypto sentiment, market odds, analyst/newsletter coverage |
 | Weather/local conditions | Weather | Keyless Open-Meteo current conditions and short forecasts |
 | Places and maps | Gemini Maps, browser | Local context, venues, neighborhoods, exact page verification |
 | Video knowledge | YouTube, Gemini YouTube | Discover videos and inspect video content when configured |
 | Health and research | Health, arXiv, Exa | Public medical topics, papers, and research context |
+| Brands and paid creative | Meta Ads | A brand's live ad creatives, promo codes, placements, and spoken scripts |
+| Product and buyer signals | Amazon, Trustpilot | Live ratings, recent review drift, and brand reputation |
 
 Use `bun run last30days -- source <name> <query>` or direct TypeScript imports when you want raw source evidence. Use the normal CLI only when a combined processed brief is useful.
 
@@ -172,6 +176,10 @@ bun run last30days -- source jobs "openai"
 | Health | None | MedlinePlus/NIH public API |
 | Weather | None | Open-Meteo geocoding and forecast APIs |
 | Jobs | None (opt-in via --hiring-signals) | Greenhouse, Lever, Ashby ATS APIs |
+| DripStack | None | Premium financial newsletters; auto-gated on finance topics |
+| Meta Ads | SCRAPECREATORS_API_KEY | A brand's live ad creatives, promo codes, placements |
+| Telegram | SCRAPECREATORS_API_KEY + TELEGRAM_SOURCES | Public channel posts (channel list required) |
+| Amazon | None (brightdata CLI + optional BRIGHTDATA_API_KEY) | Live ratings, rating counts, recent review drift |
 
 ## SDK Import
 

@@ -96,6 +96,19 @@ function githubHeaders(token?: string): Record<string, string> {
   return headers;
 }
 
+// Remove GitHub search qualifiers (repo:, is:, author:, user:, org:, etc.)
+// so a planner-injected qualifier fragment cannot masquerade as the topic.
+function stripQualifiers(query: string): string {
+  const tokens = (query || "").split(/\s+/).filter((token) => {
+    const t = token.trim();
+    if (!t) return false;
+    if (/^[a-z-]+:.+/.test(t)) return false; // repo:x, is:issue, user:y
+    if (/^(is|type):/.test(t)) return false;
+    return true;
+  });
+  return tokens.join(" ").trim();
+}
+
 function resolveToken(config: Config): string | undefined {
   if (config.githubToken) return config.githubToken;
   try {
@@ -268,11 +281,19 @@ export async function searchGitHub(
   const limit = depthLimits[depth] || 10;
   const token = resolveToken(config);
 
+  // Qualifier-only or empty topics are clean no-results, not an ERROR. A
+  // topic that resolves to nothing after qualifier stripping has no search
+  // term to run; person/repo modes still proceed when their own input exists.
+  const cleanQuery = stripQualifiers(query);
+  if (!cleanQuery && !options?.githubUser && !options?.githubRepos?.length) {
+    return [];
+  }
+
   try {
-    const tasks: Array<Promise<SourceItem[]>> = [
-      fetchRepos(query, fromDate, limit, token),
-      fetchIssues(query, fromDate, limit, token),
-    ];
+    const tasks: Array<Promise<SourceItem[]>> = [];
+    if (cleanQuery) {
+      tasks.push(fetchRepos(cleanQuery, fromDate, limit, token), fetchIssues(cleanQuery, fromDate, limit, token));
+    }
     if (options?.githubUser) tasks.push(fetchPersonActivity(options.githubUser, fromDate, limit, token));
     if (options?.githubRepos?.length) tasks.push(fetchRepoActivity(options.githubRepos, fromDate, limit, token));
     const results = await Promise.all(tasks);

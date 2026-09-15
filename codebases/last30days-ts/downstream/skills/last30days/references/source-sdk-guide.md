@@ -12,13 +12,15 @@ Every retained source in Last30Days TS is importable as a standalone TypeScript 
 | Job | Useful Sources |
 |-----|----------------|
 | General web/news | `exa`, `brave`, `serper`, `openai_web`, `parallel`, `techmeme`, `digg` |
-| Social/community reaction | `reddit`, `hackernews`, `x`, `bluesky`, `threads`, `tiktok`, `instagram`, `linkedin` |
+| Social/community reaction | `reddit`, `hackernews`, `x`, `bluesky`, `threads`, `tiktok`, `instagram`, `linkedin`, `telegram` |
 | Jobs and company direction | `jobs` for Greenhouse, Lever, and Ashby boards |
-| Stocks, crypto, predictions | `stocktwits`, `polymarket`, plus web search for context |
+| Stocks, crypto, predictions | `stocktwits`, `polymarket`, `dripstack`, plus web search for context |
 | Weather and local conditions | `weather` |
 | Places and local discovery | `gemini_maps`, browser verification for exact venue pages |
 | Video content | `youtube`, `gemini_youtube` |
 | Health, research, code | `health`, `arxiv`, `github`, `hackernews` |
+| Brands and paid creative | `meta_ads` for a brand's live ad creatives, promo codes, and placements |
+| Product and buyer signals | `amazon` for live ratings and recent review drift, `trustpilot` for brand reputation |
 | Dynamic pages | Use a browser companion for LinkedIn, Instagram, X, public company pages, and reviews when exact visible evidence matters |
 
 ## Importing Individual Source SDKs
@@ -209,6 +211,63 @@ const items = await searchPolymarket("Will OpenAI release GPT-5", "2026-01-01", 
 
 for (const item of items) {
   console.log(`- ${item.title}: ${item.metadata.outcomePrices?.join(" / ")}`);
+}
+```
+
+### Meta Ads (requires SCRAPECREATORS_API_KEY)
+
+Use this for a brand's live ad creatives, promo codes, and placements.
+
+```typescript
+import { searchMetaAds } from "last30days-skill/sources/meta_ads";
+import { getConfig } from "last30days-skill";
+
+const config = getConfig();
+const items = await searchMetaAds("Acme Coffee", "2026-06-01", "2026-07-01", "medium", config);
+
+for (const item of items) {
+  console.log(`- ${item.metadata.advertiser}: ${item.title} (promo: ${item.metadata.promo_code ?? "none"})`);
+}
+```
+
+### Telegram (requires SCRAPECREATORS_API_KEY + TELEGRAM_SOURCES)
+
+```typescript
+import { searchTelegram } from "last30days-skill/sources/telegram";
+import { getConfig } from "last30days-skill";
+
+const config = getConfig();
+const items = await searchTelegram("AI agents", "2026-06-01", "2026-07-01", "medium", config);
+
+for (const item of items) {
+  console.log(`- @${item.metadata.handle}: ${item.title} (${item.engagement.views} views)`);
+}
+```
+
+### Amazon buyer signals (requires brightdata CLI)
+
+```typescript
+import { searchAmazon } from "last30days-skill/sources/amazon";
+import { getConfig } from "last30days-skill";
+
+const config = getConfig();
+const items = await searchAmazon("best bluetooth speaker", "2026-06-01", "2026-07-01", "medium", config);
+
+for (const item of items) {
+  const reviews = (item.metadata.top_comments as unknown[]) ?? [];
+  console.log(`- ${item.title} (${reviews.length} recent reviews)`);
+}
+```
+
+### DripStack (keyless public API, finance topics)
+
+```typescript
+import { searchDripstack } from "last30days-skill/sources/dripstack";
+
+const items = await searchDripstack("AI capex risk", "2026-06-01", "2026-07-01", "medium");
+
+for (const item of items) {
+  console.log(`- ${item.author}: ${item.title}`);
 }
 ```
 

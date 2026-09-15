@@ -1,5 +1,17 @@
 # Upstreamer Changelog
 
+## September 2026 Sync 5 (Incremental)
+
+Upstream added four new source lanes and hardened several existing adapters. The portable pieces were carried into the TypeScript downstream as optional adapters; the X/Twitter official-API and browser-cookie work was dropped per contract (X stays xAI/Grok-only).
+
+- Added **Meta Ads** source: resolves a brand's advertiser page via ScrapeCreators and returns its live ad creatives, promo codes, placements, and landing URLs. Enabled for brand-shaped topics or explicit opt-in with `SCRAPECREATORS_API_KEY`.
+- Added **Telegram** source: reads posts from a user-configured list of public channels through ScrapeCreators. Requires `SCRAPECREATORS_API_KEY` plus a `TELEGRAM_SOURCES` channel list; private joinchat links are rejected.
+- Added **Amazon buyer-signal** source: shells out to the optional `brightdata` CLI for product ratings, rating counts, price, and a recent review sample that surfaces rating drift. Opt-in or product-shaped topics; needs the CLI plus `BRIGHTDATA_API_KEY` or a CLI login.
+- Added **DripStack** source: keyless public search over premium financial newsletters and analyst writeups, auto-gated on finance/analyst topics. Complements StockTwits (retail sentiment) and Polymarket (prediction odds).
+- Hardened **GitHub** search: planner-injected search qualifiers are stripped, and qualifier-only or empty topics now return a clean no-results instead of an error.
+- X/Twitter remains xAI/Grok-only (`x_search` + `web_search` tools); upstream's official X API and browser-cookie paths stay removed.
+- All deterministic tests pass (73/73), typecheck and build pass, and mechanical verification passes (0 failures). Live evals remain credential-constrained in CI.
+
 ## July 2026 Sync 4 (Incremental)
 
 Upstream advanced with CI/dependency maintenance (dependabot bumps for GitHub Actions), changelog workflow tooling, and several source-adapter improvements: Reddit now maps requested date windows to smarter time buckets; Polymarket improved market matching with domain-word handling; YouTube added concurrency gating and search caching; and the pipeline received entity-miss pruning in ranking. Most upstream changes were internal engine/infrastructure work dropped per contract.

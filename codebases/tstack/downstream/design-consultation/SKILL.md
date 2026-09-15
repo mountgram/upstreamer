@@ -78,6 +78,58 @@ Summarize conversationally:
 
 If the user said no research, skip entirely and proceed using your built-in design knowledge.
 
+## Design Knowledge (inform your proposal — do not dump as tables)
+
+Use this to reason about the proposal. Present only the resulting recommendation.
+
+**Three-looks calibration.** Avoid the three most predictable compositions: (1) cream ground + serif display + terracotta accent, (2) near-black + neon + glowing edges, (3) broadsheet hairlines + italic serif + tiny tracked mono. Use one only when the brief specifically asks. Otherwise ground the direction in these users rather than the category stereotype or its obvious opposite.
+
+**Aesthetic directions** (pick one that fits): Brutally Minimal; Maximalist Chaos; Retro-Futuristic; Luxury/Refined; Playful/Toy-like; Editorial/Magazine; Brutalist/Raw; Art Deco; Organic/Natural; Industrial/Utilitarian.
+
+**Decoration levels:** minimal (type does all the work) / intentional (subtle texture or grain) / expressive (layered depth, patterns).
+
+**Layout:** grid-disciplined / creative-editorial / hybrid.
+
+**Color:** Restrained (one accent + neutrals) / Committed (one hue owns the page) / Full palette / Drenched.
+
+**Motion:** minimal-functional / intentional / expressive.
+
+**Choosing faces is a procedure, not a menu.** (1) Name the audience and surface mode — Persuade, Operate, Read, or Experience — and pick the matching tone. (2) Shortlist three faces per display/body/label/mono role. (3) Apply role exclusions. (4) Verify availability and license via web search or local files; omit unverified faces. (5) Specify the loading strategy. Skipping research does not waive verification — offline, describe roles/weights/proportions and mark font selection as pending in DESIGN.md. Never invent a face or a URL.
+
+**Never the display voice** (overused): Inter, Roboto, Arial, Helvetica, Open Sans, Lato, Montserrat, Poppins, Space Grotesk, Space Mono, Fraunces, Playfair Display, Cormorant, Lora, Crimson, Newsreader, Syne, IBM Plex Sans, IBM Plex Serif, DM Sans, DM Serif, Outfit, Plus Jakarta Sans, Instrument Sans, Geist. (DM Sans, Instrument Sans, IBM Plex Sans are fine as body/UI on an Operate or Read surface.) **Mono for data and code:** JetBrains Mono, IBM Plex Mono, Fira Code. **Banned in any role:** Papyrus, Comic Sans, Lobster, Impact, Jokerman, Bleeding Cowboys, Permanent Marker, Bradley Hand, Brush Script, Hobo, Trajan, Raleway, Clash Display, Courier New.
+
+**Anti-convergence.** Vary aesthetic, faces, and palette across project generations and justify repetition. Light vs dark is not a dial — fix it to the use scene (who, where, lighting) until that scene changes. Unjustified convergence is slop.
+
+**AI slop anti-patterns** — never include these in a recommendation:
+
+- Purple/violet/indigo gradients or blue-to-purple schemes.
+- The 3-column feature grid: icon-in-colored-circle + bold title + 2-line description, repeated 3x symmetrically.
+- Icons in colored circles as section decoration (SaaS starter template look).
+- Centered everything; uniform bubbly border-radius on every element.
+- Decorative blobs, floating circles, wavy SVG dividers, radial gradient halos, spotlight glows.
+- Emoji as design elements.
+- Colored left-border on cards (`border-left: 3px solid <accent>`); a colored edge on a rounded card.
+- Generic hero copy ("Welcome to [X]", "Unlock the power of...", "Your all-in-one solution...").
+- Cookie-cutter rhythm: hero → 3 features → testimonials → pricing → CTA.
+- `system-ui` / `-apple-system` as the primary display/body font.
+- A training-data default as the display voice.
+- Headings within a step of body size; emphasis that is only weight or size; gradient text.
+- A card inside a card; rounded cards with drop shadows as the container for everything.
+- An illustration built from CSS shapes standing in for a real asset.
+- Glowing edges on dark surfaces; an infinitely scrolling logo strip.
+- A pill-shaped label floating above the hero headline; a kicker above a heading.
+- "Seamless", "effortless", "supercharge", "streamline" and other words that describe nothing.
+- Short. Punchy. Fragments. Every sentence a slogan.
+- Display type past 6rem on a page that is not a poster.
+- Gradient buttons as the primary CTA; "Get Started" and "Learn More" as the only CTAs.
+- A generic stock-photo hero or a gray placeholder standing in for one.
+- A testimonial row with avatars, five stars, and quotes nobody said.
+- The cookie-cutter hero: headline left, screenshot right, two buttons.
+- Three big numbers with tiny labels under the hero ("10k+ users", "99.9%").
+- Frosted-glass panels with blurred backdrops as the default surface.
+
+If a section feels empty, it needs better content, not decoration.
+
 ## Phase 3: Propose the Design System
 
 Based on the product context, memorable thing, and research (if any), propose a complete design system covering:

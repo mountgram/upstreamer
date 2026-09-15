@@ -2,7 +2,7 @@
 
 Last30Days is an installable agent skill with a bundled Bun/TypeScript world-reading SDK and research CLI under `scripts/last30days/`. Installing the skill brings the agent instructions, source code, source adapters, tests, config examples, and planning/reranking references together in one skill directory.
 
-It gives agents practical access to current-world sources: Exa or Brave web search, OpenAI web grounding, Reddit, Hacker News, X/Twitter, YouTube, Gemini YouTube understanding, Gemini Maps grounding, TikTok, GitHub, Polymarket, StockTwits (financial/crypto topics), Open-Meteo weather, Digg, arXiv, Techmeme, Trustpilot, LinkedIn, Bluesky, Truth Social, health sources, and other optional sources. The `--hiring-signals` flag analyzes public job postings to surface company focus shifts.
+It gives agents practical access to current-world sources: Exa or Brave web search, OpenAI web grounding, Reddit, Hacker News, X/Twitter, YouTube, Gemini YouTube understanding, Gemini Maps grounding, TikTok, GitHub, Polymarket, StockTwits (financial/crypto topics), DripStack (premium analyst/newsletter coverage), Open-Meteo weather, Digg, arXiv, Techmeme, Trustpilot, LinkedIn, Meta Ads (brand paid creative), Telegram public channels, Amazon buyer signals, Bluesky, Truth Social, health sources, and other optional sources. The `--hiring-signals` flag analyzes public job postings to surface company focus shifts.
 
 ## Install The Skill
 
@@ -67,6 +67,7 @@ Public or local sources can still work when available:
 - GitHub unauthenticated API
 - Polymarket public API
 - StockTwits public API (financial/crypto topics only, no key required)
+- DripStack public API (premium financial newsletters, finance topics only, no key required)
 - Digg through optional `digg-pp-cli`
 - arXiv through optional `arxiv-pp-cli`
 - Techmeme through optional `techmeme-pp-cli`
@@ -74,11 +75,14 @@ Public or local sources can still work when available:
 - YouTube through optional `yt-dlp`
 - Gemini YouTube analysis through `GEMINI_API_KEY` plus `yt-dlp` discovery
 - Gemini Maps grounding through `GEMINI_API_KEY` for spatial/place questions
+- Meta Ads through `SCRAPECREATORS_API_KEY` for a brand's live ad creatives
+- Telegram public channels through `SCRAPECREATORS_API_KEY` plus a `TELEGRAM_SOURCES` channel list
+- Amazon buyer signals through the optional `brightdata` CLI (live ratings and recent review drift)
 - Health sources via MedlinePlus/NIH public API
 - Weather/current conditions via Open-Meteo public APIs
 - Jobs/Hiring Signals via public ATS APIs (Greenhouse, Lever, Ashby)
 
-Optional keyed sources include Exa, Brave, OpenAI web grounding, Gemini YouTube/Maps grounding, Serper, Parallel, X/Grok, Perplexity/Sonar through OpenRouter, ScrapeCreators social sources (TikTok, Instagram, Threads, Pinterest, LinkedIn), Bluesky, and Truth Social. Perplexity/Sonar is expensive and opt-in only via `--web-backend perplexity` or `--include-sources perplexity`. See `scripts/last30days/.env.example` inside the installed skill for the exact variables.
+Optional keyed sources include Exa, Brave, OpenAI web grounding, Gemini YouTube/Maps grounding, Serper, Parallel, X/Grok, Perplexity/Sonar through OpenRouter, ScrapeCreators social sources (TikTok, Instagram, Threads, Pinterest, LinkedIn, Meta Ads, Telegram), Bluesky, and Truth Social. Perplexity/Sonar is expensive and opt-in only via `--web-backend perplexity` or `--include-sources perplexity`. See `scripts/last30days/.env.example` inside the installed skill for the exact variables.
 
 ## Run And Verify
 
@@ -111,6 +115,10 @@ bunx tsx ../../../../eval/run.ts
 - arXiv adapter uses `arxiv-pp-cli` with relevance-sorted search and a 365-day recency window.
 - Techmeme adapter uses `techmeme-pp-cli` for current tech news headlines.
 - LinkedIn adapter uses ScrapeCreators with article enrichment for person topics.
+- Meta Ads adapter uses ScrapeCreators to resolve an advertiser page and pull its live creatives, promo codes, and placements for brand-shaped topics.
+- Telegram adapter reads public channel posts through ScrapeCreators when a `TELEGRAM_SOURCES` channel list is configured.
+- Amazon adapter shells out to the `brightdata` CLI for product ratings and recent review drift on product-shaped topics.
+- DripStack adapter uses the free public DripStack search API for premium financial newsletter coverage on finance-shaped topics.
 - Browser tools are optional companions, not dependencies. Use an available browser skill/tool for dynamic or identity-sensitive pages such as LinkedIn profiles/posts, Instagram pages, public company pages, and review sites when API results need verification. See `references/browser-research.md`.
 - Planning guidance lives in `references/planning.md`; reranking in `references/reranking.md`; comparison search in `references/comparison-search.md`; all-time search in `references/all-time-search.md`; browser guidance in `references/browser-research.md`; SDK import guide in `references/source-sdk-guide.md`.
 - This downstream is derived from `mvanhorn/last30days-skill` and rewritten as a self-contained TypeScript skill bundle.

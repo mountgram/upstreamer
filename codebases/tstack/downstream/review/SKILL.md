@@ -259,6 +259,54 @@ Every finding MUST include a confidence score (1-10):
 
 Finding format: `[SEVERITY] (confidence: N/10) file:line — description`
 
+## Simplification Lens
+
+One specialist lens, always considered alongside the categories above. It hunts
+unrequested *structure* only — not coverage, never tests, error paths, or
+edge-case branches. Findings are advisory: excluded from any quality score and
+never auto-applied.
+
+The five tags form a closed vocabulary; every finding uses exactly one:
+
+- `delete` — dead code, unused flexibility, speculative feature. Replace with nothing.
+- `stdlib` — hand-rolled thing the standard library ships. Name the function.
+- `native` — a dependency doing what the platform already does. Name the feature.
+- `speculative` — abstraction with one implementation, config nobody sets, layer with one caller.
+- `shrink` — same logic in fewer lines, only when the reduction is five lines or more. Show the shorter form.
+
+What to hunt:
+
+- Dependencies the standard library or platform already ships (`<input type="date">` over a picker library, CSS over JS, a DB constraint over app code).
+- Single-implementation interfaces, factories with one product, wrappers that only delegate.
+- Files exporting one thing, dead flags and config, hand-rolled stdlib.
+- Manual loops a built-in expresses in one line.
+
+Report one finding per line, always advisory:
+
+```
+[INFORMATIONAL] (confidence: 8/10) lib/email.ts:12 — 27-line validator class; real validation is the confirmation mail. Fix: one-line includes('@') check.
+[INFORMATIONAL] (confidence: 9/10) app/dates.ts:4 — moment.js imported for one format call. Fix: Intl.DateTimeFormat, 0 deps.
+```
+
+**Reuse ladder.** Before recommending any new code in a fix, stop at the first
+rung that holds: (1) a helper, util, or pattern already in this repo, (2) the
+standard library, (3) a native platform feature, (4) a dependency. Recommend
+reuse before new abstractions.
+
+## Adversarial Pass
+
+After the critical pass, re-read the diff as an attacker and a chaos engineer.
+Look for the failure modes a normal review misses:
+
+- Edge cases and races: lock ordering, atomicity, time-of-check/time-of-use.
+- Security holes: injection, SSRF, credential leakage, unsafe deserialization.
+- Resource leaks and silent data corruption paths.
+- Bad error handling that turns a partial failure into a wrong result.
+
+Classify each as `FIXABLE` (concrete fix, apply or ask) or `INVESTIGATE`
+(needs reproduction before acting). For an independent outside opinion, hand the
+diff to the `codex` or `claude-code` skill rather than re-reviewing it yourself.
+
 ---
 
 ## Step 4: Fix-First Review

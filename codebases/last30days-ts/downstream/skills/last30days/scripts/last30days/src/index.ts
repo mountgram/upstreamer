@@ -2,6 +2,7 @@ import type { Report, RunOptions, Candidate, SourceItem, SourceOutcome } from ".
 import { getConfig } from "./config.js";
 import { getDateRange, formatDate } from "./dates.js";
 import { renderMarkdown, renderJson, renderCompact } from "./render.js";
+import { spawnSync } from "node:child_process";
 import {
   annotateStream,
   pruneLowRelevance,
@@ -25,6 +26,10 @@ export { searchWeather } from "./sources/weather.js";
 export { searchStocktwits, isFinancialTopic } from "./sources/stocktwits.js";
 export { searchXiaohongshu } from "./sources/xiaohongshu.js";
 export { searchCorpus, corpusAvailable } from "./sources/corpus.js";
+export { searchMetaAds } from "./sources/meta_ads.js";
+export { searchTelegram } from "./sources/telegram.js";
+export { searchAmazon } from "./sources/amazon.js";
+export { searchDripstack, isDripstackTopic } from "./sources/dripstack.js";
 export type { Report, RunOptions, Candidate, SourceItem, Cluster, SubQuery, QueryPlan, SourceOutcome, LibraryContext, FreshnessVerdict, DiscoveryTopic, DiscoveryReport, CorpusScanResult } from "./schema.js";
 
 function generateId(): string {
@@ -124,6 +129,22 @@ export async function runResearch(options: RunOptions): Promise<Report> {
 
   // StockTwits gated behind financial/crypto topic detection
   if (isStockTwitsTopic(options.topic)) availableSources.push("stocktwits");
+
+  // DripStack gated behind financial/analyst topic detection (keyless)
+  if (isDripstackTopic(options.topic) || wantsSource("dripstack")) availableSources.push("dripstack");
+
+  // Meta Ads: opt-in or brand-shaped topic (ScrapeCreators keyed)
+  if (config.scrapecreatorsApiKey && (wantsSource("meta_ads") || isBrandTopic(options.topic))) {
+    availableSources.push("meta_ads");
+  }
+
+  // Telegram: ScrapeCreators key + configured channel list
+  if (config.scrapecreatorsApiKey && config.telegramSources) availableSources.push("telegram");
+
+  // Amazon buyer signals: Bright Data CLI + opt-in or product-shaped topic
+  if ((wantsSource("amazon") || isProductTopic(options.topic)) && amazonAvailable()) {
+    availableSources.push("amazon");
+  }
 
   // Jobs (opt-in via --hiring-signals)
   if (options.hiringSignals || wantsSource("jobs")) availableSources.push("jobs");
@@ -324,6 +345,14 @@ async function searchSource(
       return (await import("./sources/jobs.js")).searchJobs(options.topic, from, to, depth, config, options.jobBoard);
     case "stocktwits":
       return (await import("./sources/stocktwits.js")).searchStocktwits(options.topic, from, to, depth);
+    case "dripstack":
+      return (await import("./sources/dripstack.js")).searchDripstack(options.topic, from, to, depth);
+    case "meta_ads":
+      return (await import("./sources/meta_ads.js")).searchMetaAds(options.topic, from, to, depth, config);
+    case "telegram":
+      return (await import("./sources/telegram.js")).searchTelegram(options.topic, from, to, depth, config);
+    case "amazon":
+      return (await import("./sources/amazon.js")).searchAmazon(options.topic, from, to, depth, config);
     case "xiaohongshu":
       return (await import("./sources/xiaohongshu.js")).searchXiaohongshu(options.topic, from, to, depth, config);
     case "corpus": {
@@ -358,4 +387,26 @@ function isWeatherTopic(topic: string): boolean {
 
 function isStockTwitsTopic(topic: string): boolean {
   return /\b(stock|stocks|ticker|cashtag|equit(?:y|ies)|price target|earnings|premarket|pre-?market|after\s?hours|dividend|valuation|crypto|altcoin|defi|market cap|bullish|bearish|bitcoin|btc|ethereum|solana|dogecoin|cardano|xrp|\$[A-Za-z]{1,5})\b/i.test(topic);
+}
+
+function isDripstackTopic(topic: string): boolean {
+  return /\b(stock|stocks|ticker|earnings|valuation|crypto|market|markets|analyst|analysts|invest|investing|fund|hedge|finance|financial|revenue|capex|guidance|outlook|quarterly|rate cut|fed|inflation|bond|bonds|treasury)\b/i.test(topic);
+}
+
+function isBrandTopic(topic: string): boolean {
+  return /\b(ads?|advertis|marketing|brand|brands|creative|creatives|paid media|promo code|campaign|launch campaign)\b/i.test(topic)
+    || /^[A-Z][a-zA-Z0-9&.'\- ]{2,40}$/.test(topic.trim());
+}
+
+function isProductTopic(topic: string): boolean {
+  return /\b(buy|best|review|reviews|product|products|price|pricing|deal|deals|top rated|worth it|worth buying|ratings?|vs vs|comparison|alternative to)\b/i.test(topic)
+    || /^[A-Za-z0-9&.'\- ]{2,40}$/.test(topic.trim());
+}
+
+function amazonAvailable(): boolean {
+  try {
+    return spawnSync("which", ["brightdata"], { stdio: "ignore", timeout: 5000 }).status === 0;
+  } catch {
+    return false;
+  }
 }
