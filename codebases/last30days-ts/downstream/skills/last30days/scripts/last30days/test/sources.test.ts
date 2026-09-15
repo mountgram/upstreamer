@@ -276,3 +276,65 @@ describe("Key-based source adapters are importable", () => {
     expect(typeof mod.searchBluesky).toBe("function");
   });
 });
+
+describe("New optional source adapters", () => {
+  it("Meta Ads adapter is importable and matches advertiser names", async () => {
+    const mod = await import("../src/sources/meta_ads.js");
+    expect(typeof mod.searchMetaAds).toBe("function");
+    expect(mod.__test__.matchStrength("Acme Coffee", "Acme Coffee")).toBe("exact");
+    expect(mod.__test__.matchStrength("Acme Coffee", "Acme Coffee Roasters")).toBe("token");
+    expect(mod.__test__.matchStrength("Totally Unrelated", "Acme Coffee")).toBe("");
+    expect(mod.__test__.extractPromoCode("Use promo code SUMMER25 at checkout")).toBe("SUMMER25");
+  });
+
+  it("Telegram adapter is importable and parses channel handles", async () => {
+    const mod = await import("../src/sources/telegram.js");
+    expect(typeof mod.searchTelegram).toBe("function");
+    expect(mod.__test__.parseChannelHandle("@aipost")).toBe("aipost");
+    expect(mod.__test__.parseChannelHandle("https://t.me/s/aipost")).toBe("aipost");
+    expect(() => mod.__test__.parseChannelHandle("https://t.me/joinchat/xxxx")).toThrow();
+    expect(mod.__test__.parseChannelSources("@a, @b, @a, https://t.me/c")).toEqual(["a", "b", "c"]);
+  });
+
+  it("DripStack adapter is importable and finance-gated", async () => {
+    const mod = await import("../src/sources/dripstack.js");
+    expect(typeof mod.searchDripstack).toBe("function");
+    expect(mod.__test__.isDripstackTopic("AI news")).toBe(false);
+    expect(mod.__test__.isDripstackTopic("Tesla earnings guidance")).toBe(true);
+
+    const items = mod.__test__.parseDripstack([
+      {
+        title: "AI capex risk",
+        subtitle: "The data center buildout",
+        publicationSlug: "semianalysis.com",
+        slug: "ai-capex-risk",
+        publishedAt: "2026-07-01",
+        relevanceScore: 88,
+      },
+    ], "AI capex");
+    expect(items).toHaveLength(1);
+    expect(items[0].source).toBe("dripstack");
+    expect(items[0].author).toBe("semianalysis");
+    expect(items[0].url).toBe("https://semianalysis.com/ai-capex-risk");
+  });
+
+  it("Amazon adapter is importable", async () => {
+    const mod = await import("../src/sources/amazon.js");
+    expect(typeof mod.searchAmazon).toBe("function");
+  });
+});
+
+describe("GitHub qualifier handling", () => {
+  it("qualifier-only or empty topics are clean no-results without network", async () => {
+    const mod = await import("../src/sources/github.js");
+    const result = await mod.searchGitHub(
+      "repo:foo/bar is:issue",
+      "2026-06-01",
+      "2026-07-01",
+      "medium",
+      {},
+      { topic: "repo:foo/bar is:issue" }
+    );
+    expect(result).toEqual([]);
+  });
+});

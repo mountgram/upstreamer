@@ -115,6 +115,8 @@ After each check, compare results against the baseline (or pre-deploy snapshot):
 
 **Alert on changes, not absolutes.** A page that took 800ms in the baseline is fine if it still takes ~800ms. One new spike is an alert.
 
+**Tiered evidence — catch browser-only breakage too.** A page can return HTTP 200 and still be broken: a client-side JS exception, a missing asset, or a failed render. If the agent has a native browsing or fetch tool, capture console errors and any visible-content change alongside the HTTP checks, and alert when new errors appear against the baseline. If only `curl` is available, say so explicitly in the report: "console-error coverage unavailable — transport-level checks only." A deploy that 200s but throws in the browser must not be reported HEALTHY without that caveat.
+
 **Don't cry wolf.** Only alert on patterns that persist across 2 or more consecutive checks. A single transient network blip is not an alert.
 
 **If a CRITICAL or HIGH alert is detected**, immediately notify the user:

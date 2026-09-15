@@ -86,6 +86,11 @@ Write a single self-contained HTML file. Include:
 - Generic testimonial sections
 - Cookie-cutter hero sections with left-text right-image
 
+**Reuse ladder** before writing any layout or utility code: stop at the first
+rung that holds — (1) a helper or pattern already in this repo, (2) the standard
+library, (3) a native platform feature (CSS over JS, native `<input type="date">`
+over a picker, a DB constraint over app code). Reuse before new abstractions.
+
 ## Step 4: Preview + Refinement Loop
 
 ```

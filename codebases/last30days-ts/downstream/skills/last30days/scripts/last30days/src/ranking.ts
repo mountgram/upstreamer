@@ -33,6 +33,10 @@ const SOURCE_QUALITY: Record<string, number> = {
   gemini_youtube: 0.82,
   gemini_maps: 0.82,
   stocktwits: 0.42,
+  meta_ads: 0.68,
+  telegram: 0.35,
+  amazon: 0.62,
+  dripstack: 0.78,
 };
 
 // Engagement field weights per source

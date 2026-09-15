@@ -1,7 +1,11 @@
 ---
 name: ios-qa
 description: |
-  Exercise an iOS app with focused manual and automated QA using available platform tools.
+  Exercise an iOS app with focused manual and automated QA using standard platform tools
+  (xcodebuild test, XCTest/XCUITest, devicectl, Simulator). Reads Swift source to understand
+  each screen, runs the app, finds bugs, captures evidence and reproduction steps, and reports
+  a before/after health picture. Use when asked to "test the iPhone app", "QA the iOS app",
+  or "find bugs on the device".
 triggers:
   - ios qa
   - test the iphone app
@@ -12,122 +16,118 @@ triggers:
 
 # iOS QA
 
-Live-device iOS QA for SwiftUI apps. Connects to a real iPhone via USB, reads Swift source to understand every screen, then runs a vision-driven agent loop: screenshot, analyze, decide, act, verify, repeat. All interaction happens via HTTP to an embedded StateServer in the app under test.
+Exercise a SwiftUI/UIKit app on a real device or the Simulator using the standard Xcode toolchain. You read Swift source to understand every screen, run the app, then drive a verify loop: reproduce, capture evidence, and report — with automated coverage from XCTest/XCUITest where it exists.
 
-## Architecture
-
-```
-       ┌──────────────────┐   USB CoreDevice (IPv6)   ┌──────────────────┐
-       │ Mac-side daemon   │ ────────────────────────▶ │ iOS app          │
-       │                   │                           │ StateServer      │
-       │ - token rotation  │                           │ (loopback only)  │
-       │ - session control │                           │ - /tap /swipe    │
-       │ - proxy + auth    │                           │ - /type /state   │
-       └──────────────────┘                           │ - /screenshot    │
-                                                      └──────────────────┘
-```
-
-The iOS app's StateServer binds loopback only (`::1` and `127.0.0.1`). The Mac-side daemon proxies requests over the USB CoreDevice tunnel.
+No private bridge, embedded server, or daemon. Interaction is through XCTest UI automation, `devicectl`, the Simulator, and the accessibility tree the platform already provides.
 
 ## Prerequisites
 
-- macOS (the tooling uses `devicectl` from Xcode).
-- iPhone connected via USB, paired, and trusted.
-- Xcode and Swift toolchain installed (`swift --version` reports >= 5.9).
-- App source available on disk, with at least one `@Observable` class.
+- macOS with Xcode and the Swift toolchain installed.
+- A device paired via USB, or a booted Simulator.
+- The app source on disk and an Xcode project/package that builds.
 
-## Phase 0: Session warm-start (optional)
+## Phase 1: Scope Capture
 
-If a session cache from a previous run exists and the device is still connected, skip Phases 1–2 and jump to Phase 3. Invalidate the cache when:
+1. Identify the target: device or Simulator, the scheme, and the bundle id.
+2. Read the app source to enumerate screens and flows. Note the main entry (`@main` App), navigation structure, and the state-bearing types (`@Observable` classes, view models).
+3. Ask the user for the QA scope if it is not already clear: which flows to exercise, whether to test for regressions only or do a full pass, and any known-risky areas.
 
-- The user requests a cold start.
-- The UDID no longer matches a connected device.
-- An accessor hash mismatch is detected on the first state query.
+Record the scope as a checklist of flows before touching anything.
 
-## Phase 1: Read source, plan codegen
+## Phase 2: Build and Run
 
-1. Walk the app source (passed by the user or discovered via project inspection) and identify all `@Observable` classes. Note any property immediately preceded by the generator marker comment `// @Snapshotable` — those are the snapshot-eligible fields.
+Build and install the app, then launch it:
 
-   The marker is a comment so it composes with the `@Observable` macro. Each marked field must belong to a file-scope observable class and be a writable instance `var` with an explicit type and an internal or public setter. Snapshot types are JSON-native scalars (`String`, `Bool`, integer widths, `Float`, `Double`, `CGFloat`), arrays, String-keyed dictionaries, and their Optional compositions. Keys must be unique across observable classes.
+```bash
+xcodebuild -scheme <SchemeName> -destination 'platform=iOS Simulator,name=iPhone 16' build
+xcrun simctl install booted <path-to-app>
+xcrun simctl launch booted <bundle-id>
+```
 
-   Codegen stops with a source diagnostic instead of emitting a broken or lossy harness when any of these constraints is violated.
+For a physical device:
 
-2. Present the accessor list to the user and confirm whether to install the DebugBridge SPM dependency into their `Package.swift`.
+```bash
+xcodebuild -scheme <SchemeName> -destination 'platform=iOS,id=<UDID>' build install
+devicectl device process launch --device <UDID> <bundle-id>
+```
 
-## Phase 2: Bootstrap the device bridge
+Confirm the app reaches a running, interactive state before proceeding.
 
-1. Generate the canonical local bridge package, typed accessors, and installed version marker. The regenerator writes a local `DebugBridge/` package into the app source tree and emits a `StateAccessor.swift` for the app target.
+## Phase 3: Automated Coverage
 
-2. Add the generated `DebugBridge` local SPM dependency to the app's `Package.swift`. The package ships three Debug-config-only library products:
-   - `DebugBridgeCore` (Swift, cross-platform) — StateServer and bridge protocols.
-   - `DebugBridgeTouch` (Objective-C, iOS-only) — in-process touch synthesis with iOS 18+ SwiftUI hit-testing.
-   - `DebugBridgeUI` (Swift, iOS-only) — Screenshot, Elements, and Mutation bridge implementations.
+Run the existing test suite first as a baseline:
 
-   The app target depends on `DebugBridgeUI` with `.when(configuration: .debug)`, which transitively pulls in Core and Touch. Release builds refuse to link these targets.
+```bash
+xcodebuild test -scheme <SchemeName> -destination 'platform=iOS Simulator,name=iPhone 16'
+```
 
-3. Wire the bridges from the `@main` App init, gated on `#if DEBUG`:
-   ```swift
-   #if DEBUG
-   import DebugBridgeCore
-   #if canImport(UIKit)
-   import DebugBridgeUI
-   DebugBridgeUIWiring.installAll()
-   #endif
-   DebugBridgeManager.shared.start(
-       appState: appState,
-       register: AppStateAccessor.register
-   )
-   #endif
-   ```
+If XCUITest targets exist, run them to cover the flows they exercise. Note which flows are covered by automation and which are not, so the manual pass fills the gaps. A passing suite is coverage evidence, not a health certificate.
 
-4. Build and deploy to the device:
-   ```bash
-   xcodebuild -scheme <SchemeName> \
-     -destination 'platform=iOS,id=<UDID>' build install
-   ```
+## Phase 4: Manual Flow Exercise
 
-5. Launch via `devicectl`:
-   ```bash
-   devicectl device process launch --device <UDID> --console <bundle-id>
-   ```
-   Capture the boot token printed to `os_log` on first run.
+For each flow in the scope checklist:
 
-6. Spawn the Mac-side daemon. The daemon acquires an exclusive lock on a PID file. If another daemon is alive, the second invocation discovers its port and connects.
+1. Drive the app to the screen — via `simctl` UI interaction where possible, or by stepping through in the Simulator/device.
+2. Inspect the accessibility tree for what is on screen.
+3. Exercise the happy path, then the edge cases: empty state, invalid input, rapid taps, background/foreground, rotation, and interruption.
+4. Capture evidence for anything unexpected: a screenshot, the accessibility snapshot, the exact steps, and the observed vs expected behavior.
+5. Record the finding with a severity (P0 crash/blocker, P1 major, P2 minor, P3 cosmetic).
 
-7. The daemon immediately rotates the auth token with a fresh in-memory-only credential. The boot token becomes useless ~5s later. If a fresh daemon finds the app running after another daemon consumed the one-use token, it verifies the bundle owner, relaunches the target once, waits for the new token, verifies ownership again, and then rotates.
+Use a screenshot capture as the gold-standard evidence where the environment can produce one.
 
-## Phase 3: Vision-driven agent loop
+## Phase 5: Bug Triage and Reproduction
 
-Each iteration:
+For each finding:
 
-1. `GET /screenshot` (via daemon) — save PNG.
-2. `GET /elements` — accessibility tree.
-3. `GET /state/snapshot` (only `// @Snapshotable` fields) — current state.
-4. Decide next action based on what's on the screen vs the test goal.
-5. `POST /session/acquire` to grab the device lock.
-6. Execute `POST /tap`, `/swipe`, `/type`, or `POST /state/<key>` write.
-7. Re-screenshot; compare; record finding if buggy.
-8. `POST /session/release` once the iteration is done.
+- Reduce it to a minimal reproduction path: "To reproduce: 1) … 2) … 3) … Expected: X, Actual: Y."
+- Note whether it reproduces on device, Simulator, or both.
+- Capture console/log output (`xcrun simctl spawn booted log stream` or the device console) around the failure.
+- Do not "fix" during QA — this skill reports. Hand reproducible defects to `/ios-fix`.
 
-## Modes
+## Phase 6: Regression Thinking
 
-**Local-USB mode (default).** Daemon binds loopback only. The spawning agent gets full-surface access. Best for solo development.
+Before the final report, consider what each finding implies:
 
-**Recording mode.** DebugOverlay renders a small diagonal "AGENT DEMO" watermark in a corner so screencasts are unambiguous about the device being agent-driven.
+- What state led to it, and could the same state class trigger other defects?
+- Did any "fix" observed earlier actually just move the symptom?
+- Are there sibling flows with the same pattern that should be spot-checked?
 
-**Demo mode.** If the user says "demo", "demo mode", "show me", or "I want to see it working", run in DEMO MODE. When demo mode is active, drive every action through visible UI (`/tap`, `/swipe`, `/type`) and never use `POST /state/*` writes to skip steps. Viewers see the agent type every key, tap every button.
+## Health and Report
 
-## Failure modes
+Produce a before/after health picture and a report:
 
-| Symptom | Likely cause | Action |
-|---|---|---|
-| `curl: connection refused` to daemon | Daemon crashed | Re-run `/ios-qa`. Spawn-race lock will fail closed. |
-| `403 identity_not_allowed` on `/auth/mint` | Identity missing from allowlist | Add the remote identity to the allowlist on the Mac. |
-| `409 schema_mismatch` on `/state/restore` | Snapshot from older app build | Discard the snapshot; re-capture. |
-| `503 device_disconnected` from proxy | USB route dropped or app relaunched | Daemon invalidates the stale tunnel and retries one fresh bootstrap. Reconnect or unlock the iPhone if it persists. |
-| `429 rate_limited` on `/auth/mint` | >10 mints/min from one identity | Wait 60s; check audit log for anomalies. |
-| `413 body_too_large` on `/state/restore` | Snapshot >1MB | Increase max body limit or trim the snapshot. |
+```text
+iOS QA REPORT — <app>
+═══════════════════════════
+Device/Simulator:  <target>
+Scope:             <flows exercised>
+Automated tests:   <N passed / M failed>
+Manual flows:      <N exercised>
+Findings:          <P0/P1/P2/P3 counts>
+
+Findings (most severe first):
+1. [P1] <title>
+   Flow: <flow>
+   Repro: 1) … 2) … 3) …
+   Expected vs actual: <…>
+   Evidence: <screenshot/log/accessibility snapshot path>
+   Severity rationale: <…>
+
+Health before: <state>  →  after: <state>
+Recommendation: <ship / fix P0-P1 first / needs full pass>
+```
+
+Sort findings by severity and likelihood. Untested areas and blockers are listed explicitly.
+
+## Failure Modes
+
+| Symptom | Action |
+|---|---|
+| Build fails | Report the compile error; QA cannot start. |
+| Device not reachable | Fall back to Simulator, or ask the user to reconnect and pair. |
+| No test target | Note automation gap; rely on the manual pass. |
+| Flow cannot be reached | Report it as untested rather than guessing. |
 
 ## Cleanup
 
-Use `/ios-clean` to remove the DebugBridge SPM dependency and all `#if DEBUG` wiring before a Release build. This is a convenience flow; the structural Release-build guard (`Package.swift` `.when(configuration: .debug)` plus CI `swift build -c release` check) is the safety-critical path.
+No app changes are made by this skill. If a prior integration added debug wiring, `/ios-clean` removes it before a release build.
