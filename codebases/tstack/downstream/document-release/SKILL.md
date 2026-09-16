@@ -21,6 +21,7 @@ You are mostly automated. Make obvious factual updates directly. Stop and ask on
 **Only stop for:**
 - Risky/questionable doc changes (narrative, philosophy, security, removals, large rewrites)
 - VERSION bump decision (if not already bumped)
+- New TODOS items to add
 - Cross-doc contradictions that are narrative (not factual)
 
 **Never stop for:**
@@ -30,6 +31,12 @@ You are mostly automated. Make obvious factual updates directly. Stop and ask on
 - Fixing stale cross-references
 - CHANGELOG voice polish (minor wording adjustments)
 - Marking TODOS complete
+- Cross-doc factual inconsistencies (e.g., version number mismatch)
+
+**NEVER do:**
+- Overwrite, replace, or regenerate CHANGELOG entries — polish wording only, preserve all content
+- Bump VERSION without asking
+- Use the Write tool on CHANGELOG.md — always use Edit with exact matches
 
 ## Voice
 
@@ -37,14 +44,24 @@ TStack voice: mountgram-shaped product and engineering judgment, compressed for 
 
 ## Step 1: Pre-flight and Diff Analysis
 
+Resolve the release merge-base with plain `git merge-base`, stopping if the ref does not
+resolve:
+
+```bash
+DOC_DIFF_BASE=$(git merge-base origin/<base> HEAD 2>/dev/null || git merge-base <base> HEAD) || exit 1
+echo "DOC_DIFF_BASE: $DOC_DIFF_BASE"
+```
+
+Use the printed SHA for `<diff-base>` in the commands below, not a shell variable.
+
 1. Check the current branch. If on the base branch, **abort**: "You're on the base branch. Run from a feature branch."
 
 2. Gather context about what changed:
 
 ```bash
-git diff <base>...HEAD --stat
-git log <base>..HEAD --oneline
-git diff <base>...HEAD --name-only
+git diff <diff-base> HEAD --stat
+git log <diff-base>..HEAD --oneline
+git diff <diff-base> HEAD --name-only
 ```
 
 3. Discover all documentation files in the repo:
@@ -58,6 +75,8 @@ find . -maxdepth 2 -name "*.md" -not -path "./.git/*" -not -path "./node_modules
    - **Changed behavior** — modified services, updated APIs, config changes
    - **Removed functionality** — deleted files, removed commands
    - **Infrastructure** — build system, test infrastructure, CI
+
+5. Output a brief summary: "Analyzing N files changed across M commits. Found K documentation files to review."
 
 ## Step 2: Per-File Documentation Audit
 
@@ -80,7 +99,7 @@ Read each documentation file and cross-reference it against the diff. Use these 
 - Do test tier descriptions match the current test infrastructure?
 - Flag anything that would fail or confuse a first-time contributor.
 
-**CLAUDE.md / project instructions:**
+**Project instructions (CLAUDE.md / AGENTS.md):**
 - Does the project structure section match the actual file tree?
 - Are listed commands and scripts accurate?
 - Do build/test instructions match what's in the project configuration?
@@ -120,6 +139,9 @@ For each risky or questionable update, present:
 2. Only modify wording within existing entries. Never delete, reorder, or replace entries.
 3. Never regenerate a CHANGELOG entry from scratch.
 4. If an entry looks wrong or incomplete, ask — do not silently fix it.
+5. Use Edit with exact matches — never Write to overwrite CHANGELOG.md.
+
+**If CHANGELOG was not modified in this branch**, skip this step.
 
 **If CHANGELOG was modified in this branch**, review the entry for voice:
 - Would a user reading each bullet think "oh nice, I want to try that"? If not, rewrite wording.
@@ -129,10 +151,10 @@ For each risky or questionable update, present:
 
 ## Step 6: Cross-Doc Consistency and Discoverability Check
 
-1. Does README's feature list match what CLAUDE.md describes?
+1. Does README's feature list match what the project instructions describe?
 2. Does ARCHITECTURE's component list match CONTRIBUTING's project structure?
 3. Does CHANGELOG's latest version match the VERSION file?
-4. **Discoverability:** Is every documentation file reachable from README.md or CLAUDE.md? Every doc should be discoverable from one of the two entry-point files.
+4. **Discoverability:** Is every documentation file reachable from README.md or the project instructions file? Every doc should be discoverable from one of the two entry-point files.
 5. Flag any contradictions between documents. Auto-fix clear factual inconsistencies. Ask about narrative contradictions.
 
 ## Step 7: TODOS.md Cleanup
@@ -152,7 +174,7 @@ If TODOS.md does not exist, skip this step.
 1. Check if VERSION was already modified on this branch:
 
 ```bash
-git diff <base>...HEAD -- VERSION
+git diff <diff-base> HEAD -- VERSION
 ```
 
 2. If VERSION was NOT bumped, ask with recommendation to skip (docs-only changes rarely warrant a version bump).
@@ -209,5 +231,5 @@ Where status is one of: Updated, Current, Voice polished, Not bumped, Already bu
 - **Never bump VERSION silently.** Always ask.
 - **Be explicit about what changed.** Every edit gets a one-line summary.
 - **Generic heuristics, not project-specific.** The audit checks work on any repo.
-- **Discoverability matters.** Every doc file should be reachable from README or CLAUDE.md.
+- **Discoverability matters.** Every doc file should be reachable from README or the project instructions.
 - **Voice: clear, user-forward.** Write like you're explaining to a smart person who hasn't seen the code.

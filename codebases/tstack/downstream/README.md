@@ -23,7 +23,7 @@ Bash code blocks are instructional only and use ordinary commands such as `git`,
 - **document-generate** — Create task-focused documentation using a clear docs taxonomy.
 - **document-release** — Update release-facing docs after shipping.
 - **freeze**, **unfreeze**, **careful**, **guard** — Manage local edit boundaries and safety posture.
-- **hackernews-frontpage** — Summarize Hacker News front-page patterns from accessible page content.
+- **hackernews-frontpage** — Extract the top Hacker News stories as structured JSON, with optional theme summary.
 - **health** — Check codebase health with available tests, type checks, lint, and dependency signals.
 - **investigate** — Debug from symptoms to root cause with evidence.
 - **ios-clean**, **ios-design-review**, **ios-fix**, **ios-qa** — Run portable iOS cleanup, review, fix, and QA workflows.

@@ -19,9 +19,9 @@ all directories again.
 ## Clear the boundary
 
 ```bash
-if [ -f /tmp/tstack/freeze-dir.txt ]; then
-  PREV=$(cat /tmp/tstack/freeze-dir.txt)
-  rm -f /tmp/tstack/freeze-dir.txt
+if [ -f "${TMPDIR:-/tmp}/tstack/freeze-dir.txt" ]; then
+  PREV=$(cat "${TMPDIR:-/tmp}/tstack/freeze-dir.txt")
+  rm -f "${TMPDIR:-/tmp}/tstack/freeze-dir.txt"
   echo "Freeze boundary cleared (was: $PREV). Edits are now allowed everywhere."
 else
   echo "No freeze boundary was set."

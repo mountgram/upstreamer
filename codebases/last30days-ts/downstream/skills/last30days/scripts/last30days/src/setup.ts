@@ -42,6 +42,8 @@ export function diagnose(): SourceStatus[] {
   results.push({ source: "threads", available: scAvail, key: scAvail ? "SCRAPECREATORS_API_KEY" : null, method: "ScrapeCreators API" });
   results.push({ source: "pinterest", available: scAvail, key: scAvail ? "SCRAPECREATORS_API_KEY" : null, method: "ScrapeCreators API" });
   results.push({ source: "linkedin", available: scAvail, key: scAvail ? "SCRAPECREATORS_API_KEY" : null, method: "ScrapeCreators API" });
+  results.push({ source: "meta_ads", available: scAvail, key: scAvail ? "SCRAPECREATORS_API_KEY" : null, method: "Meta Ad Library (opt-in; brand paid creatives)" });
+  results.push({ source: "telegram", available: scAvail && !!process.env.TELEGRAM_SOURCES, key: scAvail ? "SCRAPECREATORS_API_KEY + TELEGRAM_SOURCES" : null, method: "Telegram public channels (opt-in; named handles)" });
 
   results.push({ source: "digg", available: hasDigg, key: null, method: "digg-pp-cli binary" });
   results.push({ source: "arxiv", available: hasArxiv, key: null, method: "arxiv-pp-cli binary" });

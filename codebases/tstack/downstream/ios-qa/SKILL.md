@@ -14,6 +14,8 @@ triggers:
 
 Live-device iOS QA for SwiftUI apps. Connects to a real iPhone via USB, reads Swift source to understand every screen, then runs a vision-driven agent loop: screenshot, analyze, decide, act, verify, repeat. All interaction happens via HTTP to an embedded StateServer in the app under test.
 
+> The `DebugBridge` package and Mac-side daemon are a protocol that must be provided by the app-under-test toolchain — this skill ships the workflow and wire protocol, not the bridge binary. If the bridge is not available in your toolchain, treat this skill as a specification and drive QA through XCUITest or `devicectl` instead.
+
 ## Architecture
 
 ```

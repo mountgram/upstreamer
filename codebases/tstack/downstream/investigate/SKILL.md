@@ -54,9 +54,10 @@ Collect everything before forming any opinions:
 3. **Recent changes.** The most common cause of a new error is a recent
    change. Gather:
    ```bash
-   git log --since="24 hours ago" --oneline
+   git log --oneline -20 -- <affected-files>
    git diff HEAD~5 --stat
    ```
+   Was this working before? A regression means the root cause is in the diff.
 
 4. **Environment state.**
    ```bash
@@ -92,6 +93,41 @@ With the error context in hand, trace the code from entry point to failure:
    necessarily the root cause, but the location where the root cause
    manifests.
 
+### Phase 2.5: Pattern Analysis
+
+Check whether the bug matches a known pattern:
+
+| Pattern | Signature | Where to look |
+|---------|-----------|---------------|
+| Race condition | Intermittent, timing-dependent | Concurrent access to shared state |
+| Nil/null propagation | NoMethodError, TypeError | Missing guards on optional values |
+| State corruption | Inconsistent data, partial updates | Transactions, callbacks, hooks |
+| Integration failure | Timeout, unexpected response | External API calls, service boundaries |
+| Configuration drift | Works locally, fails in staging/prod | Env vars, feature flags, DB state |
+| Stale cache | Shows old data, fixes on cache clear | Redis, CDN, browser cache, Turbo |
+
+Also check:
+
+- `TODOS.md` for related known issues
+- `git log` for prior fixes in the same area — recurring bugs in the same
+  files are an architectural smell, not a coincidence
+
+**External pattern search (sanitize first).** If the bug doesn't match a
+known pattern, search the web — but never paste the raw error message.
+
+1. **Sanitize.** Strip hostnames, IP addresses, file paths, SQL fragments,
+   customer identifiers, and any internal or proprietary data from the error.
+   Reduce it to the generic error category.
+2. **Search the category, not the raw message:**
+   - `{framework} {generic error type}`
+   - `{library} {component} known issues`
+3. **Run the search** with the WebSearch tool when the host provides one, or
+   with `curl` against a search endpoint otherwise. If the error is too
+   specific to sanitize safely, skip the search.
+
+If a documented solution or known dependency bug surfaces, present it as a
+candidate hypothesis in Phase 3.
+
 ### Phase 3: Hypothesize — Form and Test a Hypothesis
 
 1. **State the hypothesis in one sentence:**
@@ -109,18 +145,31 @@ With the error context in hand, trace the code from entry point to failure:
    cause. If rejected, return to Phase 2 with new information. Do not skip
    to Phase 4 with an unvalidated hypothesis.
 
+**Three-strike rule.** If three hypotheses fail, STOP and reconsider the
+architecture rather than guessing a fourth time. Ask the user how to proceed
+rather than thrashing.
+
+**Red flags.** If you see any of these, slow down:
+
+- "Quick fix for now" — there is no "for now." Fix it right or escalate.
+- Proposing a fix before tracing data flow — you're guessing.
+- Each fix reveals a new problem elsewhere — wrong layer, not wrong code.
+
 ### Phase 4: Implement — Fix the Root Cause
 
 Only now, with a validated root cause, write the fix:
 
 1. **State what the fix changes and why it addresses the root cause.**
-2. **Apply the minimal change** that resolves the cause.
+2. **Apply the minimal change** that resolves the cause. Fewest files touched,
+   fewest lines changed. Resist refactoring adjacent code.
 3. **Verify the fix** by reproducing the original error and confirming it no
    longer occurs.
 4. **Check for regressions.** Run the existing test suite. Check related
    code paths that might be affected.
-5. **If applicable, add a regression test** that would have caught this
-   failure.
+5. **Write a regression test** that fails without the fix and passes with it.
+   Proves the test is meaningful and the fix works.
+6. **If the fix touches more than 5 files**, flag the blast radius and ask
+   before proceeding — a bug fix that spans many files may need splitting.
 
 ## Anti-Loop Rule
 
@@ -177,3 +226,8 @@ When you have found and fixed the root cause, produce a concise report:
 
 **Prevention:** <test, guard, or process change to prevent recurrence>
 ```
+
+Status the investigation one of: **DONE** (root cause found, fix applied,
+regression test written, all tests pass), **DONE_WITH_CONCERNS** (fixed but
+cannot fully verify, e.g. intermittent bug requiring staging), or **BLOCKED**
+(root cause unclear after investigation).

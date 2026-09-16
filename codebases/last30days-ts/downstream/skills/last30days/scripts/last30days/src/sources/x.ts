@@ -42,7 +42,7 @@ export async function searchX(
 
   const client = new OpenAI({
     apiKey,
-    baseURL: "https://api.x.ai/v1",
+    baseURL: config.xaiBaseUrl || "https://api.x.ai/v1",
   });
 
   try {

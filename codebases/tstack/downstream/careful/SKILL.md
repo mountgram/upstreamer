@@ -13,7 +13,7 @@ triggers:
   - prod mode
 ---
 
-# careful -- Destructive Command Warnings
+# careful — Destructive Command Warnings
 
 Safety mode is now active. Every Bash command must be checked for destructive
 patterns before running. If a destructive command is detected, warn the user
@@ -48,6 +48,18 @@ Before running any Bash command, scan the command string against these patterns:
 | `gcloud <service> delete` | `gcloud sql instances delete db` | Destroys cloud resources |
 | `terraform destroy` | `terraform destroy -auto-approve` | Tears down infrastructure |
 
+## HIGH Tier (Hard Deny)
+
+Two catastrophic shapes are **denied**, not asked:
+
+- `rm -r` / `rm -R` of exactly `/`, `~`, or `$HOME`
+- Force-push to the repository's default branch
+
+Simple commands only (no `;`, `&&`, `||`, `|`, or newline) — compound shapes fall
+through to the ask tier below. `--force-with-lease` is never HIGH. This is a
+best-effort advisory hard-stop, not a policy boundary: the escape hatch is ending the
+opt-in, session-scoped careful session.
+
 ## Safe Exceptions
 
 These patterns are allowed without warning:
@@ -56,6 +68,16 @@ These patterns are allowed without warning:
 - `git push` without `--force` or `-f`
 - `git reset` without `--hard`
 - `git restore` with a specific file path (not `.`)
+
+## Project Patterns (Additive Only)
+
+The agent reads an optional text file of POSIX extended regex patterns — one per
+line, `#` comments allowed — and treats each matching line as an additional warning.
+The file can live anywhere the user points to, for example `careful-patterns.txt` in
+the project root.
+
+Project patterns are consulted after the built-in patterns, so they can only ADD
+warnings, never suppress a baseline warning. Invalid regex lines are skipped.
 
 ## Warning Protocol
 
@@ -68,6 +90,7 @@ When a destructive pattern is detected:
 5. Wait for explicit user confirmation before running.
 
 Example warning:
+
 ```
 DETECTED: `rm -rf /var/lib/postgresql`
 This will permanently delete your PostgreSQL data directory.
@@ -78,7 +101,7 @@ Proceed?
 ## How it works
 
 The agent checks each Bash command against the patterns above before executing.
-This is an inline advisory check -- the agent reads these rules and applies them
+This is an inline advisory check — the agent reads these rules and applies them
 at runtime. No external scripts, no hooks, no infrastructure.
 
 To deactivate, end the conversation or start a new one.

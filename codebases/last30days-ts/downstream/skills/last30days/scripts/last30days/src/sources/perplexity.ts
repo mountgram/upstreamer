@@ -12,7 +12,7 @@ export async function searchPerplexity(
   if (!config.openrouterApiKey) return [];
 
   const openai = new OpenAI({
-    baseURL: "https://openrouter.ai/api/v1",
+    baseURL: config.openrouterBaseUrl || "https://openrouter.ai/api/v1",
     apiKey: config.openrouterApiKey,
     defaultHeaders: {
       "HTTP-Referer": "https://github.com/mountgram/last30days-ts",

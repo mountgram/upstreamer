@@ -28,7 +28,10 @@ export async function searchOpenAIWeb(
   if (!config.openaiApiKey) return [];
 
   const limit = DEPTH_LIMITS[depth] ?? DEPTH_LIMITS.medium;
-  const client = new OpenAI({ apiKey: config.openaiApiKey });
+  const client = new OpenAI({
+    apiKey: config.openaiApiKey,
+    ...(config.openaiBaseUrl ? { baseURL: config.openaiBaseUrl } : {}),
+  });
 
   try {
     const response = await client.responses.create({

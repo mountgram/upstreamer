@@ -55,7 +55,7 @@ function normalize(post: RedditPostData): SourceItem {
     published_at,
     date_confidence: dateConfidence(published_at),
     engagement: {
-      score: post.score,
+      score: Math.max(0, post.score),
       num_comments: post.num_comments,
     },
     score: 0,
@@ -123,7 +123,7 @@ function normalizeLoose(input: {
     published_at,
     date_confidence: dateConfidence(published_at),
     engagement: {
-      score: input.score || 0,
+      score: Math.max(0, input.score || 0),
       num_comments: input.num_comments || 0,
     },
     score: 0,

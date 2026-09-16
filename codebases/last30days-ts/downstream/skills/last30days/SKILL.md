@@ -68,6 +68,7 @@ Choose sources by what the user needs, not by the skill name:
 | Stocks/markets/predictions | StockTwits, Polymarket, Exa | Ticker discussion, crypto sentiment, market odds, prediction-market context |
 | Weather/local conditions | Weather | Keyless Open-Meteo current conditions and short forecasts |
 | Places and maps | Gemini Maps, browser | Local context, venues, neighborhoods, exact page verification |
+| Advertising and brand paid messages | Meta Ads | What a brand is paying to say this month, from the Meta Ad Library (opt-in) |
 | Video knowledge | YouTube, Gemini YouTube | Discover videos and inspect video content when configured |
 | Health and research | Health, arXiv, Exa | Public medical topics, papers, and research context |
 
@@ -163,6 +164,8 @@ bun run last30days -- source jobs "openai"
 | Threads | SCRAPECREATORS_API_KEY | ScrapeCreators API |
 | Pinterest | SCRAPECREATORS_API_KEY | ScrapeCreators API, opt-in |
 | LinkedIn | SCRAPECREATORS_API_KEY | Post search + article enrichment |
+| Meta Ads | SCRAPECREATORS_API_KEY | Brand paid creatives from the Meta Ad Library; opt-in via `--include-sources meta_ads` |
+| Telegram | SCRAPECREATORS_API_KEY + TELEGRAM_SOURCES | Named public channels; opt-in via `--include-sources telegram` |
 | Bluesky | BSKY_HANDLE + BSKY_APP_PASSWORD | AT Protocol |
 | Truth Social | TRUTHSOCIAL_TOKEN | Mastodon-compatible API |
 | Digg | None (digg-pp-cli binary) | AI leaderboard headlines |

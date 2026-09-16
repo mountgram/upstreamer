@@ -96,6 +96,42 @@ function githubHeaders(token?: string): Record<string, string> {
   return headers;
 }
 
+// GitHub search qualifiers the planner sometimes writes straight into the
+// topic (created:>, language:, is:issue, ...). Strip them so the plain-text
+// topic is what gets searched, and detect qualifier-only/empty topics so we
+// skip the network instead of querying an empty term that matches the whole
+// site.
+const QUALIFIER_KEYS = [
+  "created", "updated", "pushed", "merged", "closed", "author", "assignee",
+  "mentions", "commenter", "involves", "team", "committer", "label", "labels",
+  "milestone", "project", "state", "status", "is", "type", "repo", "owner",
+  "org", "user", "language", "topic", "topics", "stars", "forks", "size",
+  "followers", "mirror", "archived", "head", "base", "review", "draft",
+  "merged", "reviewed-by", "review-requested", "deployment", "branch",
+];
+
+const QUALIFIER_KEY_ALT = QUALIFIER_KEYS.join("|");
+const QUALIFIER_RE = new RegExp(
+  `(?:(?<=[\\s,;(\\["'])|^)(?:${QUALIFIER_KEY_ALT}):(?:[<>]=?)?(?:"[^"]*"|[^\\s,;()\\[\\]]+)[,;]?`,
+  "g"
+);
+const WRAPPED_QUALIFIER_RE = new RegExp(
+  `[\\(\\["'](?:${QUALIFIER_KEY_ALT}):(?:[<>]=?)?(?:"[^"]*"|[^\\s,;()\\[\\]]+)[\\)\\]"']`,
+  "g"
+);
+const EMPTY_WRAPPER_RE = /\(\s*\)|\[\s*\]|""|''/g;
+
+export function stripSearchQualifiers(text: string): string {
+  let stripped = text.replace(WRAPPED_QUALIFIER_RE, " ").replace(QUALIFIER_RE, " ");
+  let cleaned = stripped;
+  for (let i = 0; i < 4; i++) {
+    cleaned = stripped.replace(EMPTY_WRAPPER_RE, "");
+    if (cleaned === stripped) break;
+    stripped = cleaned;
+  }
+  return cleaned.replace(/\s+/g, " ").trim();
+}
+
 function resolveToken(config: Config): string | undefined {
   if (config.githubToken) return config.githubToken;
   try {
@@ -268,10 +304,18 @@ export async function searchGitHub(
   const limit = depthLimits[depth] || 10;
   const token = resolveToken(config);
 
+  const plainQuery = stripSearchQualifiers(query);
+  if (!plainQuery) {
+    // Qualifier-only (or empty) topics leave nothing to search on. Skip the
+    // network rather than querying an empty term, and report a clean
+    // no-results instead of an error.
+    return [];
+  }
+
   try {
     const tasks: Array<Promise<SourceItem[]>> = [
-      fetchRepos(query, fromDate, limit, token),
-      fetchIssues(query, fromDate, limit, token),
+      fetchRepos(plainQuery, fromDate, limit, token),
+      fetchIssues(plainQuery, fromDate, limit, token),
     ];
     if (options?.githubUser) tasks.push(fetchPersonActivity(options.githubUser, fromDate, limit, token));
     if (options?.githubRepos?.length) tasks.push(fetchRepoActivity(options.githubRepos, fromDate, limit, token));
@@ -287,3 +331,5 @@ export async function searchGitHub(
     return [];
   }
 }
+
+export const __test__ = { stripSearchQualifiers };

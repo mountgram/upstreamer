@@ -68,6 +68,8 @@ Users start with a reservoir of goodwill. Every friction point depletes it. Depl
 
 ## Design Audit Checklist
 
+Apply these at each page. Each finding gets a severity rating and category.
+
 ### 1. Visual Hierarchy and Composition (8 items)
 - Clear focal point? One primary CTA per view?
 - Eye flows naturally top-left to bottom-right?
@@ -85,8 +87,12 @@ Users start with a reservoir of goodwill. Every friction point depletes it. Depl
 - Measure: 45-75 chars per line (66 ideal)
 - Heading hierarchy: no skipped levels (h1 to h3 without h2)
 - Weight contrast: >= 2 weights used for hierarchy
-- No blacklisted fonts (Papyrus, Comic Sans, Lobster, Impact)
-- If primary font is Inter/Roboto/Open Sans/Poppins → flag as potentially generic
+- No banned fonts (Papyrus, Comic Sans, Lobster, Impact, Jokerman, Bleeding Cowboys, Permanent Marker, Bradley Hand, Brush Script, Hobo, Trajan, Raleway, Clash Display, Courier New)
+- Display face on the overused list (Inter, Roboto, Arial, Open Sans, Lato, Montserrat, Poppins, ...) → flag; as body/UI on an Operate or Read surface it passes when DESIGN.md says so
+- `text-wrap: balance` or `text-wrap: pretty` on headings
+- Curly quotes used, not straight quotes
+- Ellipsis character (`…`) not three dots (`...`)
+- `font-variant-numeric: tabular-nums` on number columns
 - Body text >= 16px
 - Caption/label >= 12px
 - No letterspacing on lowercase text
@@ -97,6 +103,9 @@ Users start with a reservoir of goodwill. Every friction point depletes it. Depl
 - Semantic colors consistent (success=green, error=red, warning=yellow/amber)
 - No color-only encoding (always add labels, icons, or patterns)
 - Dark mode: surfaces use elevation, not just lightness inversion
+- Dark mode: text off-white (~#E0E0E0), not pure white
+- Primary accent desaturated 10-20% in dark mode
+- `color-scheme: dark` on html element (if dark mode present)
 - No red/green only combinations (8% of men have red-green deficiency)
 - Neutral palette is warm or cool consistently — not mixed
 
@@ -106,11 +115,15 @@ Users start with a reservoir of goodwill. Every friction point depletes it. Depl
 - Alignment is consistent — nothing floats outside the grid
 - Rhythm: related items closer together, distinct sections further apart
 - Border-radius hierarchy (not uniform bubbly radius on everything)
+- Inner radius = outer radius - gap (nested elements)
 - No horizontal scroll on mobile
 - Max content width set (no full-bleed body text)
+- `env(safe-area-inset-*)` for notch devices
+- URL reflects state (filters, tabs, pagination in query params)
+- Flex/grid used for layout (not JS measurement)
 - Breakpoints: mobile (375), tablet (768), desktop (1024), wide (1440)
 
-### 5. Interaction States (10 items)
+### 5. Interaction States (12 items)
 - Hover state on all interactive elements
 - `focus-visible` ring present (never `outline: none` without replacement)
 - Active/pressed state with depth effect or color shift
@@ -121,35 +134,41 @@ Users start with a reservoir of goodwill. Every friction point depletes it. Depl
 - Success: confirmation animation or color, auto-dismiss
 - Touch targets >= 44px on all interactive elements
 - `cursor: pointer` on all clickable elements
+- Mindless choice audit: every decision point (button, link, dropdown, modal choice) is a mindless click (obvious what happens). If a click requires thought about whether it's the right choice, flag as HIGH.
+- Browser surfaces themed from the palette: `::selection`, caret, scrollbars, focus ring, underline offset, tabular numerals. Left at defaults, the page reads as assembled, not designed.
 
 ### 6. Responsive Design (8 items)
 - Mobile layout makes design sense (not just stacked desktop columns)
 - Touch targets sufficient on mobile (>= 44px)
 - No horizontal scroll on any viewport
+- Images handle responsive (srcset, sizes, or CSS containment)
 - Text readable without zooming on mobile (>= 16px body)
 - Navigation collapses appropriately (hamburger, bottom nav, etc.)
-- Forms usable on mobile (correct input types)
+- Forms usable on mobile (correct input types, no autoFocus on mobile)
 - No `user-scalable=no` or `maximum-scale=1` in viewport meta
 
-### 7. Motion and Animation (6 items)
+### 7. Motion and Animation (7 items)
 - Easing: ease-out for entering, ease-in for exiting, ease-in-out for moving
-- Duration: 50-700ms range
+- Duration: 50-700ms range (nothing slower unless page transition)
 - Purpose: every animation communicates something (state change, attention, spatial relationship)
 - `prefers-reduced-motion` respected
 - No `transition: all` — properties listed explicitly
-- Only `transform` and `opacity` animated (not layout properties)
+- Only `transform` and `opacity` animated (not layout properties like width, height, top, left)
+- One authored motion moment per page: not the same entrance on every section, not a hover effect on everything. Content never hides behind animation timing.
 
-### 8. Content and Microcopy (8 items)
+### 8. Content and Microcopy
 - Empty states designed with warmth (message + action + illustration/icon)
 - Error messages specific: what happened + why + what to do next
 - Button labels specific ("Save API Key" not "Continue" or "Submit")
 - No placeholder/lorem ipsum text visible in production
+- Truncation handled (`text-overflow: ellipsis`, `line-clamp`, or `break-words`)
 - Active voice ("Install the CLI" not "The CLI will be installed")
+- Loading states end with `…` ("Saving…" not "Saving...")
 - Destructive actions have confirmation modal or undo window
-- Happy talk detection: scan for introductory paragraphs that tell users how great the site is. Flag for removal.
-- Instructions detection: if users need to read instructions, the design has failed.
+- Happy talk detection: scan for introductory paragraphs that tell users how great the site is. If you can hear "blah blah blah", it's happy talk. Flag for removal.
+- Instructions detection: any visible instructions longer than one sentence. If users need to read instructions, the design has failed. Flag the instructions AND the interaction they're compensating for.
 
-### 9. AI Slop Detection (11 anti-patterns)
+### 9. AI Slop Detection
 
 The test: would a human designer at a respected studio ever ship this?
 
@@ -164,14 +183,20 @@ The test: would a human designer at a respected studio ever ship this?
 - Generic hero copy ("Welcome to [X]", "Unlock the power of...")
 - Cookie-cutter section rhythm (hero → 3 features → testimonials → pricing → CTA)
 - system-ui or `-apple-system` as the PRIMARY display/body font
+- Gradient text as emphasis
+- Cream ground + serif display + terracotta accent as a default palette
+- Hero metric rows ("10k+ users", "99.9%")
+- Nested cards (a card inside a card)
+- A kicker or pill label floating above the hero headline
+- Glowing edges, radial halos, or spotlight glows on dark surfaces
 
 ### 10. Performance as Design (6 items)
 - LCP < 2.0s (web apps), < 1.5s (informational sites)
 - CLS < 0.1 (no visible layout shifts during load)
-- Skeleton quality: shapes match real content layout
-- Images: `loading="lazy"`, width/height dimensions set
-- Fonts: `font-display: swap`
-- No visible font swap flash (FOUT)
+- Skeleton quality: shapes match real content layout, shimmer animation
+- Images: `loading="lazy"`, width/height dimensions set, WebP/AVIF format
+- Fonts: `font-display: swap`, preconnect to CDN origins
+- No visible font swap flash (FOUT) — critical fonts preloaded
 
 ## Design Hard Rules
 
@@ -233,6 +258,8 @@ Findings are rated by impact:
 - **D:** Noticeable problems. Feels unfinished or careless.
 - **F:** Actively hurting user experience. Needs significant rework.
 
+**Grade computation:** Each category starts at A. Each P0/P1 finding drops one letter grade. Each P2 finding drops half a letter grade. P3 findings are noted but do not affect the grade. Minimum is F.
+
 **Category weights for Design Score:**
 
 | Category | Weight |
@@ -247,6 +274,8 @@ Findings are rated by impact:
 | AI Slop | 5% |
 | Motion | 5% |
 | Performance Feel | 5% |
+
+AI Slop is 5% of Design Score but also graded independently as a headline metric.
 
 ## Audit Workflow
 
@@ -277,7 +306,39 @@ Walk 2-3 key user flows and evaluate the feel of each interaction:
 - Feedback clarity: Did the action clearly succeed or fail?
 - Form polish: Focus states visible? Validation timing correct?
 
-Track the goodwill reservoir across the flow. Start at 70/100. Subtract points for friction (hidden info, format punishment, interstitials, sloppy appearance). Add points for delight (obvious top tasks, upfront info, saved steps, easy error recovery).
+**Narration mode:** Narrate the flow in first person. "I click 'Sign Up'... spinner appears... 3 seconds pass... still spinning... I'm getting nervous. Finally the dashboard loads, but where am I? The nav doesn't highlight anything." Name the specific element, its position, its visual weight. If you can't name it specifically, you're not actually experiencing the flow, you're generating platitudes.
+
+### Goodwill Reservoir
+
+As you walk the user flow, maintain a goodwill meter starting at 70/100. These scores are heuristic, not measured. The value is in identifying specific drains and fills, not in the final number.
+
+Subtract points for:
+- Hidden information the user would want (pricing, contact, shipping): -15
+- Format punishment (rejecting valid input like dashes in phone numbers): -10
+- Unnecessary information requests: -10
+- Interstitials, splash screens, forced tours blocking the task: -15
+- Sloppy or unprofessional appearance: -10
+- Ambiguous choices that require thinking: -5 each
+
+Add points for:
+- Top user tasks are obvious and prominent: +10
+- Upfront about costs and limitations: +5
+- Saves steps (direct links, smart defaults, autofill): +5 each
+- Graceful error recovery with specific fix instructions: +10
+- Apologizes when things go wrong: +5
+
+Report the final goodwill score:
+
+```
+Goodwill: 70 ████████████████████░░░░░░░░░░
+  Step 1: Login page        70 → 75  (+5 obvious primary action)
+  Step 2: Dashboard          75 → 60  (-15 interstitial tour popup)
+  Step 3: Settings           60 → 50  (-10 format punishment on phone)
+  Step 4: Billing            50 → 35  (-15 hidden pricing info)
+  FINAL: 35/100 — CRITICAL UX DEBT
+```
+
+Below 30 = critical UX debt. 30-60 = needs work. Above 60 = healthy. Include the biggest drains and fills as specific findings.
 
 ### Phase 5: Cross-Page Consistency
 
