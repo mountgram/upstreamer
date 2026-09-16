@@ -2,7 +2,7 @@
 
 Last30Days is an installable agent skill with a bundled Bun/TypeScript world-reading SDK and research CLI under `scripts/last30days/`. Installing the skill brings the agent instructions, source code, source adapters, tests, config examples, and planning/reranking references together in one skill directory.
 
-It gives agents practical access to current-world sources: Exa or Brave web search, OpenAI web grounding, Reddit, Hacker News, X/Twitter, YouTube, Gemini YouTube understanding, Gemini Maps grounding, TikTok, GitHub, Polymarket, StockTwits (financial/crypto topics), Open-Meteo weather, Digg, arXiv, Techmeme, Trustpilot, LinkedIn, Bluesky, Truth Social, health sources, and other optional sources. The `--hiring-signals` flag analyzes public job postings to surface company focus shifts.
+It gives agents practical access to current-world sources: Exa or Brave web search, OpenAI web grounding, Reddit, Hacker News, X/Twitter, YouTube, Gemini YouTube understanding, Gemini Maps grounding, TikTok, GitHub, Polymarket, StockTwits (financial/crypto topics), Open-Meteo weather, Digg, arXiv, Techmeme, Trustpilot, LinkedIn, Bluesky, Truth Social, Meta Ad Library (opt-in brand paid creatives), Telegram public channels (opt-in), health sources, and other optional sources. The `--hiring-signals` flag analyzes public job postings to surface company focus shifts.
 
 ## Install The Skill
 
@@ -78,7 +78,7 @@ Public or local sources can still work when available:
 - Weather/current conditions via Open-Meteo public APIs
 - Jobs/Hiring Signals via public ATS APIs (Greenhouse, Lever, Ashby)
 
-Optional keyed sources include Exa, Brave, OpenAI web grounding, Gemini YouTube/Maps grounding, Serper, Parallel, X/Grok, Perplexity/Sonar through OpenRouter, ScrapeCreators social sources (TikTok, Instagram, Threads, Pinterest, LinkedIn), Bluesky, and Truth Social. Perplexity/Sonar is expensive and opt-in only via `--web-backend perplexity` or `--include-sources perplexity`. See `scripts/last30days/.env.example` inside the installed skill for the exact variables.
+Optional keyed sources include Exa, Brave, OpenAI web grounding, Gemini YouTube/Maps grounding, Serper, Parallel, X/Grok, Perplexity/Sonar through OpenRouter, ScrapeCreators social sources (TikTok, Instagram, Threads, Pinterest, LinkedIn), Meta Ad Library (opt-in via `--include-sources meta_ads`), Telegram public channels (opt-in via `--include-sources telegram` plus `TELEGRAM_SOURCES`), Bluesky, and Truth Social. Perplexity/Sonar is expensive and opt-in only via `--web-backend perplexity` or `--include-sources perplexity`. See `scripts/last30days/.env.example` inside the installed skill for the exact variables.
 
 ## Run And Verify
 
@@ -104,6 +104,9 @@ bunx tsx ../../../../eval/run.ts
 - The X/Grok adapter uses xAI `responses.create` with the `x_search` and `web_search` tools, parsing strict JSON posts from `output_text`.
 - The OpenAI adapter uses Responses API web-search grounding as the preferred LLM-grounded web option when configured.
 - The Gemini adapters use Gemini for YouTube video understanding and Google Maps grounding for spatial/place questions.
+- The Meta Ads adapter surfaces what a brand is paying to say this month from the Meta Ad Library; it is opt-in and needs `SCRAPECREATORS_API_KEY`.
+- The Telegram adapter reads named public channels through ScrapeCreators; it is opt-in and needs `SCRAPECREATORS_API_KEY` plus `TELEGRAM_SOURCES`.
+- `OPENAI_BASE_URL`, `XAI_BASE_URL`, and `OPENROUTER_BASE_URL` accept an API root (e.g. `https://host/v1`) to override provider endpoints.
 - The Weather adapter uses Open-Meteo geocoding and forecast APIs and requires no key.
 - Perplexity/Sonar is available through OpenRouter but intentionally de-emphasized because of cost; opt in explicitly when needed.
 - Unofficial scraping-based web search adapters are intentionally omitted in favor of Exa and Brave.

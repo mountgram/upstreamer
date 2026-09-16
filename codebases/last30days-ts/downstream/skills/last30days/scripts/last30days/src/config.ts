@@ -18,6 +18,9 @@ export interface Config {
   apifyApiToken?: string;
   githubToken?: string;
   last30daysDir?: string;
+  openaiBaseUrl?: string;
+  xaiBaseUrl?: string;
+  openrouterBaseUrl?: string;
 }
 
 let _config: Config | null = null;
@@ -47,7 +50,7 @@ function loadConfig(): Config {
         const eqIdx = trimmed.indexOf("=");
         if (eqIdx === -1) continue;
         const key = trimmed.slice(0, eqIdx).trim();
-        const value = stripEnvQuotes(trimmed.slice(eqIdx + 1).trim());
+        const value = stripEnvQuotes(stripInlineComment(trimmed.slice(eqIdx + 1).trim()));
         if (!env[key]) env[key] = value;
       }
     }
@@ -71,6 +74,9 @@ function loadConfig(): Config {
   config.apifyApiToken = env.APIFY_API_TOKEN;
   config.githubToken = env.GITHUB_TOKEN;
   config.last30daysDir = env.LAST30DAYS_DIR || "./output";
+  config.openaiBaseUrl = normalizeApiRoot(env.OPENAI_BASE_URL);
+  config.xaiBaseUrl = normalizeApiRoot(env.XAI_BASE_URL);
+  config.openrouterBaseUrl = normalizeApiRoot(env.OPENROUTER_BASE_URL);
   if (env.LAST30DAYS_TRUSTPILOT_NO_BROWSER) {
     (config as Record<string, unknown>).LAST30DAYS_TRUSTPILOT_NO_BROWSER = env.LAST30DAYS_TRUSTPILOT_NO_BROWSER;
   }
@@ -87,4 +93,37 @@ function stripEnvQuotes(value: string): string {
     }
   }
   return value;
+}
+
+// Strip a trailing `# comment` from an unquoted .env value. `#` inside quotes
+// or glued to the value stays literal, matching upstream env parsing.
+export function stripInlineComment(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.startsWith('"') || trimmed.startsWith("'")) return value;
+  let quote: string | null = null;
+  for (let i = 0; i < value.length; i++) {
+    const ch = value[i];
+    if (quote) {
+      if (ch === quote && value[i - 1] !== "\\") quote = null;
+      continue;
+    }
+    if (ch === '"' || ch === "'") {
+      quote = ch;
+      continue;
+    }
+    if (ch === "#" && (i === 0 || /\s/.test(value[i - 1]))) {
+      return value.slice(0, i).trimEnd();
+    }
+  }
+  return value.trimEnd();
+}
+
+// Accept an OpenAI-compatible API root (e.g. `https://host` or `https://host/v1`)
+// and normalize to a trailing-slash-free base URL. Returns undefined for empty.
+export function normalizeApiRoot(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const trimmed = raw.trim();
+  if (!trimmed) return undefined;
+  const base = trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
+  return base || undefined;
 }

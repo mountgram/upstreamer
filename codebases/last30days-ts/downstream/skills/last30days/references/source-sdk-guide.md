@@ -12,9 +12,10 @@ Every retained source in Last30Days TS is importable as a standalone TypeScript 
 | Job | Useful Sources |
 |-----|----------------|
 | General web/news | `exa`, `brave`, `serper`, `openai_web`, `parallel`, `techmeme`, `digg` |
-| Social/community reaction | `reddit`, `hackernews`, `x`, `bluesky`, `threads`, `tiktok`, `instagram`, `linkedin` |
+| Social/community reaction | `reddit`, `hackernews`, `x`, `bluesky`, `threads`, `tiktok`, `instagram`, `linkedin`, `telegram` |
 | Jobs and company direction | `jobs` for Greenhouse, Lever, and Ashby boards |
 | Stocks, crypto, predictions | `stocktwits`, `polymarket`, plus web search for context |
+| Advertising and brand paid messages | `meta_ads` for Meta Ad Library creatives (opt-in) |
 | Weather and local conditions | `weather` |
 | Places and local discovery | `gemini_maps`, browser verification for exact venue pages |
 | Video content | `youtube`, `gemini_youtube` |

@@ -26,8 +26,8 @@ and directory-scoped edit restrictions from freeze.
 ```bash
 FREEZE_DIR=$(cd "<user-provided-path>" 2>/dev/null && pwd)
 FREEZE_DIR="${FREEZE_DIR%/}/"
-mkdir -p /tmp/tstack
-echo "$FREEZE_DIR" > /tmp/tstack/freeze-dir.txt
+mkdir -p "${TMPDIR:-/tmp}/tstack"
+echo "$FREEZE_DIR" > "${TMPDIR:-/tmp}/tstack/freeze-dir.txt"
 ```
 
 3. Tell the user:
@@ -52,5 +52,5 @@ confirmation if outside. See freeze for the enforcement protocol.
 The freeze boundary is read from:
 
 ```bash
-cat /tmp/tstack/freeze-dir.txt 2>/dev/null || echo "NO_FREEZE"
+cat "${TMPDIR:-/tmp}/tstack/freeze-dir.txt" 2>/dev/null || echo "NO_FREEZE"
 ```

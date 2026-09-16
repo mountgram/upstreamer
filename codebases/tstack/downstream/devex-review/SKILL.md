@@ -189,3 +189,11 @@ Then include:
 - Larger product improvements: structural changes or missing surfaces.
 - Untested areas and blockers.
 - Recommended re-test path after fixes.
+
+## Next Steps
+
+After the audit, recommend:
+
+- Fix the gaps found, starting with the highest developer-time-lost-to-effort ratio.
+- Re-run this audit after fixes to verify the improvement.
+- If plan-vs-reality showed a significant gap, flag it for the next planning pass on the following feature.

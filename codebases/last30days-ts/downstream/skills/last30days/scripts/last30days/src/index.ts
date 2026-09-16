@@ -25,6 +25,8 @@ export { searchWeather } from "./sources/weather.js";
 export { searchStocktwits, isFinancialTopic } from "./sources/stocktwits.js";
 export { searchXiaohongshu } from "./sources/xiaohongshu.js";
 export { searchCorpus, corpusAvailable } from "./sources/corpus.js";
+export { searchMetaAds } from "./sources/meta_ads.js";
+export { searchTelegram } from "./sources/telegram.js";
 export type { Report, RunOptions, Candidate, SourceItem, Cluster, SubQuery, QueryPlan, SourceOutcome, LibraryContext, FreshnessVerdict, DiscoveryTopic, DiscoveryReport, CorpusScanResult } from "./schema.js";
 
 function generateId(): string {
@@ -118,6 +120,12 @@ export async function runResearch(options: RunOptions): Promise<Report> {
   if (config.bskyHandle && config.bskyAppPassword) availableSources.push("bluesky");
   if (config.truthsocialToken) availableSources.push("truthsocial");
   if (config.scrapecreatorsApiKey) availableSources.push("linkedin");
+
+  // Opt-in ScrapeCreators lanes: never inferred from topic shape, run only on
+  // explicit source selection. Meta Ads resolves a brand's live paid creatives;
+  // Telegram reads named public channels (requires TELEGRAM_SOURCES).
+  if (config.scrapecreatorsApiKey && wantsSource("meta_ads")) availableSources.push("meta_ads");
+  if (config.scrapecreatorsApiKey && process.env.TELEGRAM_SOURCES && wantsSource("telegram")) availableSources.push("telegram");
 
   // Xiaohongshu (requires XIAOHONGSHU_API_URL or APIFY_API_TOKEN)
   if (config.apifyApiToken || process.env.XIAOHONGSHU_API_URL) availableSources.push("xiaohongshu");
@@ -316,6 +324,10 @@ async function searchSource(
       return (await import("./sources/trustpilot.js")).searchTrustpilot(options.topic, from, to, depth, config);
     case "linkedin":
       return (await import("./sources/linkedin.js")).searchLinkedIn(options.topic, from, to, depth, config);
+    case "meta_ads":
+      return (await import("./sources/meta_ads.js")).searchMetaAds(options.topic, from, to, depth, config);
+    case "telegram":
+      return (await import("./sources/telegram.js")).searchTelegram(options.topic, from, to, depth, config);
     case "health":
       return (await import("./sources/health.js")).searchHealth(options.topic, from, to, depth, config);
     case "weather":

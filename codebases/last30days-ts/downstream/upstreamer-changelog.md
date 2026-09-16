@@ -1,5 +1,18 @@
 # Upstreamer Changelog
 
+## September 2026 Sync (Incremental)
+
+Upstream advanced through ~98 commits (v3.24.0 era) with two new source lanes, a pile of robustness fixes, and infrastructure/doc work. The portable, contract-relevant changes were ported into the TypeScript SDK; cookie/session auth, official-X-API, and Grok-CLI paths stayed dropped per the rewrite contract.
+
+- Added **Meta Ads** source adapter (`meta_ads`) for what a brand is *paying* to say this month: it resolves a brand's advertiser page in the Meta Ad Library, pulls creatives launched in the run window, and reads back ad copy, launch date, placements, CTA, landing product, promo code, and optional video transcripts. Opt-in only via `--include-sources meta_ads`; needs `SCRAPECREATORS_API_KEY`.
+- Added **Telegram** source adapter (`telegram`) for named public channels through ScrapeCreators. Opt-in only via `--include-sources telegram`; needs `SCRAPECREATORS_API_KEY` plus a comma-separated `TELEGRAM_SOURCES` channel list.
+- Fixed **Reddit** ranking so downvoted posts (negative score) no longer feed negative engagement; they now floor at zero.
+- Fixed **GitHub** search to strip `created:>`-style search qualifiers from topics and skip the network (clean no-results) on qualifier-only or empty topics.
+- Fixed **`.env` parsing** to strip trailing `# comments` from unquoted values, matching the documented `.env.example` shape.
+- Added **provider base-URL overrides** (`OPENAI_BASE_URL`, `XAI_BASE_URL`, `OPENROUTER_BASE_URL`) that accept an API root (e.g. `https://host/v1`).
+- Deferred upstream's **Amazon reviews** and **Bright Data** lanes: they depend on a browser-login scraping CLI, which the contract keeps out of this skill. Upstream's official-X-API and Grok-CLI X paths were dropped because X/Twitter remains xAI/Grok-API-only here.
+- All deterministic tests pass (78/78). Typecheck passes. Mechanical verification passes. Live evals remain credential-constrained in CI and report missing keys cleanly.
+
 ## July 2026 Sync 4 (Incremental)
 
 Upstream advanced with CI/dependency maintenance (dependabot bumps for GitHub Actions), changelog workflow tooling, and several source-adapter improvements: Reddit now maps requested date windows to smarter time buckets; Polymarket improved market matching with domain-word handling; YouTube added concurrency gating and search caching; and the pipeline received entity-miss pruning in ranking. Most upstream changes were internal engine/infrastructure work dropped per contract.
