@@ -1,8 +1,7 @@
 name: Upstreamer Sync
 
+# Preserved for reference. The experiment is complete and repository Actions are disabled.
 on:
-  schedule:
-    - cron: "17 11 * * *"
   workflow_dispatch:
 
 permissions:
@@ -55,5 +54,5 @@ jobs:
           body: |
             Automated upstreamer sync for configured downstream codebases.
 
-            This workflow runs every 24 hours and opens a PR only when generated outputs, state, or eval reports changed.
+            This preserved workflow has no automatic trigger. If explicitly re-enabled and run manually, it opens a PR only when generated outputs, state, or eval reports changed.
           labels: upstreamer, automated

@@ -1,5 +1,19 @@
 # upstreamer
 
+> **Archived: the experiment is complete.** Upstreamer is no longer actively maintained, and automated upstream syncing and GitHub Actions are disabled. The code, contracts, and generated examples remain available to study, reuse, and build on.
+
+Upstreamer was a fun project and a worthwhile experiment in **synthetic codebases**: using agents to translate an upstream project into a downstream with its own purpose, guided by an explicit rewrite contract. This experiment is finished for now. The idea behind it still feels worth pursuing.
+
+**Open source should be a graph.** Projects can share behavior, ideas, tests, and improvements while taking different shapes for different needs. A Python tool can inform a TypeScript library; a full framework can inform a portable skill pack. Those relationships deserve to be explicit, with attribution, contracts, and verification connecting the projects. Upstream projects can stay focused while those variations develop elsewhere.
+
+Agents change what it means to contribute. Contributing back still matters, but a useful change may no longer fit the upstream language, architecture, or goals. We should also think about **contributing forward**: carrying ideas and improvements into new projects, making their origins and transformations clear, and sharing what we learn so other parts of the ecosystem can build on it. The unit of progress is the ecosystem, not just a single repository.
+
+Hopefully, upstreamer will stand as an early experiment pointing toward that future. This particular implementation can rest while the idea travels forward. Thank you to the upstream projects that made the experiment possible.
+
+The rest of this README preserves how the experiment worked. Setup and installation instructions are historical reference; the examples are frozen at their final synced versions.
+
+## The Experiment
+
 Keep **synthetic codebases** in sync with upstream repos, rewritten around your own local purpose.
 
 Upstreamer is for projects that should follow an upstream repo without becoming a normal fork. You write a plain-English rewrite contract, run the wrapper, and get a downstream codebase that keeps the parts you care about while removing or replacing the parts that do not fit.
@@ -62,7 +76,7 @@ npx skills add https://github.com/mountgram/upstreamer/tree/main/codebases/last3
 
 Use `tstack` when you want portable review, QA, design, security, shipping, and planning workflows. Use `last30days` when you want an agent to install a self-contained current-world source skill with bundled Bun/TypeScript source SDKs, direct source CLI access, frontmatter-formatted references, web/news/jobs/markets/weather/maps/video guidance, OpenAI/Gemini grounding options, and guidance for using optional browser tools on dynamic sources like LinkedIn or Instagram.
 
-## Current Examples
+## Examples From The Experiment
 
 | Codebase | Upstream | Downstream purpose |
 | --- | --- | --- |
@@ -176,9 +190,9 @@ Important per-codebase paths:
 
 ## Library Status
 
-Today `upstreamer` is a repo-local Bash wrapper plus agent skills, not an installable library or package API.
+At the close of the experiment, `upstreamer` is a repo-local Bash wrapper plus agent skills, not an installable library or package API.
 
-Generated downstreams can be installable skill bundles, as `last30days-ts` demonstrates. If `upstreamer` itself grows a library interface, the likely extraction points are contract parsing, upstream resolution, conversion prompt construction, state updates, and verifier execution. Until then, `scripts/upstream` is the supported interface.
+Generated downstreams can be installable skill bundles, as `last30days-ts` demonstrates. Anyone building on the experiment could explore contract parsing, upstream resolution, conversion prompt construction, state updates, and verifier execution as library interfaces. This archived implementation uses `scripts/upstream` as its entry point.
 
 ## Requirements
 

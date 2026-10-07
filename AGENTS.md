@@ -2,6 +2,10 @@
 
 Start by reading `@README.md`. It explains what upstreamer is, how synthetic codebases work, and how the wrapper runs a configured conversion.
 
+## Project Status
+
+The upstreamer experiment is complete and this repository is archived. The code, contracts, and generated downstreams are preserved as reference material. GitHub Actions are disabled at the repository level, and workflow files retain only manual triggers. Do not resume automated syncing or re-enable Actions unless explicitly requested.
+
 ## Philosophy
 
 Upstreamer keeps generated downstream codebases close to real upstream repositories while letting each downstream repo be rewritten around a clear local purpose. The important artifact is the rewrite contract, not a pile of glue code.
@@ -22,6 +26,7 @@ Prefer small, explicit conventions:
 - `docs/`: explanatory documentation for upstreamer concepts and workflows.
 - `docs/SYNTHETIC_CODEBASES.md`: explanation of synthetic codebases, when to use them, and how contracts/evals fit together.
 - `AGENTS.md`: this guide for agents working in the repository. Update this file when the directory structure or agent workflow changes.
+- `.github/workflows/`: preserved manual workflows; automatic triggers have been removed and GitHub Actions are disabled for the archived repository.
 - `.claude-plugin/plugin.json`: discovery manifest that lets the `skills` CLI find nested generated downstream skills, such as `last30days`, when updating from the repo root.
 - `scripts/upstream`: command wrapper for running one configured codebase through opencode.
 - `.agents/skills/upstreamer-converter/SKILL.md`: reusable workflow for converting an upstream repo into a downstream output from an `upstreamer.md` contract.

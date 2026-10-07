@@ -1,18 +1,7 @@
 name: Public Skills
 
+# Preserved for reference. The experiment is complete and repository Actions are disabled.
 on:
-  pull_request:
-    paths:
-      - ".github/workflows/public-skills.yml"
-      - "scripts/verify-public-skills"
-      - "codebases/*/downstream/**"
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/public-skills.yml"
-      - "scripts/verify-public-skills"
-      - "codebases/*/downstream/**"
   workflow_dispatch:
 
 jobs:
